@@ -4,6 +4,8 @@ async function loadAll() {
     await Promise.all([loadEvents(), loadMeals(), loadBudget(), loadMedicines(), loadNotes(), loadShopping(), loadUpcoming()]);
   } catch (error) {
     handleError(error);
+  } finally {
+    scheduleKioskColumnSizing();
   }
 }
 
@@ -225,6 +227,7 @@ async function loadBudget() {
   const remainingEl = document.getElementById("budgetRemaining");
   remainingEl.textContent = `${remaining.toLocaleString("no-NO")} kr gjenstår`;
   remainingEl.className = remaining >= 0 ? "budget-remaining positive" : "budget-remaining negative";
+  scheduleKioskColumnSizing();
 }
 
 async function loadExpenseHistory() {
@@ -288,11 +291,15 @@ async function loadNotes() {
   const response = await apiFetch("/api/notes");
   notesCache = await response.json();
   const container = document.getElementById("notesList");
+  const notesCard = container?.closest(".notes-card");
   if (!notesCache.length) {
     container.innerHTML = '<div class="empty-state empty-state-collapsible">Ingen notater</div>';
+    notesCard?.classList.add("is-empty");
+    scheduleKioskColumnSizing();
     return;
   }
 
+  notesCard?.classList.remove("is-empty");
   container.innerHTML = notesCache.slice(0, 5).map((note) => {
     const owner = familyMembers.find((member) => member.id === note.owner_id);
     const ownerAvatar = owner ? getMemberAvatar(owner, "small") : "";
@@ -302,6 +309,7 @@ async function loadNotes() {
       <span class="item-name">${escapeHtml(note.title)}</span>
     </div>`;
   }).join("");
+  scheduleKioskColumnSizing();
 }
 
 async function loadShopping() {
@@ -310,6 +318,7 @@ async function loadShopping() {
   const container = document.getElementById("shoppingList");
   if (!shoppingCache.length) {
     container.innerHTML = '<div class="empty-state">Vi har det vi trenger!</div>';
+    scheduleKioskColumnSizing();
     return;
   }
 
@@ -324,6 +333,7 @@ async function loadShopping() {
       <span class="shop-qty">${item.quantity}</span>
     </div>`;
   }).join("");
+  scheduleKioskColumnSizing();
 }
 
 function setText(id, value) {
@@ -335,4 +345,42 @@ function setText(id, value) {
 
 function setCount(id, value) {
   setText(id, String(value));
+}
+
+let kioskSizingFrame = null;
+
+function scheduleKioskColumnSizing() {
+  if (kioskSizingFrame !== null) {
+    cancelAnimationFrame(kioskSizingFrame);
+  }
+
+  kioskSizingFrame = requestAnimationFrame(() => {
+    kioskSizingFrame = null;
+    syncKioskLeftColumnSizing();
+  });
+}
+
+function syncKioskLeftColumnSizing() {
+  const leftPanel = document.querySelector(".planner-page .side-panel:not(.side-panel-right)");
+  if (!leftPanel) return;
+
+  if (window.matchMedia("(max-width: 899px)").matches) {
+    leftPanel.style.removeProperty("--left-notes-max");
+    return;
+  }
+
+  const budgetCard = leftPanel.querySelector(".budget-card");
+  const notesCard = leftPanel.querySelector(".notes-card");
+  const notesList = document.getElementById("notesList");
+  if (!budgetCard || !notesCard || !notesList) return;
+
+  const panelHeight = leftPanel.getBoundingClientRect().height;
+  const budgetHeight = budgetCard.getBoundingClientRect().height;
+  const panelStyles = getComputedStyle(leftPanel);
+  const gap = Number.parseFloat(panelStyles.rowGap || panelStyles.gap || "0") || 0;
+  const remainingAfterBudget = Math.max(0, panelHeight - budgetHeight - (gap * 2));
+  const notesMax = Math.max(0, remainingAfterBudget / 2);
+
+  notesCard.classList.toggle("is-empty", notesList.children.length === 0);
+  leftPanel.style.setProperty("--left-notes-max", `${notesMax}px`);
 }

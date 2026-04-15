@@ -153,10 +153,18 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
                 const first = list.querySelector('.shop-item');
                 const listRect = list.getBoundingClientRect();
                 const firstRect = first.getBoundingClientRect();
+                const shoppingCardRect = document.querySelector('.shopping-card').getBoundingClientRect();
+                const notesCardRect = document.querySelector('.notes-card').getBoundingClientRect();
+                const budgetCardRect = document.querySelector('.budget-card').getBoundingClientRect();
+                const budgetDisplayRect = document.querySelector('.budget-display').getBoundingClientRect();
                 return [
                     list.scrollHeight - list.clientHeight,
                     firstRect.top - listRect.top,
-                    listRect.bottom - firstRect.bottom
+                    listRect.bottom - firstRect.bottom,
+                    shoppingCardRect.height,
+                    notesCardRect.height,
+                    budgetCardRect.height,
+                    budgetDisplayRect.height
                 ];
             }");
 
@@ -165,6 +173,8 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
             Assert.That(shoppingLayout[0], Is.LessThanOrEqualTo(1d), "Handleliste should keep one item visible without scroll even when notes grow.");
             Assert.That(shoppingLayout[1], Is.GreaterThanOrEqualTo(-1d), "Handleliste item should stay fully visible from the top.");
             Assert.That(shoppingLayout[2], Is.GreaterThanOrEqualTo(-1d), "Handleliste item should stay fully visible at the bottom.");
+            Assert.That(shoppingLayout[3], Is.GreaterThanOrEqualTo(shoppingLayout[4] - 1d), "Handleliste should keep layout priority and be at least as tall as Notater.");
+            Assert.That(shoppingLayout[5], Is.GreaterThanOrEqualTo(shoppingLayout[6] - 1d), "Budsjett should stay fixed to its own content needs.");
         });
     }
 

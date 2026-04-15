@@ -31,6 +31,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindForms();
   bindAvatarPreview();
   await loadAll();
+  if (typeof scheduleKioskColumnSizing === "function") {
+    window.addEventListener("resize", scheduleKioskColumnSizing, { passive: true });
+    scheduleKioskColumnSizing();
+  }
 });
 
 async function apiFetch(url, options = {}) {
