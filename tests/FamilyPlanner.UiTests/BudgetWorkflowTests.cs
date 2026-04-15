@@ -8,7 +8,7 @@ public sealed class BudgetWorkflowTests : DesktopPlannerUiTestBase
     [Test]
     public async Task BudgetAndExpenses_UpdateAndPersistThroughUi()
     {
-        await OpenModalBySelectorAsync(".budget-card .inline-action", "budgetModal");
+        await OpenModalBySelectorAsync(".quick-action:has-text('Utgift')", "budgetModal");
         await Page.Locator("#budgetModal .tabs button").Nth(1).ClickAsync();
         await Page.Locator("#budgetIncomeInput").FillAsync("70000");
         await Page.Locator("#budgetLimitInput").FillAsync("22000");
@@ -20,7 +20,7 @@ public sealed class BudgetWorkflowTests : DesktopPlannerUiTestBase
         Assert.That(updatedBudget.Income, Is.EqualTo(70000));
         Assert.That(updatedBudget.Limit, Is.EqualTo(22000));
 
-        await OpenModalBySelectorAsync(".budget-card .inline-action", "budgetModal");
+        await OpenModalBySelectorAsync(".quick-action:has-text('Utgift')", "budgetModal");
         await Assert.ThatAsync(() => Page.Locator("#expenseForm").IsVisibleAsync(), Is.True);
         await Assert.ThatAsync(() => Page.Locator("#budgetForm").IsVisibleAsync(), Is.False);
         await Page.Locator("#budgetModal .tabs button").Nth(0).ClickAsync();
@@ -35,7 +35,7 @@ public sealed class BudgetWorkflowTests : DesktopPlannerUiTestBase
         var createdExpense = withExpense.Expenses.Single(x => x.Description == "Movie night");
         Assert.That(withExpense.Spent, Is.GreaterThan(updatedBudget.Spent));
 
-        await OpenModalBySelectorAsync(".budget-card .inline-action", "budgetModal");
+        await OpenModalBySelectorAsync(".quick-action:has-text('Utgift')", "budgetModal");
         await Page.Locator("#budgetModal .tabs button").Nth(2).ClickAsync();
         await Page.Locator("#expenseHistory").WaitForAsync();
         await AcceptDialogAsync(

@@ -13,7 +13,7 @@ public sealed class EventWorkflowTests : DesktopPlannerUiTestBase
         var initialEvents = await GetApiAsync<List<PlannerEventDto>>($"/api/events?start={start}&end={end}") ?? [];
         var initialCount = initialEvents.Count;
 
-        await OpenModalAsync("Ny avtale", "eventModal");
+        await OpenModalBySelectorAsync(".quick-action:has-text('Avtale')", "eventModal");
         await Page.Locator("#eventTitle").FillAsync("Parent meeting");
         await Page.Locator("#eventDate").FillAsync(DateTime.Today.ToString("yyyy-MM-dd"));
         await Page.Locator("#eventStartTime").FillAsync("19:00");

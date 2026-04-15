@@ -8,7 +8,7 @@ public sealed class NoteWorkflowTests : DesktopPlannerUiTestBase
     [Test]
     public async Task NoteCrud_ViewAndEdit_PersistCorrectly()
     {
-        await OpenModalBySelectorAsync(".notes-card .inline-action", "noteModal");
+        await OpenModalBySelectorAsync(".quick-action:has-text('Notat')", "noteModal");
         await Page.Locator("#noteTitle").FillAsync("Packing list");
         await Page.Locator("#noteContent").FillAsync("Shoes and water bottle");
         await Page.Locator("#noteModal .btn-primary").ClickAsync();

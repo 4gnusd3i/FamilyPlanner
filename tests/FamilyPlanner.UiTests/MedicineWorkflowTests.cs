@@ -10,7 +10,7 @@ public sealed class MedicineWorkflowTests : DesktopPlannerUiTestBase
     [Test]
     public async Task MedicineCrud_ViewAndToggle_PersistCorrectly()
     {
-        await OpenModalBySelectorAsync(".medicine-card .inline-action", "medicineModal");
+        await OpenModalBySelectorAsync(".quick-action:has-text('Medisin')", "medicineModal");
         await Page.Locator("#medicineName").FillAsync("Vitamin D");
         await Page.Locator("#medicineTime").FillAsync("08:15");
         await Page.Locator("#medicineNote").FillAsync("Morning dose");

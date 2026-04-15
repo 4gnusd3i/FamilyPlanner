@@ -10,7 +10,7 @@ public sealed class ShoppingWorkflowTests : DesktopPlannerUiTestBase
     [Test]
     public async Task ShoppingCrud_AndToggle_PersistCorrectly()
     {
-        await OpenModalBySelectorAsync(".shopping-card .inline-action", "shoppingModal");
+        await OpenModalBySelectorAsync(".quick-action:has-text('Vare')", "shoppingModal");
         await Page.Locator("#shoppingItem").FillAsync("Diapers");
         await Page.Locator("#shoppingQty").FillAsync("3");
         await Page.Locator("#shoppingModal .btn-primary").ClickAsync();

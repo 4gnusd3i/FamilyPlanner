@@ -99,7 +99,7 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
             Assert.That(layout[17], Is.LessThan(layout[13]), "Empty notes should stay compact below the protected budget card.");
         });
 
-        await OpenModalAsync("Nytt måltid", "mealModal");
+        await OpenModalBySelectorAsync(".quick-action:has-text('Måltid')", "mealModal");
         await Expect(Page.Locator("#mealModal")).ToBeVisibleAsync();
         await Expect(Page.Locator("#mealName")).ToBeVisibleAsync();
         await AssertModalFitsViewportAsync("mealModal");

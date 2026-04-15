@@ -12,7 +12,7 @@ public sealed class MealWorkflowTests : DesktopPlannerUiTestBase
         var family = await GetApiAsync<List<FamilyMemberDto>>("/api/family") ?? [];
         var annaId = family.Single(x => x.Name == "Anna").Id;
 
-        await OpenModalBySelectorAsync(".add-meal-btn", "mealModal");
+        await OpenModalBySelectorAsync(".quick-action:has-text('Måltid')", "mealModal");
         await Page.Locator("#mealDay").SelectOptionAsync("2");
         await Page.Locator("#mealType").SelectOptionAsync("breakfast");
         await Page.Locator("#mealName").FillAsync("Pancakes");
