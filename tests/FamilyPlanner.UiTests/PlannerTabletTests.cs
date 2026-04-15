@@ -108,6 +108,33 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
         await WaitForModalStateAsync("mealModal", open: false);
     }
 
+    [Test]
+    public async Task TabletLandscape_LeftColumnShowsSingleItemsWithoutScroll()
+    {
+        await ClearKioskOptionalItemsAsync();
+        await AddSingleLeftColumnItemsAsync();
+        await Page.ReloadAsync();
+
+        await Expect(Page.Locator("#shoppingList")).ToContainTextAsync("Kontantkort");
+        await Expect(Page.Locator("#notesList")).ToContainTextAsync("SFO");
+
+        var overflow = await Page.EvaluateAsync<double[]>(
+            @"() => {
+                const shopping = document.querySelector('#shoppingList');
+                const notes = document.querySelector('#notesList');
+                return [
+                    shopping.scrollHeight - shopping.clientHeight,
+                    notes.scrollHeight - notes.clientHeight
+                ];
+            }");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(overflow[0], Is.LessThanOrEqualTo(1d), "Handleliste should show one item without scrolling.");
+            Assert.That(overflow[1], Is.LessThanOrEqualTo(1d), "Notater should show one item without scrolling.");
+        });
+    }
+
     private async Task ClearKioskOptionalItemsAsync()
     {
         using var client = await UiTestHost.CreateClientAsync();
@@ -135,5 +162,28 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
             var response = await client.PostAsJsonAsync("/api/events", new { delete = true, id = entry.Id });
             response.EnsureSuccessStatusCode();
         }
+    }
+
+    private async Task AddSingleLeftColumnItemsAsync()
+    {
+        using var client = await UiTestHost.CreateClientAsync();
+
+        var noteResponse = await client.PostAsync(
+            "/api/notes",
+            new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["title"] = "SFO",
+                ["content"] = "Torsdag hentes 16:00",
+            }));
+        noteResponse.EnsureSuccessStatusCode();
+
+        var shoppingResponse = await client.PostAsync(
+            "/api/shopping",
+            new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["item"] = "Kontantkort",
+                ["quantity"] = "1",
+            }));
+        shoppingResponse.EnsureSuccessStatusCode();
     }
 }
