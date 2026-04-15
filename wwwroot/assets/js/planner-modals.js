@@ -28,17 +28,43 @@ function formatTimeForInput(date) {
   return `${hours}:${minutes}`;
 }
 
-function addHoursToTimeValue(timeValue, hoursToAdd) {
+function normalizeTimeValue(timeValue) {
   if (!timeValue || !timeValue.includes(":")) return "";
   const [hoursText, minutesText] = timeValue.split(":");
   const hours = Number.parseInt(hoursText, 10);
   const minutes = Number.parseInt(minutesText, 10);
   if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return "";
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return "";
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+function addHoursToTimeValue(timeValue, hoursToAdd) {
+  const normalized = normalizeTimeValue(timeValue);
+  if (!normalized) return "";
+  const [hoursText, minutesText] = normalized.split(":");
+  const hours = Number.parseInt(hoursText, 10);
+  const minutes = Number.parseInt(minutesText, 10);
   const totalMinutes = ((hours * 60) + minutes + (hoursToAdd * 60)) % (24 * 60);
   const normalizedMinutes = totalMinutes < 0 ? totalMinutes + (24 * 60) : totalMinutes;
   const nextHours = String(Math.floor(normalizedMinutes / 60)).padStart(2, "0");
   const nextMinutes = String(normalizedMinutes % 60).padStart(2, "0");
   return `${nextHours}:${nextMinutes}`;
+}
+
+function applyEventTimeDefaults(startInput, endInput) {
+  const normalizedStart = normalizeTimeValue(startInput.value);
+  if (normalizedStart) {
+    startInput.value = normalizedStart;
+  } else {
+    startInput.value = formatTimeForInput(new Date());
+  }
+
+  const normalizedEnd = normalizeTimeValue(endInput.value);
+  if (normalizedEnd) {
+    endInput.value = normalizedEnd;
+  } else {
+    endInput.value = addHoursToTimeValue(startInput.value, 1);
+  }
 }
 
 function bindTimeInputDefaults() {
@@ -47,21 +73,37 @@ function bindTimeInputDefaults() {
   if (!startInput || !endInput || startInput.dataset.autosyncBound === "true") return;
 
   startInput.dataset.autosyncBound = "true";
-  startInput.addEventListener("input", () => {
-    endInput.value = startInput.value ? addHoursToTimeValue(startInput.value, 1) : "";
-  });
+  const syncEndFromStart = () => {
+    const normalizedStart = normalizeTimeValue(startInput.value);
+    startInput.value = normalizedStart;
+    endInput.value = normalizedStart ? addHoursToTimeValue(normalizedStart, 1) : "";
+  };
+  startInput.addEventListener("input", syncEndFromStart);
+  startInput.addEventListener("change", syncEndFromStart);
+}
+
+function applyMedicineTimeDefault(timeInput) {
+  const normalized = normalizeTimeValue(timeInput.value);
+  if (normalized) {
+    timeInput.value = normalized;
+  } else {
+    timeInput.value = formatTimeForInput(new Date());
+  }
 }
 
 function openEventModal(event = null, date = null) {
   bindTimeInputDefaults();
+  const startInput = document.getElementById("eventStartTime");
+  const endInput = document.getElementById("eventEndTime");
   if (event) {
     document.getElementById("eventModalTitle").textContent = "Rediger avtale";
     document.getElementById("deleteEventBtn").style.display = "block";
     document.getElementById("eventId").value = event.id || "";
     document.getElementById("eventTitle").value = event.title || "";
     document.getElementById("eventDate").value = event.event_date || "";
-    document.getElementById("eventStartTime").value = event.start_time || "";
-    document.getElementById("eventEndTime").value = event.end_time || "";
+    startInput.value = event.start_time || "";
+    endInput.value = event.end_time || "";
+    applyEventTimeDefaults(startInput, endInput);
     document.getElementById("eventOwner").value = event.owner_id || "";
     document.getElementById("eventNote").value = event.note || "";
     selectedColor = event.color || "#3b82f6";
@@ -70,9 +112,9 @@ function openEventModal(event = null, date = null) {
     document.getElementById("deleteEventBtn").style.display = "none";
     document.getElementById("eventForm").reset();
     document.getElementById("eventDate").value = date || formatDate(new Date());
-    const defaultStartTime = formatTimeForInput(new Date());
-    document.getElementById("eventStartTime").value = defaultStartTime;
-    document.getElementById("eventEndTime").value = addHoursToTimeValue(defaultStartTime, 1);
+    startInput.value = "";
+    endInput.value = "";
+    applyEventTimeDefaults(startInput, endInput);
     selectedColor = "#3b82f6";
   }
   initColorOptions();
@@ -116,15 +158,18 @@ function openBudgetModal() {
 function openMedicineModal(medicine = null) {
   document.getElementById("medicineForm").reset();
   document.getElementById("deleteMedicineBtn").style.display = "none";
+  const medicineTimeInput = document.getElementById("medicineTime");
   if (medicine) {
     document.getElementById("medicineId").value = medicine.id || "";
     document.getElementById("medicineName").value = medicine.name || "";
-    document.getElementById("medicineTime").value = medicine.time || "";
+    medicineTimeInput.value = medicine.time || "";
+    applyMedicineTimeDefault(medicineTimeInput);
     document.getElementById("medicineOwner").value = medicine.owner_id || "";
     document.getElementById("medicineNote").value = medicine.note || "";
     document.getElementById("deleteMedicineBtn").style.display = "block";
   } else {
-    document.getElementById("medicineTime").value = formatTimeForInput(new Date());
+    medicineTimeInput.value = "";
+    applyMedicineTimeDefault(medicineTimeInput);
   }
   openModal("medicineModal");
 }

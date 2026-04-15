@@ -36,8 +36,16 @@ public sealed class EventWorkflowTests : DesktopPlannerUiTestBase
         await Page.Locator("#eventStartTime").FillAsync("09:10");
         await Expect(Page.Locator("#eventEndTime")).ToHaveValueAsync("10:10");
 
+        await Page.EvaluateAsync(
+            @"() => {
+                const start = document.querySelector('#eventStartTime');
+                start.value = '11:20';
+                start.dispatchEvent(new Event('change', { bubbles: true }));
+            }");
+        await Expect(Page.Locator("#eventEndTime")).ToHaveValueAsync("12:20");
+
         await Page.Locator("#eventEndTime").FillAsync("12:45");
-        await Expect(Page.Locator("#eventStartTime")).ToHaveValueAsync("09:10");
+        await Expect(Page.Locator("#eventStartTime")).ToHaveValueAsync("11:20");
     }
 
     [Test]
