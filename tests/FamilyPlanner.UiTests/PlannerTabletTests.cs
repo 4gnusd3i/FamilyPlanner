@@ -32,7 +32,7 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
 
         await Expect(Page.Locator(".budget-card")).ToBeVisibleAsync();
         await Expect(Page.Locator(".shopping-card")).ToBeVisibleAsync();
-        await Expect(Page.Locator(".side-panel-right .notes-card")).ToBeVisibleAsync();
+        await Expect(Page.Locator(".side-panel .notes-card")).ToBeVisibleAsync();
         await Expect(Page.Locator(".upcoming-card")).ToBeVisibleAsync();
         await Expect(Page.Locator(".medicine-card")).ToBeVisibleAsync();
         await Expect(Page.Locator(".family-bar")).ToBeVisibleAsync();

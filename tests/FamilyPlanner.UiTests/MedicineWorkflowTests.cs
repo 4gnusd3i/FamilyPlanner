@@ -1,4 +1,6 @@
 using NUnit.Framework;
+using System.Text.RegularExpressions;
+using static Microsoft.Playwright.Assertions;
 
 namespace FamilyPlanner.UiTests;
 
@@ -21,6 +23,7 @@ public sealed class MedicineWorkflowTests : DesktopPlannerUiTestBase
 
         var medicineRow = Page.Locator(".med-item", new() { HasTextString = "Vitamin D" });
         await medicineRow.Locator(".med-check").ClickAsync();
+        await Expect(medicineRow.Locator(".med-check")).ToHaveClassAsync(new Regex("taken"));
 
         var toggledMedicines = await GetApiAsync<List<MedicineItemDto>>("/api/medicines") ?? [];
         Assert.That(toggledMedicines.Single(x => x.Id == createdMedicine.Id).Taken, Is.True);

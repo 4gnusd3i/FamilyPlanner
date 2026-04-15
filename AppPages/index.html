@@ -1,378 +1,662 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="no">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FamilyPlanner</title>
-    <link rel="manifest" href="/pwa/manifest.json">
-    <link rel="stylesheet" href="/assets/css/base.css">
-    <link rel="stylesheet" href="/assets/css/planner.css">
-</head>
-<body class="planner-page">
+    <link rel="manifest" href="/pwa/manifest.json" />
+    <link rel="stylesheet" href="/assets/css/base.css" />
+    <link rel="stylesheet" href="/assets/css/planner.css" />
+  </head>
+  <body class="planner-page">
     <div class="page-decor page-decor-one" aria-hidden="true"></div>
     <div class="page-decor page-decor-two" aria-hidden="true"></div>
 
     <div class="app-shell">
-        <div class="status-banner" id="statusBanner" hidden></div>
+      <div class="status-banner" id="statusBanner" hidden></div>
 
-        <section class="quick-actions surface" aria-label="Hurtighandlinger">
-            <div class="quick-action-grid">
-                <button type="button" class="quick-action" onclick="openEventModal()" aria-label="Legg til avtale">
-                    <span class="quick-action-title">+ Avtale</span>
-                </button>
-                <button type="button" class="quick-action" onclick="openMealModal()" aria-label="Legg til måltid">
-                    <span class="quick-action-title">+ Måltid</span>
-                </button>
-                <button type="button" class="quick-action" onclick="openBudgetModal()" aria-label="Registrer utgift">
-                    <span class="quick-action-title">+ Utgift</span>
-                </button>
-                <button type="button" class="quick-action" onclick="openNoteModal()" aria-label="Legg til notat">
-                    <span class="quick-action-title">+ Notat</span>
-                </button>
-                <button type="button" class="quick-action" onclick="openMedicineModal()" aria-label="Legg til medisin">
-                    <span class="quick-action-title">+ Medisin</span>
-                </button>
-                <button type="button" class="quick-action" onclick="openShoppingModal()" aria-label="Legg til vare">
-                    <span class="quick-action-title">+ Vare</span>
-                </button>
-            </div>
-        </section>
-
-        <section class="family-bar surface">
-            <div class="family-avatars" id="familyBoard"></div>
-            <strong id="familyCountLabel" hidden>0</strong>
-        </section>
-
-        <div class="main-container">
-            <aside class="side-panel">
-                <section class="surface budget-card">
-                    <div class="section-header">
-                        <div>
-                            <h2>Budsjett</h2>
-                        </div>
-                        <button type="button" class="inline-action icon-action" onclick="openBudgetModal()" aria-label="Ny utgift">+</button>
-                    </div>
-                    <div class="budget-display">
-                        <div class="budget-income">
-                            <span>Inntekt</span>
-                            <span><span id="budgetIncomeDisplay">0</span> kr</span>
-                        </div>
-                        <div class="budget-bar"><div class="budget-fill" id="budgetFill"></div></div>
-                        <div class="budget-nums">
-                            <span>Brukt: <b id="budgetSpent">0</b></span>
-                            <span>Ramme: <span id="budgetLimit">0</span> kr</span>
-                        </div>
-                        <div class="budget-remaining" id="budgetRemaining">0 kr gjenstår</div>
-                    </div>
-                </section>
-
-                <section class="surface shopping-card">
-                    <div class="section-header">
-                        <div>
-                            <h2>Handleliste</h2>
-                        </div>
-                        <button type="button" class="inline-action icon-action" onclick="openShoppingModal()" aria-label="Ny vare">+</button>
-                    </div>
-                    <div class="card-content" id="shoppingList"></div>
-                </section>
-            </aside>
-
-            <main class="center-column">
-                <section class="surface calendar-wrapper planner-surface">
-                    <div class="planner-toolbar">
-                        <div class="planner-heading">
-                            <div class="calendar-title-row">
-                                <span class="week-number" id="weekNumber">0</span>
-                                <div class="calendar-meta">
-                                    <h2>Ukeplan</h2>
-                                    <div class="week-range" id="weekRange"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="planner-controls">
-                            <div class="week-switcher">
-                                <button type="button" class="week-nav-btn" onclick="shiftWeek(-1)">Forrige</button>
-                                <button type="button" class="week-nav-btn" onclick="goToCurrentWeek()">Denne uken</button>
-                                <button type="button" class="week-nav-btn" onclick="shiftWeek(1)">Neste</button>
-                            </div>
-                            <button type="button" class="btn btn-primary icon-action add-event-header" onclick="openEventModal()" aria-label="Ny avtale">+</button>
-                        </div>
-                    </div>
-                    <div class="week-days" id="weekDaysGrid"></div>
-                </section>
-
-                <section class="surface meals-wrapper meals-surface">
-                    <div class="section-header">
-                        <div>
-                            <h2>Måltider</h2>
-                        </div>
-                        <button type="button" class="btn btn-primary icon-action add-meal-btn" onclick="openMealModal()" aria-label="Nytt måltid">+</button>
-                    </div>
-                    <div class="meals-grid" id="mealsWeekGrid"></div>
-                </section>
-            </main>
-
-            <aside class="side-panel side-panel-right">
-                <section class="surface notes-card">
-                    <div class="section-header">
-                        <div>
-                            <h2>Notater</h2>
-                        </div>
-                        <button type="button" class="inline-action icon-action" onclick="openNoteModal()" aria-label="Nytt notat">+</button>
-                    </div>
-                    <div class="card-content" id="notesList"></div>
-                </section>
-
-                <section class="surface medicine-card">
-                    <div class="section-header">
-                        <div>
-                            <h2>Medisiner</h2>
-                        </div>
-                        <button type="button" class="inline-action icon-action" onclick="openMedicineModal()" aria-label="Ny medisin">+</button>
-                    </div>
-                    <div class="card-content" id="medicineList"></div>
-                </section>
-
-                <section class="surface upcoming-card">
-                    <div class="section-header">
-                        <div>
-                            <h2>Kommende</h2>
-                        </div>
-                    </div>
-                    <div class="card-content" id="upcomingList"></div>
-                </section>
-            </aside>
+      <section class="quick-actions surface" aria-label="Hurtighandlinger">
+        <div class="quick-action-grid">
+          <button
+            type="button"
+            class="quick-action"
+            onclick="openEventModal()"
+            aria-label="Legg til avtale"
+          >
+            <span class="quick-action-title">+ Avtale</span>
+          </button>
+          <button
+            type="button"
+            class="quick-action"
+            onclick="openMealModal()"
+            aria-label="Legg til måltid"
+          >
+            <span class="quick-action-title">+ Måltid</span>
+          </button>
+          <button
+            type="button"
+            class="quick-action"
+            onclick="openBudgetModal()"
+            aria-label="Registrer utgift"
+          >
+            <span class="quick-action-title">+ Utgift</span>
+          </button>
+          <button
+            type="button"
+            class="quick-action"
+            onclick="openNoteModal()"
+            aria-label="Legg til notat"
+          >
+            <span class="quick-action-title">+ Notat</span>
+          </button>
+          <button
+            type="button"
+            class="quick-action"
+            onclick="openMedicineModal()"
+            aria-label="Legg til medisin"
+          >
+            <span class="quick-action-title">+ Medisin</span>
+          </button>
+          <button
+            type="button"
+            class="quick-action"
+            onclick="openShoppingModal()"
+            aria-label="Legg til vare"
+          >
+            <span class="quick-action-title">+ Vare</span>
+          </button>
         </div>
+      </section>
+
+      <section class="family-bar surface">
+        <div class="family-avatars" id="familyBoard"></div>
+        <strong id="familyCountLabel" hidden>0</strong>
+      </section>
+
+      <div class="main-container">
+        <aside class="side-panel">
+          <section class="surface budget-card">
+            <div class="section-header">
+              <div>
+                <h2>Budsjett</h2>
+              </div>
+              <button
+                type="button"
+                class="inline-action icon-action"
+                onclick="openBudgetModal()"
+                aria-label="Ny utgift"
+              >
+                +
+              </button>
+            </div>
+            <div class="budget-display">
+              <div class="budget-income">
+                <span>Inntekt</span>
+                <span><span id="budgetIncomeDisplay">0</span> kr</span>
+              </div>
+              <div class="budget-bar">
+                <div class="budget-fill" id="budgetFill"></div>
+              </div>
+              <div class="budget-nums">
+                <span>Brukt: <span id="budgetSpent">0</span> kr</span>
+                <span>Ramme: <span id="budgetLimit">0</span> kr</span>
+              </div>
+              <div class="budget-remaining" id="budgetRemaining">
+                0 kr gjenstår
+              </div>
+            </div>
+          </section>
+
+          <section class="surface shopping-card">
+            <div class="section-header">
+              <div>
+                <h2>Handleliste</h2>
+              </div>
+              <button
+                type="button"
+                class="inline-action icon-action"
+                onclick="openShoppingModal()"
+                aria-label="Ny vare"
+              >
+                +
+              </button>
+            </div>
+            <div class="card-content" id="shoppingList"></div>
+          </section>
+
+          <section class="surface notes-card">
+            <div class="section-header">
+              <div>
+                <h2>Notater</h2>
+              </div>
+              <button
+                type="button"
+                class="inline-action icon-action"
+                onclick="openNoteModal()"
+                aria-label="Nytt notat"
+              >
+                +
+              </button>
+            </div>
+            <div class="card-content" id="notesList"></div>
+          </section>
+        </aside>
+
+        <main class="center-column">
+          <section class="surface calendar-wrapper planner-surface">
+            <div class="planner-toolbar">
+              <div class="planner-heading">
+                <div class="calendar-title-row">
+                  <span class="week-number" id="weekNumber">0</span>
+                  <div class="calendar-meta">
+                    <h2>Ukeplan</h2>
+                    <div class="week-range" id="weekRange"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="planner-controls">
+                <div class="week-switcher">
+                  <button
+                    type="button"
+                    class="week-nav-btn"
+                    onclick="shiftWeek(-1)"
+                  >
+                    Forrige
+                  </button>
+                  <button
+                    type="button"
+                    class="week-nav-btn"
+                    onclick="goToCurrentWeek()"
+                  >
+                    Denne uken
+                  </button>
+                  <button
+                    type="button"
+                    class="week-nav-btn"
+                    onclick="shiftWeek(1)"
+                  >
+                    Neste
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  class="btn btn-primary icon-action add-event-header"
+                  onclick="openEventModal()"
+                  aria-label="Ny avtale"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+            <div class="week-days" id="weekDaysGrid"></div>
+          </section>
+
+          <section class="surface meals-wrapper meals-surface">
+            <div class="section-header">
+              <div>
+                <h2>Måltider</h2>
+              </div>
+              <button
+                type="button"
+                class="btn btn-primary icon-action add-meal-btn"
+                onclick="openMealModal()"
+                aria-label="Nytt måltid"
+              >
+                +
+              </button>
+            </div>
+            <div class="meals-grid" id="mealsWeekGrid"></div>
+          </section>
+        </main>
+
+        <aside class="side-panel side-panel-right">
+          <section class="surface upcoming-card">
+            <div class="section-header">
+              <div>
+                <h2>Kommende</h2>
+              </div>
+            </div>
+            <div class="card-content" id="upcomingList"></div>
+          </section>
+
+          <section class="surface medicine-card">
+            <div class="section-header">
+              <div>
+                <h2>Medisiner</h2>
+              </div>
+              <button
+                type="button"
+                class="inline-action icon-action"
+                onclick="openMedicineModal()"
+                aria-label="Ny medisin"
+              >
+                +
+              </button>
+            </div>
+            <div class="card-content" id="medicineList"></div>
+          </section>
+        </aside>
+      </div>
     </div>
 
     <div class="modal-overlay" id="eventModal">
-        <div class="modal">
-            <h3 id="eventModalTitle">Ny avtale</h3>
-            <form id="eventForm">
-                <input type="hidden" id="eventId">
-                <input type="text" id="eventTitle" placeholder="Tittel" required>
-                <input type="date" id="eventDate" required>
-                <div class="form-row">
-                    <input type="time" id="eventStartTime" placeholder="Start">
-                    <input type="time" id="eventEndTime" placeholder="Slutt">
-                </div>
-                <select id="eventOwner"><option value="">Ansvarlig...</option></select>
-                <div class="color-picker" id="colorOptions"></div>
-                <textarea id="eventNote" placeholder="Notat"></textarea>
-                <div class="modal-btns">
-                    <button type="button" id="deleteEventBtn" onclick="deleteEvent()" class="btn-danger" style="display:none">Slett</button>
-                    <button type="button" onclick="closeModal('eventModal')">Avbryt</button>
-                    <button type="submit" class="btn-primary">Lagre</button>
-                </div>
-            </form>
-        </div>
+      <div class="modal">
+        <h3 id="eventModalTitle">Ny avtale</h3>
+        <form id="eventForm">
+          <input type="hidden" id="eventId" />
+          <input type="text" id="eventTitle" placeholder="Tittel" required />
+          <input type="date" id="eventDate" required />
+          <div class="form-row">
+            <input type="time" id="eventStartTime" placeholder="Start" />
+            <input type="time" id="eventEndTime" placeholder="Slutt" />
+          </div>
+          <select id="eventOwner">
+            <option value="">Ansvarlig...</option>
+          </select>
+          <div class="color-picker" id="colorOptions"></div>
+          <textarea id="eventNote" placeholder="Notat"></textarea>
+          <div class="modal-btns">
+            <button
+              type="button"
+              id="deleteEventBtn"
+              onclick="deleteEvent()"
+              class="btn-danger"
+              style="display: none"
+            >
+              Slett
+            </button>
+            <button type="button" onclick="closeModal('eventModal')">
+              Avbryt
+            </button>
+            <button type="submit" class="btn-primary">Lagre</button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <div class="modal-overlay" id="mealModal">
-        <div class="modal">
-            <h3>Måltid</h3>
-            <form id="mealForm">
-                <input type="hidden" id="mealId">
-                <select id="mealDay"></select>
-                <select id="mealType">
-                    <option value="breakfast">🌄 Frokost</option>
-                    <option value="lunch">☀️ Lunsj</option>
-                    <option value="dinner" selected>🍽️ Middag</option>
-                </select>
-                <input type="text" id="mealName" placeholder="Hva skal vi spise?" required>
-                <select id="mealOwner"><option value="">Ansvarlig...</option></select>
-                <input type="text" id="mealNote" placeholder="Notat / handleliste">
-                <div class="modal-btns">
-                    <button type="button" id="deleteMealBtn" onclick="deleteMeal()" class="btn-danger" style="display:none">Slett</button>
-                    <button type="button" onclick="closeModal('mealModal')">Avbryt</button>
-                    <button type="submit" class="btn-primary">Lagre</button>
-                </div>
-            </form>
-        </div>
+      <div class="modal">
+        <h3>Måltid</h3>
+        <form id="mealForm">
+          <input type="hidden" id="mealId" />
+          <select id="mealDay"></select>
+          <select id="mealType">
+            <option value="breakfast">🌄 Frokost</option>
+            <option value="lunch">☀️ Lunsj</option>
+            <option value="dinner" selected>🍽️ Middag</option>
+          </select>
+          <input
+            type="text"
+            id="mealName"
+            placeholder="Hva skal vi spise?"
+            required
+          />
+          <select id="mealOwner">
+            <option value="">Ansvarlig...</option>
+          </select>
+          <input type="text" id="mealNote" placeholder="Notat / handleliste" />
+          <div class="modal-btns">
+            <button
+              type="button"
+              id="deleteMealBtn"
+              onclick="deleteMeal()"
+              class="btn-danger"
+              style="display: none"
+            >
+              Slett
+            </button>
+            <button type="button" onclick="closeModal('mealModal')">
+              Avbryt
+            </button>
+            <button type="submit" class="btn-primary">Lagre</button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <div class="modal-overlay" id="budgetModal">
-        <div class="modal">
-            <h3>Budsjett</h3>
-            <div class="tabs">
-                <button type="button" class="active" data-tab="expense" onclick="showBudgetTab('expense', event)">Utgift</button>
-                <button type="button" data-tab="limit" onclick="showBudgetTab('limit', event)">Sett budsjett</button>
-                <button type="button" data-tab="history" onclick="showBudgetTab('history', event)">Historikk</button>
-            </div>
-            <form id="expenseForm">
-                <input type="number" id="expenseAmount" placeholder="Beløp" required>
-                <input type="text" id="expenseCategory" placeholder="Kategori">
-                <input type="date" id="expenseDate">
-                <select id="expenseOwner"><option value="">Ansvarlig...</option></select>
-                <input type="text" id="expenseDesc" placeholder="Beskrivelse">
-                <div class="modal-btns">
-                    <button type="button" onclick="closeModal('budgetModal')">Avbryt</button>
-                    <button type="submit" class="btn-primary">Registrer</button>
-                </div>
-            </form>
-            <form id="budgetForm" style="display:none">
-                <input type="number" id="budgetIncomeInput" placeholder="Månedlig inntekt">
-                <input type="number" id="budgetLimitInput" placeholder="Månedlig budsjett" required>
-                <div class="modal-btns">
-                    <button type="button" onclick="closeModal('budgetModal')">Avbryt</button>
-                    <button type="submit" class="btn-primary">Lagre</button>
-                </div>
-            </form>
-            <div id="expenseHistory" style="display:none">
-                <div class="card-content" id="expenseList"></div>
-                <div class="modal-btns">
-                    <button type="button" onclick="closeModal('budgetModal')">Lukk</button>
-                </div>
-            </div>
+      <div class="modal">
+        <h3>Budsjett</h3>
+        <div class="tabs">
+          <button
+            type="button"
+            class="active"
+            data-tab="expense"
+            onclick="showBudgetTab('expense', event)"
+          >
+            Utgift
+          </button>
+          <button
+            type="button"
+            data-tab="limit"
+            onclick="showBudgetTab('limit', event)"
+          >
+            Sett budsjett
+          </button>
+          <button
+            type="button"
+            data-tab="history"
+            onclick="showBudgetTab('history', event)"
+          >
+            Historikk
+          </button>
         </div>
+        <form id="expenseForm">
+          <input
+            type="number"
+            id="expenseAmount"
+            placeholder="Beløp"
+            required
+          />
+          <input type="text" id="expenseCategory" placeholder="Kategori" />
+          <input type="date" id="expenseDate" />
+          <select id="expenseOwner">
+            <option value="">Ansvarlig...</option>
+          </select>
+          <input type="text" id="expenseDesc" placeholder="Beskrivelse" />
+          <div class="modal-btns">
+            <button type="button" onclick="closeModal('budgetModal')">
+              Avbryt
+            </button>
+            <button type="submit" class="btn-primary">Registrer</button>
+          </div>
+        </form>
+        <form id="budgetForm" style="display: none">
+          <input
+            type="number"
+            id="budgetIncomeInput"
+            placeholder="Månedlig inntekt"
+          />
+          <input
+            type="number"
+            id="budgetLimitInput"
+            placeholder="Månedlig budsjett"
+            required
+          />
+          <div class="modal-btns">
+            <button type="button" onclick="closeModal('budgetModal')">
+              Avbryt
+            </button>
+            <button type="submit" class="btn-primary">Lagre</button>
+          </div>
+        </form>
+        <div id="expenseHistory" style="display: none">
+          <div class="card-content" id="expenseList"></div>
+          <div class="modal-btns">
+            <button type="button" onclick="closeModal('budgetModal')">
+              Lukk
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="modal-overlay" id="medicineModal">
-        <div class="modal">
-            <h3>Medisin</h3>
-            <form id="medicineForm">
-                <input type="hidden" id="medicineId">
-                <input type="text" id="medicineName" placeholder="Navn" required>
-                <input type="time" id="medicineTime" required>
-                <select id="medicineOwner"><option value="">Ansvarlig...</option></select>
-                <input type="text" id="medicineNote" placeholder="Notat">
-                <div class="modal-btns">
-                    <button type="button" id="deleteMedicineBtn" onclick="deleteMedicine()" class="btn-danger" style="display:none">Slett</button>
-                    <button type="button" onclick="closeModal('medicineModal')">Avbryt</button>
-                    <button type="submit" class="btn-primary">Lagre</button>
-                </div>
-            </form>
-        </div>
+      <div class="modal">
+        <h3>Medisin</h3>
+        <form id="medicineForm">
+          <input type="hidden" id="medicineId" />
+          <input type="text" id="medicineName" placeholder="Navn" required />
+          <input type="time" id="medicineTime" required />
+          <select id="medicineOwner">
+            <option value="">Ansvarlig...</option>
+          </select>
+          <input type="text" id="medicineNote" placeholder="Notat" />
+          <div class="modal-btns">
+            <button
+              type="button"
+              id="deleteMedicineBtn"
+              onclick="deleteMedicine()"
+              class="btn-danger"
+              style="display: none"
+            >
+              Slett
+            </button>
+            <button type="button" onclick="closeModal('medicineModal')">
+              Avbryt
+            </button>
+            <button type="submit" class="btn-primary">Lagre</button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <div class="modal-overlay" id="medicineViewModal">
-        <div class="modal">
-            <h3 id="medicineViewTitle">Medisin</h3>
-            <div class="view-content" id="medicineViewContent"></div>
-            <div class="modal-btns">
-                <button type="button" class="btn-danger" onclick="deleteMedicineFromView()">Slett</button>
-                <button type="button" onclick="closeModal('medicineViewModal')">Lukk</button>
-                <button type="button" class="btn-primary" onclick="editMedicineFromView()">Rediger</button>
-            </div>
+      <div class="modal">
+        <h3 id="medicineViewTitle">Medisin</h3>
+        <div class="view-content" id="medicineViewContent"></div>
+        <div class="modal-btns">
+          <button
+            type="button"
+            class="btn-danger"
+            onclick="deleteMedicineFromView()"
+          >
+            Slett
+          </button>
+          <button type="button" onclick="closeModal('medicineViewModal')">
+            Lukk
+          </button>
+          <button
+            type="button"
+            class="btn-primary"
+            onclick="editMedicineFromView()"
+          >
+            Rediger
+          </button>
         </div>
+      </div>
     </div>
 
     <div class="modal-overlay" id="noteModal">
-        <div class="modal">
-            <h3>Notat</h3>
-            <form id="noteForm">
-                <input type="hidden" id="noteId">
-                <input type="text" id="noteTitle" placeholder="Tittel" required>
-                <select id="noteOwner"><option value="">Ansvarlig...</option></select>
-                <textarea id="noteContent" placeholder="Innhold"></textarea>
-                <div class="modal-btns">
-                    <button type="button" id="deleteNoteBtn" onclick="deleteNote()" class="btn-danger" style="display:none">Slett</button>
-                    <button type="button" onclick="closeModal('noteModal')">Avbryt</button>
-                    <button type="submit" class="btn-primary">Lagre</button>
-                </div>
-            </form>
-        </div>
+      <div class="modal">
+        <h3>Notat</h3>
+        <form id="noteForm">
+          <input type="hidden" id="noteId" />
+          <input type="text" id="noteTitle" placeholder="Tittel" required />
+          <select id="noteOwner">
+            <option value="">Ansvarlig...</option>
+          </select>
+          <textarea id="noteContent" placeholder="Innhold"></textarea>
+          <div class="modal-btns">
+            <button
+              type="button"
+              id="deleteNoteBtn"
+              onclick="deleteNote()"
+              class="btn-danger"
+              style="display: none"
+            >
+              Slett
+            </button>
+            <button type="button" onclick="closeModal('noteModal')">
+              Avbryt
+            </button>
+            <button type="submit" class="btn-primary">Lagre</button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <div class="modal-overlay" id="noteViewModal">
-        <div class="modal">
-            <h3 id="noteViewTitle">Notat</h3>
-            <div class="view-content" id="noteViewContent"></div>
-            <div class="modal-btns">
-                <button type="button" class="btn-danger" onclick="deleteNoteFromView()">Slett</button>
-                <button type="button" onclick="closeModal('noteViewModal')">Lukk</button>
-                <button type="button" class="btn-primary" onclick="editNoteFromView()">Rediger</button>
-            </div>
+      <div class="modal">
+        <h3 id="noteViewTitle">Notat</h3>
+        <div class="view-content" id="noteViewContent"></div>
+        <div class="modal-btns">
+          <button
+            type="button"
+            class="btn-danger"
+            onclick="deleteNoteFromView()"
+          >
+            Slett
+          </button>
+          <button type="button" onclick="closeModal('noteViewModal')">
+            Lukk
+          </button>
+          <button
+            type="button"
+            class="btn-primary"
+            onclick="editNoteFromView()"
+          >
+            Rediger
+          </button>
         </div>
+      </div>
     </div>
 
     <div class="modal-overlay" id="shoppingModal">
-        <div class="modal">
-            <h3>Handleliste</h3>
-            <form id="shoppingForm">
-                <input type="hidden" id="shoppingId">
-                <input type="text" id="shoppingItem" placeholder="Produkt" required>
-                <input type="number" id="shoppingQty" value="1" min="1">
-                <select id="shoppingOwner"><option value="">Ansvarlig...</option></select>
-                <div class="modal-btns">
-                    <button type="button" id="deleteShoppingBtn" onclick="deleteShopping()" class="btn-danger" style="display:none">Slett</button>
-                    <button type="button" onclick="closeModal('shoppingModal')">Avbryt</button>
-                    <button type="submit" class="btn-primary">Legg til</button>
-                </div>
-            </form>
-        </div>
+      <div class="modal">
+        <h3>Handleliste</h3>
+        <form id="shoppingForm">
+          <input type="hidden" id="shoppingId" />
+          <input type="text" id="shoppingItem" placeholder="Produkt" required />
+          <input type="number" id="shoppingQty" value="1" min="1" />
+          <select id="shoppingOwner">
+            <option value="">Ansvarlig...</option>
+          </select>
+          <div class="modal-btns">
+            <button
+              type="button"
+              id="deleteShoppingBtn"
+              onclick="deleteShopping()"
+              class="btn-danger"
+              style="display: none"
+            >
+              Slett
+            </button>
+            <button type="button" onclick="closeModal('shoppingModal')">
+              Avbryt
+            </button>
+            <button type="submit" class="btn-primary">Legg til</button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <div class="modal-overlay" id="memberModal">
-        <div class="modal">
-            <h3>Familiemedlem</h3>
-            <form id="memberForm" enctype="multipart/form-data">
-                <input type="hidden" id="memberId">
-                <div class="avatar-row">
-                    <div class="avatar-preview" id="avatarPreview">👤</div>
-                    <div>
-                        <input type="file" id="memberAvatar" accept="image/*">
-                    </div>
-                </div>
-                <input type="text" id="memberName" placeholder="Navn" required>
-                <input type="date" id="memberBirthday" placeholder="Fødselsdato">
-                <textarea id="memberBio" placeholder="Bio / om meg" rows="2"></textarea>
-                <div class="color-picker" id="memberColorOptions"></div>
-                <div class="modal-btns">
-                    <button type="button" id="deleteMemberBtn" onclick="deleteMember()" class="btn-danger" style="display:none">Slett</button>
-                    <button type="button" onclick="closeModal('memberModal')">Avbryt</button>
-                    <button type="submit" class="btn-primary">Lagre</button>
-                </div>
-            </form>
-        </div>
+      <div class="modal">
+        <h3>Familiemedlem</h3>
+        <form id="memberForm" enctype="multipart/form-data">
+          <input type="hidden" id="memberId" />
+          <div class="avatar-row">
+            <div class="avatar-preview" id="avatarPreview">👤</div>
+            <div>
+              <input type="file" id="memberAvatar" accept="image/*" />
+            </div>
+          </div>
+          <input type="text" id="memberName" placeholder="Navn" required />
+          <input type="date" id="memberBirthday" placeholder="Fødselsdato" />
+          <textarea
+            id="memberBio"
+            placeholder="Bio / om meg"
+            rows="2"
+          ></textarea>
+          <div class="color-picker" id="memberColorOptions"></div>
+          <div class="modal-btns">
+            <button
+              type="button"
+              id="deleteMemberBtn"
+              onclick="deleteMember()"
+              class="btn-danger"
+              style="display: none"
+            >
+              Slett
+            </button>
+            <button type="button" onclick="closeModal('memberModal')">
+              Avbryt
+            </button>
+            <button type="submit" class="btn-primary">Lagre</button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <div class="modal-overlay" id="profileModal">
-        <div class="modal profile-modal">
-            <div class="profile-header" id="profileHeader">
-                <div class="profile-avatar" id="profileAvatar"></div>
-                <div class="profile-info">
-                    <h3 id="profileName"></h3>
-                    <div class="profile-age" id="profileAge"></div>
-                </div>
-                <button class="profile-close" onclick="closeModal('profileModal')">×</button>
-            </div>
-            <div class="profile-body">
-                <div class="profile-section" id="profileBirthday"></div>
-                <div class="profile-section" id="profileBio"></div>
-            </div>
-            <div class="profile-footer">
-                <button class="btn-primary" onclick="editProfileFromModal()">Rediger</button>
-            </div>
+      <div class="modal profile-modal">
+        <div class="profile-header" id="profileHeader">
+          <div class="profile-avatar" id="profileAvatar"></div>
+          <div class="profile-info">
+            <h3 id="profileName"></h3>
+            <div class="profile-age" id="profileAge"></div>
+          </div>
+          <button class="profile-close" onclick="closeModal('profileModal')">
+            ×
+          </button>
         </div>
+        <div class="profile-body">
+          <div class="profile-section" id="profileBirthday"></div>
+          <div class="profile-section" id="profileBio"></div>
+        </div>
+        <div class="profile-footer">
+          <button class="btn-primary" onclick="editProfileFromModal()">
+            Rediger
+          </button>
+        </div>
+      </div>
     </div>
 
     <div class="modal-overlay" id="assignModal">
-        <div class="modal">
-            <h3>Aktivitet</h3>
-            <form id="assignForm">
-                <input type="hidden" id="assignDay">
-                <input type="hidden" id="assignMemberId">
-                <div class="activity-btns">
-                    <button type="button" class="act-btn active" data-type="medicine" onclick="selectActivityType('medicine')">💊</button>
-                    <button type="button" class="act-btn" data-type="doctor" onclick="selectActivityType('doctor')">👨‍⚕️</button>
-                    <button type="button" class="act-btn" data-type="activity" onclick="selectActivityType('activity')">⚽</button>
-                    <button type="button" class="act-btn" data-type="meal" onclick="selectActivityType('meal')">🍽️</button>
-                </div>
-                <input type="text" id="assignNote" placeholder="Notat">
-                <div class="modal-btns">
-                    <button type="button" id="removeAssignBtn" onclick="removeAssignment()" class="btn-danger" style="display:none">Fjern</button>
-                    <button type="button" onclick="closeModal('assignModal')">Avbryt</button>
-                    <button type="submit" class="btn-primary">Lagre</button>
-                </div>
-            </form>
-        </div>
+      <div class="modal">
+        <h3>Aktivitet</h3>
+        <form id="assignForm">
+          <input type="hidden" id="assignDay" />
+          <input type="hidden" id="assignMemberId" />
+          <div class="activity-btns">
+            <button
+              type="button"
+              class="act-btn active"
+              data-type="medicine"
+              onclick="selectActivityType('medicine')"
+            >
+              💊
+            </button>
+            <button
+              type="button"
+              class="act-btn"
+              data-type="doctor"
+              onclick="selectActivityType('doctor')"
+            >
+              👨‍⚕️
+            </button>
+            <button
+              type="button"
+              class="act-btn"
+              data-type="activity"
+              onclick="selectActivityType('activity')"
+            >
+              ⚽
+            </button>
+            <button
+              type="button"
+              class="act-btn"
+              data-type="meal"
+              onclick="selectActivityType('meal')"
+            >
+              🍽️
+            </button>
+          </div>
+          <input type="text" id="assignNote" placeholder="Notat" />
+          <div class="modal-btns">
+            <button
+              type="button"
+              id="removeAssignBtn"
+              onclick="removeAssignment()"
+              class="btn-danger"
+              style="display: none"
+            >
+              Fjern
+            </button>
+            <button type="button" onclick="closeModal('assignModal')">
+              Avbryt
+            </button>
+            <button type="submit" class="btn-primary">Lagre</button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <script src="/assets/js/planner-bootstrap.js"></script>
     <script src="/assets/js/planner-loaders.js"></script>
     <script src="/assets/js/planner-modals.js"></script>
     <script src="/assets/js/planner-actions.js"></script>
-</body>
+  </body>
 </html>
