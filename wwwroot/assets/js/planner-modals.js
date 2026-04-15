@@ -73,11 +73,33 @@ function bindTimeInputDefaults() {
   if (!startInput || !endInput || startInput.dataset.autosyncBound === "true") return;
 
   startInput.dataset.autosyncBound = "true";
+
+  const ensureStartDefault = () => {
+    const normalizedStart = normalizeTimeValue(startInput.value);
+    if (!normalizedStart) {
+      startInput.value = formatTimeForInput(new Date());
+    }
+  };
+
+  const ensureEndDefault = () => {
+    ensureStartDefault();
+    const normalizedStart = normalizeTimeValue(startInput.value);
+    const normalizedEnd = normalizeTimeValue(endInput.value);
+    if (!normalizedEnd && normalizedStart) {
+      endInput.value = addHoursToTimeValue(normalizedStart, 1);
+    }
+  };
+
   const syncEndFromStart = () => {
     const normalizedStart = normalizeTimeValue(startInput.value);
     startInput.value = normalizedStart;
     endInput.value = normalizedStart ? addHoursToTimeValue(normalizedStart, 1) : "";
   };
+
+  startInput.addEventListener("focus", ensureStartDefault);
+  startInput.addEventListener("click", ensureStartDefault);
+  endInput.addEventListener("focus", ensureEndDefault);
+  endInput.addEventListener("click", ensureEndDefault);
   startInput.addEventListener("input", syncEndFromStart);
   startInput.addEventListener("change", syncEndFromStart);
 }
@@ -119,6 +141,7 @@ function openEventModal(event = null, date = null) {
   }
   initColorOptions();
   openModal("eventModal");
+  requestAnimationFrame(() => applyEventTimeDefaults(startInput, endInput));
 }
 
 function openMealModal(day = null, mealId = null) {
@@ -172,6 +195,7 @@ function openMedicineModal(medicine = null) {
     applyMedicineTimeDefault(medicineTimeInput);
   }
   openModal("medicineModal");
+  requestAnimationFrame(() => applyMedicineTimeDefault(medicineTimeInput));
 }
 
 function viewMedicine(medicine) {

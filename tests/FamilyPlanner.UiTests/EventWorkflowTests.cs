@@ -46,6 +46,10 @@ public sealed class EventWorkflowTests : DesktopPlannerUiTestBase
 
         await Page.Locator("#eventEndTime").FillAsync("12:45");
         await Expect(Page.Locator("#eventStartTime")).ToHaveValueAsync("11:20");
+
+        await Page.Locator("#eventEndTime").FillAsync(string.Empty);
+        await Page.Locator("#eventEndTime").ClickAsync();
+        await Expect(Page.Locator("#eventEndTime")).ToHaveValueAsync("12:20");
     }
 
     [Test]
