@@ -51,19 +51,30 @@ function addHoursToTimeValue(timeValue, hoursToAdd) {
   return `${nextHours}:${nextMinutes}`;
 }
 
+function setTimeInputValue(input, value) {
+  const normalized = normalizeTimeValue(value);
+  input.value = normalized;
+  input.defaultValue = normalized;
+  if (normalized) {
+    input.setAttribute("value", normalized);
+  } else {
+    input.removeAttribute("value");
+  }
+}
+
 function applyEventTimeDefaults(startInput, endInput) {
   const normalizedStart = normalizeTimeValue(startInput.value);
   if (normalizedStart) {
-    startInput.value = normalizedStart;
+    setTimeInputValue(startInput, normalizedStart);
   } else {
-    startInput.value = formatTimeForInput(new Date());
+    setTimeInputValue(startInput, formatTimeForInput(new Date()));
   }
 
   const normalizedEnd = normalizeTimeValue(endInput.value);
   if (normalizedEnd) {
-    endInput.value = normalizedEnd;
+    setTimeInputValue(endInput, normalizedEnd);
   } else {
-    endInput.value = addHoursToTimeValue(startInput.value, 1);
+    setTimeInputValue(endInput, addHoursToTimeValue(startInput.value, 1));
   }
 }
 
@@ -77,7 +88,7 @@ function bindTimeInputDefaults() {
   const ensureStartDefault = () => {
     const normalizedStart = normalizeTimeValue(startInput.value);
     if (!normalizedStart) {
-      startInput.value = formatTimeForInput(new Date());
+      setTimeInputValue(startInput, formatTimeForInput(new Date()));
     }
   };
 
@@ -86,18 +97,22 @@ function bindTimeInputDefaults() {
     const normalizedStart = normalizeTimeValue(startInput.value);
     const normalizedEnd = normalizeTimeValue(endInput.value);
     if (!normalizedEnd && normalizedStart) {
-      endInput.value = addHoursToTimeValue(normalizedStart, 1);
+      setTimeInputValue(endInput, addHoursToTimeValue(normalizedStart, 1));
     }
   };
 
   const syncEndFromStart = () => {
     const normalizedStart = normalizeTimeValue(startInput.value);
-    startInput.value = normalizedStart;
-    endInput.value = normalizedStart ? addHoursToTimeValue(normalizedStart, 1) : "";
+    setTimeInputValue(startInput, normalizedStart);
+    setTimeInputValue(endInput, normalizedStart ? addHoursToTimeValue(normalizedStart, 1) : "");
   };
 
+  startInput.addEventListener("pointerdown", ensureStartDefault);
+  startInput.addEventListener("mousedown", ensureStartDefault);
   startInput.addEventListener("focus", ensureStartDefault);
   startInput.addEventListener("click", ensureStartDefault);
+  endInput.addEventListener("pointerdown", ensureEndDefault);
+  endInput.addEventListener("mousedown", ensureEndDefault);
   endInput.addEventListener("focus", ensureEndDefault);
   endInput.addEventListener("click", ensureEndDefault);
   startInput.addEventListener("input", syncEndFromStart);
@@ -107,9 +122,9 @@ function bindTimeInputDefaults() {
 function applyMedicineTimeDefault(timeInput) {
   const normalized = normalizeTimeValue(timeInput.value);
   if (normalized) {
-    timeInput.value = normalized;
+    setTimeInputValue(timeInput, normalized);
   } else {
-    timeInput.value = formatTimeForInput(new Date());
+    setTimeInputValue(timeInput, formatTimeForInput(new Date()));
   }
 }
 
@@ -123,8 +138,8 @@ function openEventModal(event = null, date = null) {
     document.getElementById("eventId").value = event.id || "";
     document.getElementById("eventTitle").value = event.title || "";
     document.getElementById("eventDate").value = event.event_date || "";
-    startInput.value = event.start_time || "";
-    endInput.value = event.end_time || "";
+    setTimeInputValue(startInput, event.start_time || "");
+    setTimeInputValue(endInput, event.end_time || "");
     applyEventTimeDefaults(startInput, endInput);
     document.getElementById("eventOwner").value = event.owner_id || "";
     document.getElementById("eventNote").value = event.note || "";
@@ -134,8 +149,8 @@ function openEventModal(event = null, date = null) {
     document.getElementById("deleteEventBtn").style.display = "none";
     document.getElementById("eventForm").reset();
     document.getElementById("eventDate").value = date || formatDate(new Date());
-    startInput.value = "";
-    endInput.value = "";
+    setTimeInputValue(startInput, "");
+    setTimeInputValue(endInput, "");
     applyEventTimeDefaults(startInput, endInput);
     selectedColor = "#3b82f6";
   }
@@ -185,13 +200,13 @@ function openMedicineModal(medicine = null) {
   if (medicine) {
     document.getElementById("medicineId").value = medicine.id || "";
     document.getElementById("medicineName").value = medicine.name || "";
-    medicineTimeInput.value = medicine.time || "";
+    setTimeInputValue(medicineTimeInput, medicine.time || "");
     applyMedicineTimeDefault(medicineTimeInput);
     document.getElementById("medicineOwner").value = medicine.owner_id || "";
     document.getElementById("medicineNote").value = medicine.note || "";
     document.getElementById("deleteMedicineBtn").style.display = "block";
   } else {
-    medicineTimeInput.value = "";
+    setTimeInputValue(medicineTimeInput, "");
     applyMedicineTimeDefault(medicineTimeInput);
   }
   openModal("medicineModal");
