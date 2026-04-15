@@ -136,14 +136,16 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
     }
 
     [Test]
-    public async Task TabletLandscape_ShoppingStaysVisibleWhenNotesGrow()
+    [TestCase(4)]
+    [TestCase(6)]
+    public async Task TabletLandscape_ShoppingStaysVisibleWhenNotesGrow(int noteCount)
     {
         await ClearKioskOptionalItemsAsync();
-        await AddDenseNotesWithSingleShoppingAsync();
+        await AddDenseNotesWithSingleShoppingAsync(noteCount);
         await Page.ReloadAsync();
 
         await Expect(Page.Locator("#shoppingList")).ToContainTextAsync("Kontantkort");
-        await Expect(Page.Locator("#notesList")).ToContainTextAsync("Notat 3");
+        await Expect(Page.Locator("#notesList")).ToContainTextAsync($"Notat {noteCount}");
 
         var shoppingLayout = await Page.EvaluateAsync<double[]>(
             @"() => {
@@ -218,11 +220,11 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
         shoppingResponse.EnsureSuccessStatusCode();
     }
 
-    private async Task AddDenseNotesWithSingleShoppingAsync()
+    private async Task AddDenseNotesWithSingleShoppingAsync(int noteCount)
     {
         using var client = await UiTestHost.CreateClientAsync();
 
-        foreach (var idx in Enumerable.Range(1, 3))
+        foreach (var idx in Enumerable.Range(1, noteCount))
         {
             var noteResponse = await client.PostAsync(
                 "/api/notes",

@@ -609,6 +609,10 @@ body.planner-page {
 
   .planner-page .main-container {
     grid-area: workspace;
+    --kiosk-column-gap: 0.55rem;
+    --left-budget-reserve: 228px;
+    --left-shopping-min: 196px;
+    --left-notes-min: 148px;
     height: 100%;
     min-height: 0;
     display: grid;
@@ -632,8 +636,23 @@ body.planner-page {
     position: static;
   }
 
-  .planner-page .side-panel {
+  .planner-page .side-panel:not(.side-panel-right) {
     grid-column: 1;
+    display: grid;
+    grid-template-rows: auto minmax(var(--left-shopping-min), 1fr) auto;
+    align-content: stretch;
+  }
+
+  .planner-page .side-panel:not(.side-panel-right) > .budget-card {
+    grid-row: 1;
+  }
+
+  .planner-page .side-panel:not(.side-panel-right) > .shopping-card {
+    grid-row: 2;
+  }
+
+  .planner-page .side-panel:not(.side-panel-right) > .notes-card {
+    grid-row: 3;
   }
 
   .planner-page .center-column {
@@ -650,13 +669,24 @@ body.planner-page {
 
   .planner-page .shopping-card {
     flex: 1 1 auto;
-    min-height: 182px;
+    min-height: var(--left-shopping-min);
   }
 
   .planner-page .notes-card {
     flex: 0 1 auto;
-    min-height: 148px;
-    max-height: min(50vh, 50%);
+    min-height: var(--left-notes-min);
+    max-height: min(
+      50%,
+      max(
+        var(--left-notes-min),
+        calc(
+          100% -
+            var(--left-budget-reserve) -
+            var(--left-shopping-min) -
+            (var(--kiosk-column-gap) * 2)
+        )
+      )
+    );
   }
 
   .planner-page .planner-surface {
@@ -723,8 +753,8 @@ body.planner-page {
   .planner-page .shopping-card .card-content,
   .planner-page .notes-card .card-content {
     min-height: 72px;
-    scrollbar-gutter: stable;
-    padding-right: 0.18rem;
+    scrollbar-gutter: stable both-edges;
+    padding-inline-end: 0.4rem;
     box-sizing: border-box;
   }
 
@@ -732,9 +762,11 @@ body.planner-page {
   .planner-page .notes-card .note-item {
     width: 100%;
     box-sizing: border-box;
+    min-height: 52px;
   }
 
   .planner-page .card-content {
+    overflow-x: hidden;
     overflow-y: auto;
   }
 
