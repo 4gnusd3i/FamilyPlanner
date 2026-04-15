@@ -12,14 +12,29 @@ public static partial class PlannerApiEndpoints
     {
         if (HasJsonContentType(request))
         {
-            var body = await request.ReadFromJsonAsync<JsonElement>(jsonOptions.Value.SerializerOptions);
-            if (body.TryGetProperty("toggle", out var toggleElement) && toggleElement.GetBoolean())
+            var body = await ReadJsonObjectAsync(request, jsonOptions.Value);
+            if (body is null)
             {
-                store.ToggleMedicine(body.GetProperty("id").GetInt32());
+                return BadRequest("Ugyldig medisinforespørsel.");
             }
-            else if (body.TryGetProperty("delete", out var deleteElement) && deleteElement.GetBoolean())
+
+            if (HasTrueProperty(body.Value, "toggle"))
             {
-                store.DeleteMedicine(body.GetProperty("id").GetInt32());
+                if (!TryGetRequiredInt(body.Value, "id", out var id))
+                {
+                    return BadRequest("Ugyldig medisin.");
+                }
+
+                store.ToggleMedicine(id);
+            }
+            else if (HasTrueProperty(body.Value, "delete"))
+            {
+                if (!TryGetRequiredInt(body.Value, "id", out var id))
+                {
+                    return BadRequest("Ugyldig medisin.");
+                }
+
+                store.DeleteMedicine(id);
             }
 
             return Results.Ok(new { ok = true });
@@ -44,6 +59,11 @@ public static partial class PlannerApiEndpoints
             var command = await request.ReadFromJsonAsync<DeleteRequest>(jsonOptions.Value.SerializerOptions);
             if (command?.Delete == true)
             {
+                if (command.Id <= 0)
+                {
+                    return BadRequest("Ugyldig notat.");
+                }
+
                 store.DeleteNote(command.Id);
             }
 
@@ -60,23 +80,38 @@ public static partial class PlannerApiEndpoints
     {
         if (HasJsonContentType(request))
         {
-            var body = await request.ReadFromJsonAsync<JsonElement>(jsonOptions.Value.SerializerOptions);
-            if (body.TryGetProperty("toggle", out var toggleElement) && toggleElement.GetBoolean())
+            var body = await ReadJsonObjectAsync(request, jsonOptions.Value);
+            if (body is null)
             {
-                store.ToggleShoppingItem(body.GetProperty("id").GetInt32());
+                return BadRequest("Ugyldig handlelisteforespørsel.");
+            }
+
+            if (HasTrueProperty(body.Value, "toggle"))
+            {
+                if (!TryGetRequiredInt(body.Value, "id", out var id))
+                {
+                    return BadRequest("Ugyldig vare.");
+                }
+
+                store.ToggleShoppingItem(id);
                 return Results.Ok(new { ok = true });
             }
 
-            if (body.TryGetProperty("delete", out var deleteElement) && deleteElement.GetBoolean())
+            if (HasTrueProperty(body.Value, "delete"))
             {
-                store.DeleteShoppingItem(body.GetProperty("id").GetInt32());
+                if (!TryGetRequiredInt(body.Value, "id", out var id))
+                {
+                    return BadRequest("Ugyldig vare.");
+                }
+
+                store.DeleteShoppingItem(id);
                 return Results.Ok(new { ok = true });
             }
 
-            var item = body.TryGetProperty("item", out var itemElement) ? itemElement.GetString() : null;
-            var quantity = body.TryGetProperty("quantity", out var quantityElement) ? quantityElement.GetInt32() : 1;
-            var sourceMealId = TryGetNullableInt(body, "source_meal_id");
-            var ownerId = TryGetNullableInt(body, "owner_id");
+            var item = body.Value.TryGetProperty("item", out var itemElement) ? itemElement.GetString() : null;
+            var quantity = body.Value.TryGetProperty("quantity", out var quantityElement) ? quantityElement.GetInt32() : 1;
+            var sourceMealId = TryGetNullableInt(body.Value, "source_meal_id");
+            var ownerId = TryGetNullableInt(body.Value, "owner_id");
 
             store.UpsertShoppingItem(null, Required(item, "Vare mangler."), quantity, ownerId, sourceMealId);
             return Results.Ok(new { ok = true });

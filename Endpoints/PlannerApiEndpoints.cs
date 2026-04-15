@@ -39,6 +39,37 @@ public static partial class PlannerApiEndpoints
     private static bool HasJsonContentType(HttpRequest request) =>
         request.ContentType?.StartsWith("application/json", StringComparison.OrdinalIgnoreCase) == true;
 
+    private static async Task<JsonElement?> ReadJsonObjectAsync(HttpRequest request, JsonOptions jsonOptions)
+    {
+        var body = await request.ReadFromJsonAsync<JsonElement>(jsonOptions.SerializerOptions);
+        return body.ValueKind == JsonValueKind.Object ? body : null;
+    }
+
+    private static IResult BadRequest(string message) => Results.BadRequest(new { error = message });
+
+    private static bool HasTrueProperty(JsonElement element, string propertyName) =>
+        element.TryGetProperty(propertyName, out var property) &&
+        property.ValueKind is JsonValueKind.True or JsonValueKind.False &&
+        property.GetBoolean();
+
+    private static bool TryGetRequiredInt(JsonElement element, string propertyName, out int value)
+    {
+        value = 0;
+        if (!element.TryGetProperty(propertyName, out var property))
+        {
+            return false;
+        }
+
+        if (property.ValueKind == JsonValueKind.Number && property.TryGetInt32(out value))
+        {
+            return value > 0;
+        }
+
+        return property.ValueKind == JsonValueKind.String &&
+               int.TryParse(property.GetString(), out value) &&
+               value > 0;
+    }
+
     private static int? ParseNullableInt(string? raw) =>
         int.TryParse(raw, out var value) ? value : null;
 
@@ -49,7 +80,14 @@ public static partial class PlannerApiEndpoints
             return null;
         }
 
-        return property.ValueKind is JsonValueKind.Number ? property.GetInt32() : null;
+        if (property.ValueKind == JsonValueKind.Number && property.TryGetInt32(out var numberValue))
+        {
+            return numberValue;
+        }
+
+        return property.ValueKind == JsonValueKind.String && int.TryParse(property.GetString(), out var stringValue)
+            ? stringValue
+            : null;
     }
 
     private static string Required(string? value, string message)

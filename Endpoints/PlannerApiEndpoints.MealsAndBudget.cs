@@ -15,6 +15,11 @@ public static partial class PlannerApiEndpoints
             var command = await request.ReadFromJsonAsync<DeleteRequest>(jsonOptions.Value.SerializerOptions);
             if (command?.Delete == true)
             {
+                if (command.Id <= 0)
+                {
+                    return BadRequest("Ugyldig måltid.");
+                }
+
                 store.DeleteMeal(command.Id);
             }
 
@@ -42,30 +47,39 @@ public static partial class PlannerApiEndpoints
 
     private static async Task<IResult> PostBudgetAsync(HttpRequest request, PlannerStore store, IOptions<JsonOptions> jsonOptions)
     {
-        var body = await request.ReadFromJsonAsync<JsonElement>(jsonOptions.Value.SerializerOptions);
-
-        if (body.TryGetProperty("delete_expense", out var deleteExpenseElement) && deleteExpenseElement.GetBoolean())
+        var body = await ReadJsonObjectAsync(request, jsonOptions.Value);
+        if (body is null)
         {
-            store.DeleteExpense(body.GetProperty("id").GetInt32());
+            return BadRequest("Ugyldig budsjettforespørsel.");
+        }
+
+        if (HasTrueProperty(body.Value, "delete_expense"))
+        {
+            if (!TryGetRequiredInt(body.Value, "id", out var id))
+            {
+                return BadRequest("Ugyldig utgift.");
+            }
+
+            store.DeleteExpense(id);
             return Results.Ok(new { ok = true });
         }
 
-        if (body.TryGetProperty("set_budget", out var setBudgetElement) && setBudgetElement.GetBoolean())
+        if (HasTrueProperty(body.Value, "set_budget"))
         {
-            var month = body.TryGetProperty("month", out var monthElement) && !string.IsNullOrWhiteSpace(monthElement.GetString())
+            var month = body.Value.TryGetProperty("month", out var monthElement) && !string.IsNullOrWhiteSpace(monthElement.GetString())
                 ? monthElement.GetString()!
                 : DateOnly.FromDateTime(DateTime.Now).ToString("yyyy-MM");
-            var limit = body.TryGetProperty("limit", out var limitElement) ? limitElement.GetDecimal() : 0;
-            var income = body.TryGetProperty("income", out var incomeElement) ? incomeElement.GetDecimal() : 0;
+            var limit = body.Value.TryGetProperty("limit", out var limitElement) ? limitElement.GetDecimal() : 0;
+            var income = body.Value.TryGetProperty("income", out var incomeElement) ? incomeElement.GetDecimal() : 0;
             store.SetBudget(month, limit, income);
             return Results.Ok(new { ok = true });
         }
 
-        var amount = body.TryGetProperty("amount", out var amountElement) ? amountElement.GetDecimal() : 0;
-        var category = body.TryGetProperty("category", out var categoryElement) ? categoryElement.GetString() : null;
-        var expenseDate = body.TryGetProperty("expense_date", out var dateElement) ? dateElement.GetString() : null;
-        var ownerId = TryGetNullableInt(body, "owner_id");
-        var description = body.TryGetProperty("description", out var descriptionElement) ? descriptionElement.GetString() : null;
+        var amount = body.Value.TryGetProperty("amount", out var amountElement) ? amountElement.GetDecimal() : 0;
+        var category = body.Value.TryGetProperty("category", out var categoryElement) ? categoryElement.GetString() : null;
+        var expenseDate = body.Value.TryGetProperty("expense_date", out var dateElement) ? dateElement.GetString() : null;
+        var ownerId = TryGetNullableInt(body.Value, "owner_id");
+        var description = body.Value.TryGetProperty("description", out var descriptionElement) ? descriptionElement.GetString() : null;
 
         store.AddExpense(amount, category, expenseDate, ownerId, description);
         return Results.Ok(new { ok = true });

@@ -31,6 +31,11 @@ public static partial class PlannerApiEndpoints
             var command = await request.ReadFromJsonAsync<DeleteRequest>(jsonOptions.Value.SerializerOptions);
             if (command?.Delete == true)
             {
+                if (command.Id <= 0)
+                {
+                    return BadRequest("Ugyldig avtale.");
+                }
+
                 store.DeleteEvent(command.Id);
             }
 

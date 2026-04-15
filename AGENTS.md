@@ -9,7 +9,7 @@ This file is intended to let another workstation pick up work quickly without re
 ## Current State
 
 - Primary working branch: `feature/frontend-redesign`
-- Current expected regression result: `21 passed, 0 failed`
+- Current expected regression result: `23 passed, 0 failed`
 - Legacy live-import functionality has been removed from setup, UI, API, and storage code
 - Frontend assets and backend planner/storage code are now split into smaller feature files for safer maintenance
 
@@ -193,6 +193,7 @@ What it currently covers:
 - note create/view/edit/delete
 - family member create/profile edit/delete
 - family assignment add/remove through drag/drop path
+- API bad-request validation for malformed JSON mutation commands
 - storage maintenance for obsolete collections, expired lifecycle items, setup reset cleanup, and avatar extension validation
 
 Artifacts are written to:

@@ -5,7 +5,6 @@ using FamilyPlanner.Endpoints;
 using FamilyPlanner.Services.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
-var dataRoot = ResolveDataRoot(builder.Configuration);
 
 builder.WebHost.UseUrls(builder.Configuration["App:Urls"] ?? "http://localhost:5080");
 builder.Logging.ClearProviders();
@@ -82,15 +81,3 @@ app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.MapFallback(() => Results.Redirect("/"));
 
 app.Run();
-
-static string ResolveDataRoot(IConfiguration configuration)
-{
-    var configuredRoot = configuration["App:DataRoot"];
-    var environmentRoot = Environment.GetEnvironmentVariable("FAMILYPLANNER_DATA_ROOT");
-
-    return string.IsNullOrWhiteSpace(environmentRoot)
-        ? string.IsNullOrWhiteSpace(configuredRoot)
-            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FamilyPlanner")
-            : configuredRoot
-        : environmentRoot;
-}

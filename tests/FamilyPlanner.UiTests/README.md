@@ -15,6 +15,7 @@ What it covers:
 - medicine create, toggle, view, edit, and delete
 - note create, view, edit, and delete
 - family member create, profile edit, drag/drop assignment, assignment removal, and delete
+- API bad-request validation for malformed JSON mutation commands
 - storage maintenance for obsolete collections, expired lifecycle items, setup reset cleanup, and avatar extension validation
 
 First-time setup:
