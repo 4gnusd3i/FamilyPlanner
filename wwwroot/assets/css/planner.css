@@ -126,8 +126,7 @@ body.planner-page {
 .planner-page .btn,
 .planner-page .btn-small,
 .planner-page .inline-action,
-.planner-page .week-nav-btn,
-.planner-page .add-day-btn {
+.planner-page .week-nav-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -155,7 +154,6 @@ body.planner-page {
 .planner-page .btn:hover,
 .planner-page .inline-action:hover,
 .planner-page .week-nav-btn:hover,
-.planner-page .add-day-btn:hover,
 .planner-page .add-family-btn:hover,
 .planner-page .quick-action:hover,
 .planner-page .family-avatar:hover,
@@ -408,7 +406,6 @@ body.planner-page {
   flex-direction: column;
   gap: 0.45rem;
   min-height: 0;
-  padding-bottom: 2.8rem;
 }
 
 .planner-page .day-content {
@@ -449,19 +446,6 @@ body.planner-page {
   padding: 0.25rem 0.55rem;
   border-radius: 999px;
   box-shadow: none;
-}
-
-.planner-page .add-day-btn {
-  width: 44px;
-  height: 44px;
-  min-height: 44px;
-  padding: 0;
-  position: absolute;
-  right: 0.65rem;
-  bottom: 0.65rem;
-  background: rgba(var(--icy-blue-rgb), 0.82);
-  color: var(--rose-ink);
-  box-shadow: 0 10px 24px rgba(var(--sky-blue-rgb), 0.26);
 }
 
 .planner-page .meals-wrapper {
@@ -738,11 +722,16 @@ body.planner-page {
   }
 
   .planner-page .shopping-card .card-content,
-  .planner-page .notes-card .card-content {
+  .planner-page .notes-card:not(.is-empty) .card-content {
     min-height: 72px;
     scrollbar-gutter: stable both-edges;
     padding-inline-end: 0.4rem;
     box-sizing: border-box;
+  }
+
+  .planner-page .notes-card.is-empty .card-content {
+    min-height: 0;
+    padding-inline-end: 0;
   }
 
   .planner-page .shopping-card .shop-item,
@@ -822,18 +811,9 @@ body.planner-page {
     font-size: 1.15rem;
   }
 
-  .planner-page .day-body {
-    padding-bottom: 2.45rem;
-  }
-
   .planner-page .event-item {
     padding: 0.32rem 0.38rem;
     font-size: 0.66rem;
-  }
-
-  .planner-page .add-day-btn {
-    right: 0.48rem;
-    bottom: 0.48rem;
   }
 
   .planner-page .meals-grid {

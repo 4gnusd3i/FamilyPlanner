@@ -22,7 +22,7 @@ public sealed class PlannerPhoneTests : PlannerUiTestBase
         await AssertLocatorFitsViewportWidthAsync(".planner-toolbar");
         await AssertLocatorFitsViewportWidthAsync(".week-switcher");
         await AssertAllMinimumSizeAsync(".week-nav-btn", 44, 44);
-        await AssertMinimumSizeAsync(".add-day-btn", 44, 44);
+        Assert.That(await Page.Locator(".add-day-btn").CountAsync(), Is.EqualTo(0), "Per-day add appointment buttons should be deprecated.");
 
         await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Nytt familiemedlem", Exact = true })).ToBeVisibleAsync();
         await Page.Locator(".quick-action", new() { HasTextString = "Måltid" }).First.ClickAsync();

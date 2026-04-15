@@ -381,6 +381,7 @@ function syncKioskLeftColumnSizing() {
   const remainingAfterBudget = Math.max(0, panelHeight - budgetHeight - (gap * 2));
   const notesMax = Math.max(0, remainingAfterBudget / 2);
 
-  notesCard.classList.toggle("is-empty", notesList.children.length === 0);
+  const hasNoteItems = notesList.querySelector(".note-item") !== null;
+  notesCard.classList.toggle("is-empty", !hasNoteItems);
   leftPanel.style.setProperty("--left-notes-max", `${notesMax}px`);
 }

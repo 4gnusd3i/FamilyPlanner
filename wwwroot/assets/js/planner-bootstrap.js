@@ -87,7 +87,6 @@ function renderWeekShell() {
         <div class="day-content" id="events-${dateText}"></div>
         <div class="day-tasks" id="tasks-${index}"></div>
       </div>
-      <button class="add-day-btn icon-action" onclick="openEventModal(null, '${dateText}')" aria-label="Ny avtale ${weekdayNames[index]}">+</button>
     </div>`;
   }).join("");
 }

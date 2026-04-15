@@ -28,7 +28,7 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
         await AssertLocatorFitsViewportWidthAsync(".main-container");
         await AssertLocatorFitsViewportWidthAsync(".family-bar");
         await AssertAllMinimumSizeAsync(".week-nav-btn", 44, 44);
-        await AssertMinimumSizeAsync(".add-day-btn", 44, 44);
+        Assert.That(await Page.Locator(".add-day-btn").CountAsync(), Is.EqualTo(0), "Per-day add appointment buttons should be deprecated.");
 
         await Expect(Page.Locator(".budget-card")).ToBeVisibleAsync();
         await Expect(Page.Locator(".shopping-card")).ToBeVisibleAsync();

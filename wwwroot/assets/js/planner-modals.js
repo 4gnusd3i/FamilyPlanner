@@ -206,6 +206,8 @@ async function deleteNoteFromView() {
 
 function openShoppingModal(item = null) {
   document.getElementById("shoppingForm").reset();
+  document.getElementById("shoppingId").value = "";
+  document.getElementById("shoppingQty").value = "1";
   document.getElementById("deleteShoppingBtn").style.display = "none";
   if (item) {
     document.getElementById("shoppingId").value = item.id || "";

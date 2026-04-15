@@ -43,6 +43,17 @@ public sealed class ShoppingWorkflowTests : DesktopPlannerUiTestBase
         Assert.That(updatedItem.Item, Is.EqualTo("Night diapers"));
         Assert.That(updatedItem.Quantity, Is.EqualTo(5));
 
+        await OpenModalBySelectorAsync(".quick-action:has-text('Vare')", "shoppingModal");
+        await Page.Locator("#shoppingItem").FillAsync("Wipes");
+        await Page.Locator("#shoppingQty").FillAsync("2");
+        await Page.Locator("#shoppingModal .btn-primary").ClickAsync();
+        await WaitForModalStateAsync("shoppingModal", open: false);
+
+        var withExtraItem = await GetApiAsync<List<ShoppingItemDto>>("/api/shopping") ?? [];
+        Assert.That(withExtraItem.Any(x => x.Item == "Night diapers"), Is.True, "Existing shopping item should remain after adding a new item.");
+        Assert.That(withExtraItem.Any(x => x.Item == "Wipes"), Is.True, "Newly added shopping item should be appended, not replace an existing item.");
+        Assert.That(withExtraItem.Count, Is.EqualTo(3), "Adding a new shopping item should increase total list size.");
+
         await Page.Locator(".shop-item", new() { HasTextString = "Night diapers" }).Locator(".shop-name").ClickAsync();
         await WaitForModalStateAsync("shoppingModal", open: true);
         await AcceptDialogAsync(
@@ -51,7 +62,7 @@ public sealed class ShoppingWorkflowTests : DesktopPlannerUiTestBase
 
         var finalItems = await GetApiAsync<List<ShoppingItemDto>>("/api/shopping") ?? [];
         Assert.That(finalItems.Any(x => x.Id == createdItem.Id), Is.False);
-        Assert.That(finalItems.Count, Is.EqualTo(1));
-        Assert.That(finalItems.Count(x => !x.Done), Is.EqualTo(1));
+        Assert.That(finalItems.Count, Is.EqualTo(2));
+        Assert.That(finalItems.Count(x => !x.Done), Is.EqualTo(2));
     }
 }
