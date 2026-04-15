@@ -650,12 +650,12 @@ body.planner-page {
 
   .planner-page .shopping-card {
     flex: 1 1 auto;
-    min-height: 150px;
+    min-height: 182px;
   }
 
   .planner-page .notes-card {
     flex: 0 1 auto;
-    min-height: 132px;
+    min-height: 148px;
     max-height: min(50vh, 50%);
   }
 
@@ -722,7 +722,16 @@ body.planner-page {
 
   .planner-page .shopping-card .card-content,
   .planner-page .notes-card .card-content {
-    min-height: 56px;
+    min-height: 72px;
+    scrollbar-gutter: stable;
+    padding-right: 0.18rem;
+    box-sizing: border-box;
+  }
+
+  .planner-page .shopping-card .shop-item,
+  .planner-page .notes-card .note-item {
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .planner-page .card-content {

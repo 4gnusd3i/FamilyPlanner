@@ -135,6 +135,37 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
         });
     }
 
+    [Test]
+    public async Task TabletLandscape_ShoppingStaysVisibleWhenNotesGrow()
+    {
+        await ClearKioskOptionalItemsAsync();
+        await AddDenseNotesWithSingleShoppingAsync();
+        await Page.ReloadAsync();
+
+        await Expect(Page.Locator("#shoppingList")).ToContainTextAsync("Kontantkort");
+        await Expect(Page.Locator("#notesList")).ToContainTextAsync("Notat 3");
+
+        var shoppingLayout = await Page.EvaluateAsync<double[]>(
+            @"() => {
+                const list = document.querySelector('#shoppingList');
+                const first = list.querySelector('.shop-item');
+                const listRect = list.getBoundingClientRect();
+                const firstRect = first.getBoundingClientRect();
+                return [
+                    list.scrollHeight - list.clientHeight,
+                    firstRect.top - listRect.top,
+                    listRect.bottom - firstRect.bottom
+                ];
+            }");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(shoppingLayout[0], Is.LessThanOrEqualTo(1d), "Handleliste should keep one item visible without scroll even when notes grow.");
+            Assert.That(shoppingLayout[1], Is.GreaterThanOrEqualTo(-1d), "Handleliste item should stay fully visible from the top.");
+            Assert.That(shoppingLayout[2], Is.GreaterThanOrEqualTo(-1d), "Handleliste item should stay fully visible at the bottom.");
+        });
+    }
+
     private async Task ClearKioskOptionalItemsAsync()
     {
         using var client = await UiTestHost.CreateClientAsync();
@@ -176,6 +207,32 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
                 ["content"] = "Torsdag hentes 16:00",
             }));
         noteResponse.EnsureSuccessStatusCode();
+
+        var shoppingResponse = await client.PostAsync(
+            "/api/shopping",
+            new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["item"] = "Kontantkort",
+                ["quantity"] = "1",
+            }));
+        shoppingResponse.EnsureSuccessStatusCode();
+    }
+
+    private async Task AddDenseNotesWithSingleShoppingAsync()
+    {
+        using var client = await UiTestHost.CreateClientAsync();
+
+        foreach (var idx in Enumerable.Range(1, 3))
+        {
+            var noteResponse = await client.PostAsync(
+                "/api/notes",
+                new FormUrlEncodedContent(new Dictionary<string, string>
+                {
+                    ["title"] = $"Notat {idx}",
+                    ["content"] = $"Innhold {idx}",
+                }));
+            noteResponse.EnsureSuccessStatusCode();
+        }
 
         var shoppingResponse = await client.PostAsync(
             "/api/shopping",
