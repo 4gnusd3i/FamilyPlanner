@@ -1,12 +1,56 @@
+# Build output
+bin/
+obj/
+publish/
+artifacts/
+releases/
+
+# .NET local state
 .dotnet/
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+coverage/
+coverage.cobertura.xml
+
+# Local application data and smoke-test data
 .localdata/
 .smoketestdata/
 .smoketestdata-ui/
+*.db
+*.db-log
+*.db-shm
+*.db-wal
+
+# Playwright and browser regression artifacts
 .playwright-browsers/
-TestResults/
 tests/Shakar.Familietavle.UiTests/.artifacts/
 tests/FamilyPlanner.UiTests/.artifacts/
-bin/
-obj/
-*.user
+
+# IDE and editor state
+.vs/
+.vscode/
+.idea/
 *.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.rsuser
+
+# Logs and transient diagnostics
+*.log
+logs/
+
+# Local-only configuration overrides
+appsettings.Local.json
+appsettings.*.Local.json
+appsettings.*.local.json
+
+# Local planning notes
+todo.md
+
+# OS metadata
+Thumbs.db
+Desktop.ini
+.DS_Store
