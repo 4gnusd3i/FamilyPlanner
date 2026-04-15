@@ -939,18 +939,3 @@ body.planner-page {
   }
 }
 
-/* Narrow phone */
-@media (max-width: 640px) {
-  .planner-page .app-shell {
-    padding: 0.7rem 0.7rem 1rem;
-  }
-
-  .planner-page .quick-action,
-  .planner-page .day-box {
-    min-height: 225px;
-  }
-
-  .planner-page .quick-action {
-    min-height: 56px;
-  }
-}

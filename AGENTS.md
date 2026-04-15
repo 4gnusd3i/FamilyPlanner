@@ -9,7 +9,7 @@ This file is intended to let another workstation pick up work quickly without re
 ## Current State
 
 - Primary working branch: `feature/frontend-redesign`
-- Current expected regression result: `13 passed, 0 failed`
+- Current expected regression result: `15 passed, 0 failed`
 - Legacy live-import functionality has been removed from setup, UI, API, and storage code
 - Frontend assets and backend planner/storage code are now split into smaller feature files for safer maintenance
 

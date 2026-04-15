@@ -4,7 +4,7 @@ This project contains the browser-based functional regression baseline for `Fami
 
 What it covers:
 - first-run setup redirect/lockout behavior
-- desktop/tablet kiosk layout and phone stacked layout regression
+- kiosk layout above width threshold and stacked layout below threshold regression
 - responsive overflow protection
 - viewport-fit and non-overlap checks for major planner regions
 - touch-target sizing checks for primary interactive controls
