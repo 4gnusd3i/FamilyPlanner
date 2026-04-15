@@ -7,6 +7,40 @@ namespace FamilyPlanner.UiTests;
 public sealed class EventWorkflowTests : DesktopPlannerUiTestBase
 {
     [Test]
+    public async Task EventModal_DefaultTimes_AreNowPlusOneHour_AndStartSyncsEndOneWay()
+    {
+        await OpenModalBySelectorAsync(".quick-action:has-text('Avtale')", "eventModal");
+
+        var defaultTimes = await Page.EvaluateAsync<int[]>(
+            @"() => {
+                const toMinutes = (value) => {
+                    const [h, m] = value.split(':').map(Number);
+                    return (h * 60) + m;
+                };
+                const start = document.querySelector('#eventStartTime').value;
+                const end = document.querySelector('#eventEndTime').value;
+                const now = new Date();
+                const nowMinutes = (now.getHours() * 60) + now.getMinutes();
+                const startMinutes = toMinutes(start);
+                const endMinutes = toMinutes(end);
+                const plusOneHour = (startMinutes + 60) % (24 * 60);
+                return [startMinutes, endMinutes, nowMinutes, plusOneHour];
+            }");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(defaultTimes[0], Is.InRange(defaultTimes[2] - 2, defaultTimes[2] + 2), "Start time should default to current local time.");
+            Assert.That(defaultTimes[1], Is.EqualTo(defaultTimes[3]), "End time should default to one hour after start.");
+        });
+
+        await Page.Locator("#eventStartTime").FillAsync("09:10");
+        await Expect(Page.Locator("#eventEndTime")).ToHaveValueAsync("10:10");
+
+        await Page.Locator("#eventEndTime").FillAsync("12:45");
+        await Expect(Page.Locator("#eventStartTime")).ToHaveValueAsync("09:10");
+    }
+
+    [Test]
     public async Task EventCrud_PersistsThroughUiApiAndStore()
     {
         var (start, end) = GetCurrentWeekRange();

@@ -22,7 +22,38 @@ function initColorOptions() {
 function selColor(color) { selectedColor = color; initColorOptions(); }
 function selMemberColor(color) { selectedColor = color; initColorOptions(); }
 
+function formatTimeForInput(date) {
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${hours}:${minutes}`;
+}
+
+function addHoursToTimeValue(timeValue, hoursToAdd) {
+  if (!timeValue || !timeValue.includes(":")) return "";
+  const [hoursText, minutesText] = timeValue.split(":");
+  const hours = Number.parseInt(hoursText, 10);
+  const minutes = Number.parseInt(minutesText, 10);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return "";
+  const totalMinutes = ((hours * 60) + minutes + (hoursToAdd * 60)) % (24 * 60);
+  const normalizedMinutes = totalMinutes < 0 ? totalMinutes + (24 * 60) : totalMinutes;
+  const nextHours = String(Math.floor(normalizedMinutes / 60)).padStart(2, "0");
+  const nextMinutes = String(normalizedMinutes % 60).padStart(2, "0");
+  return `${nextHours}:${nextMinutes}`;
+}
+
+function bindTimeInputDefaults() {
+  const startInput = document.getElementById("eventStartTime");
+  const endInput = document.getElementById("eventEndTime");
+  if (!startInput || !endInput || startInput.dataset.autosyncBound === "true") return;
+
+  startInput.dataset.autosyncBound = "true";
+  startInput.addEventListener("input", () => {
+    endInput.value = startInput.value ? addHoursToTimeValue(startInput.value, 1) : "";
+  });
+}
+
 function openEventModal(event = null, date = null) {
+  bindTimeInputDefaults();
   if (event) {
     document.getElementById("eventModalTitle").textContent = "Rediger avtale";
     document.getElementById("deleteEventBtn").style.display = "block";
@@ -39,6 +70,9 @@ function openEventModal(event = null, date = null) {
     document.getElementById("deleteEventBtn").style.display = "none";
     document.getElementById("eventForm").reset();
     document.getElementById("eventDate").value = date || formatDate(new Date());
+    const defaultStartTime = formatTimeForInput(new Date());
+    document.getElementById("eventStartTime").value = defaultStartTime;
+    document.getElementById("eventEndTime").value = addHoursToTimeValue(defaultStartTime, 1);
     selectedColor = "#3b82f6";
   }
   initColorOptions();
@@ -89,6 +123,8 @@ function openMedicineModal(medicine = null) {
     document.getElementById("medicineOwner").value = medicine.owner_id || "";
     document.getElementById("medicineNote").value = medicine.note || "";
     document.getElementById("deleteMedicineBtn").style.display = "block";
+  } else {
+    document.getElementById("medicineTime").value = formatTimeForInput(new Date());
   }
   openModal("medicineModal");
 }

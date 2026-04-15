@@ -11,6 +11,15 @@ public sealed class MedicineWorkflowTests : DesktopPlannerUiTestBase
     public async Task MedicineCrud_ViewAndToggle_PersistCorrectly()
     {
         await OpenModalBySelectorAsync(".quick-action:has-text('Medisin')", "medicineModal");
+
+        var defaultTime = await Page.EvaluateAsync<int[]>(
+            @"() => {
+                const [h, m] = document.querySelector('#medicineTime').value.split(':').map(Number);
+                const now = new Date();
+                return [((h * 60) + m), ((now.getHours() * 60) + now.getMinutes())];
+            }");
+        Assert.That(defaultTime[0], Is.InRange(defaultTime[1] - 2, defaultTime[1] + 2), "Medicine time should default to current local time.");
+
         await Page.Locator("#medicineName").FillAsync("Vitamin D");
         await Page.Locator("#medicineTime").FillAsync("08:15");
         await Page.Locator("#medicineNote").FillAsync("Morning dose");
