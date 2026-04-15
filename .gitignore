@@ -1,0 +1,12 @@
+.dotnet/
+.localdata/
+.smoketestdata/
+.smoketestdata-ui/
+.playwright-browsers/
+TestResults/
+tests/Shakar.Familietavle.UiTests/.artifacts/
+tests/FamilyPlanner.UiTests/.artifacts/
+bin/
+obj/
+*.user
+*.suo

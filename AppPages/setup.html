@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oppsett - FamilyPlanner</title>
+    <link rel="stylesheet" href="/assets/css/base.css">
+</head>
+<body class="auth-page" data-auth-page="setup">
+    <div class="auth-shell">
+        <div class="auth-card auth-card-wide">
+            <div class="auth-logo">🏠</div>
+            <h1>Sett opp FamilyPlanner</h1>
+            <p class="auth-subtitle">Engangsoppsett for familienavn og første medlem.</p>
+            <div class="auth-error" id="setupMessage" hidden></div>
+
+            <form method="post" action="/setup" class="auth-form setup-form" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="family_name">Familienavn</label>
+                    <input id="family_name" name="family_name" type="text" required placeholder="Familien Hansen" autocomplete="off">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="first_member_name">Første medlem</label>
+                        <input id="first_member_name" name="first_member_name" type="text" required placeholder="Navn" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="first_member_birthday">Fødselsdato</label>
+                        <input id="first_member_birthday" name="first_member_birthday" type="date">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="first_member_bio">Kort info</label>
+                    <input id="first_member_bio" name="first_member_bio" type="text" placeholder="Valgfritt">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="first_member_color">Farge</label>
+                        <input id="first_member_color" name="first_member_color" type="color" value="#ffafcc">
+                    </div>
+                    <div class="form-group">
+                        <label for="first_member_avatar">Avatar</label>
+                        <input id="first_member_avatar" name="first_member_avatar" type="file" accept="image/*">
+                    </div>
+                </div>
+
+                <button type="submit" class="login-btn">Opprett lokal løsning</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/assets/js/auth-feedback.js"></script>
+</body>
+</html>

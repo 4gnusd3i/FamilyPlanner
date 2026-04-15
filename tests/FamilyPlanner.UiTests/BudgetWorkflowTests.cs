@@ -1,0 +1,49 @@
+using NUnit.Framework;
+
+namespace FamilyPlanner.UiTests;
+
+[TestFixture]
+public sealed class BudgetWorkflowTests : DesktopPlannerUiTestBase
+{
+    [Test]
+    public async Task BudgetAndExpenses_UpdateAndPersistThroughUi()
+    {
+        await OpenModalBySelectorAsync(".budget-card .inline-action", "budgetModal");
+        await Page.Locator("#budgetModal .tabs button").Nth(1).ClickAsync();
+        await Page.Locator("#budgetIncomeInput").FillAsync("70000");
+        await Page.Locator("#budgetLimitInput").FillAsync("22000");
+        await Page.Locator("#budgetForm .btn-primary").ClickAsync();
+        await WaitForModalStateAsync("budgetModal", open: false);
+
+        var updatedBudget = await GetApiAsync<BudgetSnapshotDto>("/api/budget")
+            ?? throw new AssertionException("Budget snapshot was null.");
+        Assert.That(updatedBudget.Income, Is.EqualTo(70000));
+        Assert.That(updatedBudget.Limit, Is.EqualTo(22000));
+
+        await OpenModalBySelectorAsync(".budget-card .inline-action", "budgetModal");
+        await Assert.ThatAsync(() => Page.Locator("#expenseForm").IsVisibleAsync(), Is.True);
+        await Assert.ThatAsync(() => Page.Locator("#budgetForm").IsVisibleAsync(), Is.False);
+        await Page.Locator("#budgetModal .tabs button").Nth(0).ClickAsync();
+        await Page.Locator("#expenseAmount").FillAsync("599");
+        await Page.Locator("#expenseCategory").FillAsync("Leisure");
+        await Page.Locator("#expenseDesc").FillAsync("Movie night");
+        await Page.Locator("#expenseForm .btn-primary").ClickAsync();
+        await WaitForModalStateAsync("budgetModal", open: false);
+
+        var withExpense = await GetApiAsync<BudgetSnapshotDto>("/api/budget")
+            ?? throw new AssertionException("Budget snapshot after expense was null.");
+        var createdExpense = withExpense.Expenses.Single(x => x.Description == "Movie night");
+        Assert.That(withExpense.Spent, Is.GreaterThan(updatedBudget.Spent));
+
+        await OpenModalBySelectorAsync(".budget-card .inline-action", "budgetModal");
+        await Page.Locator("#budgetModal .tabs button").Nth(2).ClickAsync();
+        await Page.Locator("#expenseHistory").WaitForAsync();
+        await AcceptDialogAsync(
+            () => Page.Locator("#expenseList .shop-item", new() { HasTextString = "Movie night" }).Locator("button").ClickAsync(),
+            "Slette");
+
+        var finalBudget = await GetApiAsync<BudgetSnapshotDto>("/api/budget")
+            ?? throw new AssertionException("Final budget snapshot was null.");
+        Assert.That(finalBudget.Expenses.Any(x => x.Id == createdExpense.Id), Is.False);
+    }
+}
