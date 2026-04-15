@@ -28,6 +28,7 @@ var storagePaths = app.Services.GetRequiredService<StoragePaths>();
 Directory.CreateDirectory(storagePaths.RootPath);
 Directory.CreateDirectory(storagePaths.UploadsPath);
 Directory.CreateDirectory(storagePaths.AvatarsPath);
+app.Services.GetRequiredService<PlannerStore>().RunMaintenance();
 
 app.UseStaticFiles();
 app.UseStaticFiles(new StaticFileOptions

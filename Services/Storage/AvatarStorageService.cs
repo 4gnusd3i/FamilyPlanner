@@ -4,6 +4,15 @@ namespace FamilyPlanner.Services.Storage;
 
 public sealed class AvatarStorageService(StoragePaths storagePaths)
 {
+    private static readonly HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".gif",
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".webp"
+    };
+
     public async Task<string> SaveUploadedAsync(IFormFile file, string? currentAvatarUrl, CancellationToken cancellationToken = default)
     {
         var extension = NormalizeExtension(Path.GetExtension(file.FileName));
@@ -13,23 +22,6 @@ public sealed class AvatarStorageService(StoragePaths storagePaths)
         await using var stream = File.Create(fullPath);
         await file.CopyToAsync(stream, cancellationToken);
 
-        DeleteIfLocal(currentAvatarUrl);
-        return $"/uploads/avatars/{fileName}";
-    }
-
-    public async Task<string> SaveBytesAsync(
-        byte[] bytes,
-        string fileStem,
-        string? extension,
-        string? currentAvatarUrl,
-        CancellationToken cancellationToken = default)
-    {
-        var safeExtension = NormalizeExtension(extension);
-        var safeStem = string.Concat(fileStem.Where(ch => char.IsLetterOrDigit(ch) || ch is '-' or '_'));
-        var fileName = $"{safeStem}{safeExtension}";
-        var fullPath = Path.Combine(storagePaths.AvatarsPath, fileName);
-
-        await File.WriteAllBytesAsync(fullPath, bytes, cancellationToken);
         DeleteIfLocal(currentAvatarUrl);
         return $"/uploads/avatars/{fileName}";
     }
@@ -49,6 +41,19 @@ public sealed class AvatarStorageService(StoragePaths storagePaths)
         }
     }
 
+    public void DeleteAllLocalAvatars()
+    {
+        if (!Directory.Exists(storagePaths.AvatarsPath))
+        {
+            return;
+        }
+
+        foreach (var filePath in Directory.EnumerateFiles(storagePaths.AvatarsPath))
+        {
+            File.Delete(filePath);
+        }
+    }
+
     private static string NormalizeExtension(string? extension)
     {
         if (string.IsNullOrWhiteSpace(extension))
@@ -56,6 +61,15 @@ public sealed class AvatarStorageService(StoragePaths storagePaths)
             return ".png";
         }
 
-        return extension.StartsWith(".", StringComparison.Ordinal) ? extension.ToLowerInvariant() : $".{extension.ToLowerInvariant()}";
+        var normalized = extension.StartsWith(".", StringComparison.Ordinal)
+            ? extension.ToLowerInvariant()
+            : $".{extension.ToLowerInvariant()}";
+
+        if (!AllowedExtensions.Contains(normalized))
+        {
+            throw new BadHttpRequestException("Ugyldig avatarformat.");
+        }
+
+        return normalized;
     }
 }

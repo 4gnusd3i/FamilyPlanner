@@ -31,6 +31,10 @@ public static class SetupEndpoints
             return Results.Redirect("/setup?error=missing");
         }
 
+        // Ensure first-time setup starts from a clean local household state.
+        store.ResetForFreshSetup();
+        avatarStorage.DeleteAllLocalAvatars();
+
         string? avatarUrl = null;
         var uploadedAvatar = form.Files["first_member_avatar"];
         if (uploadedAvatar is not null && uploadedAvatar.Length > 0)
@@ -38,8 +42,6 @@ public static class SetupEndpoints
             avatarUrl = await avatarStorage.SaveUploadedAsync(uploadedAvatar, currentAvatarUrl: null, context.RequestAborted);
         }
 
-        // Ensure first-time setup starts from a clean local household state.
-        store.ResetForFreshSetup();
         store.InitializeHousehold(familyName);
         store.UpsertFamilyMember(
             id: null,

@@ -11,10 +11,11 @@ What it covers:
 - event create, edit, and delete
 - meal create, edit, delete, and send-to-shopping
 - budget update, expense add, and expense delete
-- shopping create, toggle, edit, and delete
+- shopping create, toggle, edit, and delayed auto-delete
 - medicine create, toggle, view, edit, and delete
 - note create, view, edit, and delete
 - family member create, profile edit, drag/drop assignment, assignment removal, and delete
+- storage maintenance for obsolete collections, expired lifecycle items, setup reset cleanup, and avatar extension validation
 
 First-time setup:
 ```powershell

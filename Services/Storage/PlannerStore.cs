@@ -5,6 +5,11 @@ namespace FamilyPlanner.Services.Storage;
 
 public sealed partial class PlannerStore : IDisposable
 {
+    private static readonly string[] ObsoleteCollections =
+    [
+        "users"
+    ];
+
     private readonly LiteDatabase _database;
     private readonly ILiteCollection<HouseholdProfile> _householdProfiles;
     private readonly ILiteCollection<FamilyMember> _familyMembers;
@@ -31,8 +36,7 @@ public sealed partial class PlannerStore : IDisposable
         _shoppingItems = _database.GetCollection<ShoppingItem>("shoppingItems");
         _assignments = _database.GetCollection<FamilyAssignment>("familyAssignments");
 
-        _events.EnsureIndex(x => x.EventDate);
-        _expenses.EnsureIndex(x => x.Month);
+        EnsureIndexes();
     }
 
     public bool HasHouseholdProfile() => _householdProfiles.FindById(1) is not null;
@@ -69,7 +73,15 @@ public sealed partial class PlannerStore : IDisposable
         _notes.DeleteAll();
         _shoppingItems.DeleteAll();
         _assignments.DeleteAll();
-        _database.DropCollection("users");
+        DropObsoleteCollections();
+    }
+
+    public void RunMaintenance()
+    {
+        DropObsoleteCollections();
+        EnsureIndexes();
+        DeleteExpiredDoneShoppingItems(DateTime.Now);
+        DeletePastTakenMedicines(DateTime.Now);
     }
 
     public void Dispose() => _database.Dispose();
@@ -78,4 +90,30 @@ public sealed partial class PlannerStore : IDisposable
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static string CurrentMonth() => DateOnly.FromDateTime(DateTime.Now).ToString("yyyy-MM");
+
+    private void EnsureIndexes()
+    {
+        _familyMembers.EnsureIndex(x => x.CreatedAt);
+        _events.EnsureIndex(x => x.EventDate);
+        _events.EnsureIndex(x => x.SourceType);
+        _events.EnsureIndex(x => x.SourceMemberId);
+        _events.EnsureIndex(x => x.SourceYear);
+        _budgetMonths.EnsureIndex(x => x.Month);
+        _expenses.EnsureIndex(x => x.Month);
+        _medicines.EnsureIndex(x => x.Time);
+        _medicines.EnsureIndex(x => x.Taken);
+        _notes.EnsureIndex(x => x.CreatedAt);
+        _shoppingItems.EnsureIndex(x => x.Done);
+        _shoppingItems.EnsureIndex(x => x.DoneAt);
+        _assignments.EnsureIndex(x => x.DayOfWeek);
+        _assignments.EnsureIndex(x => x.FamilyMemberId);
+    }
+
+    private void DropObsoleteCollections()
+    {
+        foreach (var collectionName in ObsoleteCollections)
+        {
+            _database.DropCollection(collectionName);
+        }
+    }
 }
