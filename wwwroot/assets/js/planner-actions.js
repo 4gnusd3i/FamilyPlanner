@@ -157,22 +157,12 @@ async function submitShoppingForm(event) {
 }
 
 async function toggleShop(id) {
+  clearShoppingDeletion(id);
   await apiFetch("/api/shopping", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ toggle: true, id }),
   });
-  await loadShopping();
-}
-
-async function deleteShopping() {
-  if (!confirm("Slette handleliste-element?")) return;
-  await apiFetch("/api/shopping", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ delete: true, id: Number(document.getElementById("shoppingId").value) }),
-  });
-  closeModal("shoppingModal");
   await loadShopping();
 }
 

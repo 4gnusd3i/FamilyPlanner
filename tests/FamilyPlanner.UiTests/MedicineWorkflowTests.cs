@@ -1,5 +1,4 @@
 using NUnit.Framework;
-using System.Text.RegularExpressions;
 using static Microsoft.Playwright.Assertions;
 
 namespace FamilyPlanner.UiTests;
@@ -31,12 +30,6 @@ public sealed class MedicineWorkflowTests : DesktopPlannerUiTestBase
         Assert.That(createdMedicine.Taken, Is.False);
 
         var medicineRow = Page.Locator(".med-item", new() { HasTextString = "Vitamin D" });
-        await medicineRow.Locator(".med-check").ClickAsync();
-        await Expect(medicineRow.Locator(".med-check")).ToHaveClassAsync(new Regex("taken"));
-
-        var toggledMedicines = await GetApiAsync<List<MedicineItemDto>>("/api/medicines") ?? [];
-        Assert.That(toggledMedicines.Single(x => x.Id == createdMedicine.Id).Taken, Is.True);
-
         await medicineRow.ClickAsync();
         await WaitForModalStateAsync("medicineViewModal", open: true);
         await Page.Locator("#medicineViewModal .btn-primary").ClickAsync();
@@ -56,5 +49,27 @@ public sealed class MedicineWorkflowTests : DesktopPlannerUiTestBase
 
         var finalMedicines = await GetApiAsync<List<MedicineItemDto>>("/api/medicines") ?? [];
         Assert.That(finalMedicines.Any(x => x.Id == createdMedicine.Id), Is.False);
+    }
+
+    [Test]
+    public async Task CheckedPastMedicine_IsDeletedOnNextRead()
+    {
+        var pastTime = DateTime.Now.TimeOfDay > TimeSpan.FromSeconds(2)
+            ? DateTime.Now.AddSeconds(-2).ToString("HH:mm:ss")
+            : "00:00:00";
+
+        await PostFormAsync("/api/medicines", new Dictionary<string, string>
+        {
+            ["name"] = "Expired dose",
+            ["time"] = pastTime,
+        });
+
+        var createdMedicines = await GetApiAsync<List<MedicineItemDto>>("/api/medicines") ?? [];
+        var createdMedicine = createdMedicines.Single(x => x.Name == "Expired dose");
+
+        await PostJsonAsync("/api/medicines", new { toggle = true, id = createdMedicine.Id });
+
+        var remainingMedicines = await GetApiAsync<List<MedicineItemDto>>("/api/medicines") ?? [];
+        Assert.That(remainingMedicines.Any(x => x.Id == createdMedicine.Id), Is.False);
     }
 }

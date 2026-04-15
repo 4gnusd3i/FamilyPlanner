@@ -117,15 +117,25 @@ async function loadEvents() {
     const container = document.getElementById(`events-${entry.event_date}`);
     if (!container) return;
     const owner = familyMembers.find((member) => member.id === entry.owner_id);
-    const ownerAvatar = owner ? getMemberAvatar(owner, "small") : "";
+    const ownerAvatar = owner
+      ? getMemberAvatar(owner, "small")
+      : '<span class="event-owner-placeholder" aria-hidden="true"></span>';
+    const ownerName = owner ? owner.name : "Avtale";
     const payload = encodePayload(entry);
     const timeDisplay = entry.start_time && entry.end_time
       ? `${entry.start_time.slice(0, 5)} - ${entry.end_time.slice(0, 5)}`
       : entry.start_time ? entry.start_time.slice(0, 5) : "";
     const className = timeDisplay ? " has-time" : "";
+    const generatedClass = entry.source_type ? " generated-event" : "";
+    const interaction = entry.source_type
+      ? `aria-label="${escapeHtml(entry.title)}"`
+      : `onclick="openEventModalFromJson('${payload}')"`;
 
-    container.insertAdjacentHTML("beforeend", `<div class="event-item${className}" style="border-left-color:${entry.color || "#4f46e5"}" onclick="openEventModalFromJson('${payload}')">
-      ${ownerAvatar}
+    container.insertAdjacentHTML("beforeend", `<div class="event-item${className}${generatedClass}" style="--event-accent:${entry.color || "#4f46e5"}" ${interaction}>
+      <div class="event-owner-line">
+        ${ownerAvatar}
+        <span class="event-owner-name">${escapeHtml(ownerName)}</span>
+      </div>
       ${timeDisplay ? `<span class="event-time">${timeDisplay}</span>` : ""}
       <span class="event-title">${escapeHtml(entry.title)}</span>
     </div>`);
@@ -146,7 +156,11 @@ async function loadUpcoming() {
     const owner = familyMembers.find((member) => member.id === entry.owner_id);
     const ownerAvatar = owner ? getMemberAvatar(owner, "small") : "";
     const payload = encodePayload(entry);
-    return `<div class="upcoming-item" onclick="openEventModalFromJson('${payload}')">
+    const generatedClass = entry.source_type ? " generated-event" : "";
+    const interaction = entry.source_type
+      ? `aria-label="${escapeHtml(entry.title)}"`
+      : `onclick="openEventModalFromJson('${payload}')"`;
+    return `<div class="upcoming-item${generatedClass}" ${interaction}>
       <div class="upcoming-date">
         <span class="upcoming-dayname">${weekdayShort[normalizeWeekday(date)]}</span>
         <span class="upcoming-daynum">${date.getDate()}</span>
@@ -315,6 +329,7 @@ async function loadNotes() {
 async function loadShopping() {
   const response = await apiFetch("/api/shopping");
   shoppingCache = await response.json();
+  syncShoppingDeletionTimers(shoppingCache);
   const container = document.getElementById("shoppingList");
   if (!shoppingCache.length) {
     container.innerHTML = '<div class="empty-state">Vi har det vi trenger!</div>';
@@ -326,14 +341,54 @@ async function loadShopping() {
     const owner = familyMembers.find((member) => member.id === item.owner_id);
     const ownerAvatar = owner ? getMemberAvatar(owner, "small") : "";
     const payload = encodePayload(item);
-    return `<div class="shop-item">
-      <div class="shop-check ${item.done ? "checked" : ""}" onclick="toggleShop(${item.id})"></div>
+    const progress = getShoppingDeleteProgress(item);
+    const pendingClass = item.done ? " is-delete-pending" : "";
+    const progressStyle = item.done
+      ? ` style="--delete-duration:${SHOPPING_DELETE_DELAY_MS}ms;--delete-delay-offset:-${progress.elapsed}ms"`
+      : "";
+    return `<div class="shop-item${pendingClass}"${progressStyle}>
+      <button type="button" class="med-check shop-check ${item.done ? "taken checked" : ""}" aria-label="${item.done ? "Behold vare" : "Marker vare som handlet"}" aria-pressed="${item.done ? "true" : "false"}" onclick="toggleShop(${item.id})">${item.done ? "&#10003;" : ""}</button>
       ${ownerAvatar}
       <span class="item-name shop-name ${item.done ? "done" : ""}" onclick="openShoppingModalFromJson('${payload}')">${escapeHtml(item.item)}</span>
       <span class="shop-qty">${item.quantity}</span>
     </div>`;
   }).join("");
+  shoppingCache.filter((item) => item.done).forEach(scheduleShoppingDeletion);
   scheduleKioskColumnSizing();
+}
+
+function syncShoppingDeletionTimers(items) {
+  const pendingIds = new Set(items.filter((item) => item.done).map((item) => item.id));
+  Array.from(shoppingDeleteTimers.keys()).forEach((id) => {
+    if (!pendingIds.has(id)) {
+      clearShoppingDeletion(id);
+    }
+  });
+}
+
+function scheduleShoppingDeletion(item) {
+  clearShoppingDeletion(item.id);
+  const progress = getShoppingDeleteProgress(item);
+  const remaining = Math.max(0, SHOPPING_DELETE_DELAY_MS - progress.elapsed);
+  const timer = setTimeout(() => {
+    shoppingDeleteTimers.delete(item.id);
+    loadShopping().catch(handleError);
+  }, remaining + 100);
+  shoppingDeleteTimers.set(item.id, timer);
+}
+
+function clearShoppingDeletion(id) {
+  const timer = shoppingDeleteTimers.get(id);
+  if (timer) {
+    clearTimeout(timer);
+    shoppingDeleteTimers.delete(id);
+  }
+}
+
+function getShoppingDeleteProgress(item) {
+  const doneAt = item.done_at ? Date.parse(item.done_at) : Date.now();
+  const elapsed = Number.isFinite(doneAt) ? Date.now() - doneAt : 0;
+  return { elapsed: Math.min(Math.max(elapsed, 0), SHOPPING_DELETE_DELAY_MS) };
 }
 
 function setText(id, value) {

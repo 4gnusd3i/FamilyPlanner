@@ -268,6 +268,20 @@ public abstract class PlannerUiTestBase : PageTest
         return await client.GetFromJsonAsync<T>(path);
     }
 
+    protected async Task PostFormAsync(string path, IDictionary<string, string> values)
+    {
+        using var client = await UiTestHost.CreateClientAsync();
+        var response = await client.PostAsync(path, new FormUrlEncodedContent(values));
+        response.EnsureSuccessStatusCode();
+    }
+
+    protected async Task PostJsonAsync(string path, object payload)
+    {
+        using var client = await UiTestHost.CreateClientAsync();
+        var response = await client.PostAsJsonAsync(path, payload);
+        response.EnsureSuccessStatusCode();
+    }
+
     protected async Task WaitForToastAsync(string expectedMessage) =>
         await Expect(Page.Locator("#statusBanner")).ToContainTextAsync(expectedMessage);
 

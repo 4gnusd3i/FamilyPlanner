@@ -102,6 +102,45 @@ public sealed class EventWorkflowTests : DesktopPlannerUiTestBase
         Assert.That(finalEvents, Has.Count.EqualTo(initialCount));
     }
 
+    [Test]
+    public async Task Upcoming_ExcludesPastTimedEvents_AndIncludesGeneratedBirthdays()
+    {
+        var now = DateTime.Now;
+        var pastMoment = now.TimeOfDay > TimeSpan.FromMinutes(5)
+            ? now.AddMinutes(-5)
+            : now.Date.AddDays(-1).AddHours(22);
+        var pastEnd = pastMoment.AddMinutes(1);
+
+        await PostFormAsync("/api/events", new Dictionary<string, string>
+        {
+            ["title"] = "Already finished",
+            ["event_date"] = pastMoment.ToString("yyyy-MM-dd"),
+            ["start_time"] = pastMoment.ToString("HH:mm"),
+            ["end_time"] = pastEnd.ToString("HH:mm"),
+        });
+
+        await PostFormAsync("/api/events", new Dictionary<string, string>
+        {
+            ["title"] = "Tomorrow appointment",
+            ["event_date"] = now.Date.AddDays(1).ToString("yyyy-MM-dd"),
+            ["start_time"] = "12:00",
+            ["end_time"] = "13:00",
+        });
+
+        var upcomingEvents = await GetApiAsync<List<PlannerEventDto>>("/api/events?upcoming=1") ?? [];
+        Assert.Multiple(() =>
+        {
+            Assert.That(upcomingEvents.Any(x => x.Title == "Already finished"), Is.False);
+            Assert.That(upcomingEvents.Any(x => x.Title == "Tomorrow appointment"), Is.True);
+            Assert.That(
+                upcomingEvents.Any(x =>
+                    x.SourceType == "birthday" &&
+                    x.Title == "Anna har bursdag" &&
+                    x.EventDate == DateTime.Today.ToString("yyyy-MM-dd")),
+                Is.True);
+        });
+    }
+
     private static (string Start, string End) GetCurrentWeekRange()
     {
         var today = DateTime.Today;

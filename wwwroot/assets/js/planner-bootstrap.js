@@ -22,6 +22,8 @@ let currentViewMedicine = null;
 let currentViewNote = null;
 let currentProfileMemberId = null;
 let statusTimer = null;
+const SHOPPING_DELETE_DELAY_MS = 15000;
+const shoppingDeleteTimers = new Map();
 
 document.addEventListener("DOMContentLoaded", async () => {
   initWeek();

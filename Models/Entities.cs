@@ -37,6 +37,9 @@ public sealed class PlannerEvent : EntityBase
     public int? OwnerId { get; set; }
     public string? Color { get; set; }
     public string? Note { get; set; }
+    public string? SourceType { get; set; }
+    public int? SourceMemberId { get; set; }
+    public int? SourceYear { get; set; }
 }
 
 public sealed class MealPlan : EntityBase
@@ -88,6 +91,7 @@ public sealed class ShoppingItem : EntityBase
     public int? OwnerId { get; set; }
     public int Quantity { get; set; } = 1;
     public bool Done { get; set; }
+    public DateTime? DoneAt { get; set; }
     public int? SourceMealId { get; set; }
 }
 

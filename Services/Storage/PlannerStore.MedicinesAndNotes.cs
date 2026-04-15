@@ -4,11 +4,15 @@ namespace FamilyPlanner.Services.Storage;
 
 public sealed partial class PlannerStore
 {
-    public IReadOnlyList<MedicineItem> GetMedicines() =>
-        _medicines.FindAll()
+    public IReadOnlyList<MedicineItem> GetMedicines()
+    {
+        DeletePastTakenMedicines(DateTime.Now);
+
+        return _medicines.FindAll()
             .OrderBy(x => x.Time ?? "99:99:99")
             .ThenBy(x => x.Name)
             .ToList();
+    }
 
     public MedicineItem UpsertMedicine(int? id, string name, string? time, int? ownerId, string? note)
     {
@@ -55,6 +59,18 @@ public sealed partial class PlannerStore
     }
 
     public void DeleteMedicine(int id) => _medicines.Delete(id);
+
+    private void DeletePastTakenMedicines(DateTime now)
+    {
+        var currentTime = TimeOnly.FromDateTime(now);
+        foreach (var medicine in _medicines.Find(x => x.Taken).ToList())
+        {
+            if (TimeOnly.TryParse(medicine.Time, out var medicineTime) && medicineTime < currentTime)
+            {
+                _medicines.Delete(medicine.Id);
+            }
+        }
+    }
 
     public IReadOnlyList<NoteItem> GetNotes() =>
         _notes.FindAll()

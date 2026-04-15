@@ -25,14 +25,32 @@ public sealed class ShoppingWorkflowTests : DesktopPlannerUiTestBase
         var shoppingRow = Page.Locator(".shop-item", new() { HasTextString = "Diapers" });
         await shoppingRow.Locator(".shop-check").ClickAsync();
         await Expect(shoppingRow.Locator(".shop-check")).ToHaveClassAsync(new Regex("checked"));
+        await Expect(shoppingRow.Locator(".shop-check")).ToHaveClassAsync(new Regex("taken"));
+        await Expect(shoppingRow).ToHaveClassAsync(new Regex("is-delete-pending"));
 
         var toggledItems = await GetApiAsync<List<ShoppingItemDto>>("/api/shopping") ?? [];
-        Assert.That(toggledItems.Single(x => x.Id == createdItem.Id).Done, Is.True);
+        var toggledItem = toggledItems.Single(x => x.Id == createdItem.Id);
+        Assert.That(toggledItem.Done, Is.True);
+        Assert.That(toggledItem.DoneAt, Is.Not.Null);
         Assert.That(toggledItems.Count, Is.EqualTo(2));
         Assert.That(toggledItems.Count(x => !x.Done), Is.EqualTo(1));
 
+        await shoppingRow.Locator(".shop-check").ClickAsync();
+        await Page.WaitForFunctionAsync(
+            @"itemText => {
+                const row = Array.from(document.querySelectorAll('.shop-item'))
+                    .find((element) => element.textContent.includes(itemText));
+                return !!row && !row.querySelector('.shop-check')?.classList.contains('checked');
+            }",
+            "Diapers");
+        var canceledItems = await GetApiAsync<List<ShoppingItemDto>>("/api/shopping") ?? [];
+        var canceledItem = canceledItems.Single(x => x.Id == createdItem.Id);
+        Assert.That(canceledItem.Done, Is.False);
+        Assert.That(canceledItem.DoneAt, Is.Null);
+
         await shoppingRow.Locator(".shop-name").ClickAsync();
         await WaitForModalStateAsync("shoppingModal", open: true);
+        await Expect(Page.Locator("#deleteShoppingBtn")).ToHaveCountAsync(0);
         await Page.Locator("#shoppingItem").FillAsync("Night diapers");
         await Page.Locator("#shoppingQty").FillAsync("5");
         await Page.Locator("#shoppingModal .btn-primary").ClickAsync();
@@ -54,11 +72,10 @@ public sealed class ShoppingWorkflowTests : DesktopPlannerUiTestBase
         Assert.That(withExtraItem.Any(x => x.Item == "Wipes"), Is.True, "Newly added shopping item should be appended, not replace an existing item.");
         Assert.That(withExtraItem.Count, Is.EqualTo(3), "Adding a new shopping item should increase total list size.");
 
-        await Page.Locator(".shop-item", new() { HasTextString = "Night diapers" }).Locator(".shop-name").ClickAsync();
-        await WaitForModalStateAsync("shoppingModal", open: true);
-        await AcceptDialogAsync(
-            () => Page.Locator("#deleteShoppingBtn").ClickAsync(),
-            "Slette");
+        var nightDiapersRow = Page.Locator(".shop-item", new() { HasTextString = "Night diapers" });
+        await nightDiapersRow.Locator(".shop-check").ClickAsync();
+        await Expect(nightDiapersRow).ToHaveClassAsync(new Regex("is-delete-pending"));
+        await Expect(nightDiapersRow).ToHaveCountAsync(0, new() { Timeout = 18_000 });
 
         var finalItems = await GetApiAsync<List<ShoppingItemDto>>("/api/shopping") ?? [];
         Assert.That(finalItems.Any(x => x.Id == createdItem.Id), Is.False);

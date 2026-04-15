@@ -38,7 +38,7 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
         await Expect(Page.Locator(".family-bar")).ToBeVisibleAsync();
         await Expect(Page.Locator(".planner-toolbar")).ToBeVisibleAsync();
         await Expect(Page.Locator("#shoppingList")).ToContainTextAsync("Vi har det vi trenger!");
-        await Expect(Page.Locator("#upcomingList")).ToContainTextAsync("Ingen kommende avtaler");
+        await Expect(Page.Locator("#upcomingList")).ToContainTextAsync("Anna har bursdag");
         await Expect(Page.Locator("#medicineList .empty-state-collapsible")).ToBeHiddenAsync();
         await Expect(Page.Locator("#notesList .empty-state-collapsible")).ToBeHiddenAsync();
 
@@ -106,6 +106,57 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
 
         await Page.GetByRole(AriaRole.Button, new() { Name = "Avbryt", Exact = true }).First.ClickAsync();
         await WaitForModalStateAsync("mealModal", open: false);
+    }
+
+    [Test]
+    public async Task TabletLandscape_CalendarEventItemsStayContainedWithStructuredLines()
+    {
+        var today = DateTime.Today.ToString("yyyy-MM-dd");
+        const string longTitle = "Ekstra lang avtaletittel som skal kuttes rent uten aa stikke ut av kalenderdagen";
+
+        await PostFormAsync("/api/events", new Dictionary<string, string>
+        {
+            ["title"] = longTitle,
+            ["event_date"] = today,
+            ["start_time"] = "17:10",
+            ["end_time"] = "18:10",
+        });
+        await Page.ReloadAsync();
+
+        var longEvent = Page.Locator(".event-item", new() { HasTextString = longTitle });
+        await Expect(longEvent).ToBeVisibleAsync();
+
+        var layout = await longEvent.EvaluateAsync<double[]>(
+            @"item => {
+                const day = item.closest('.day-box');
+                const owner = item.querySelector('.event-owner-line');
+                const time = item.querySelector('.event-time');
+                const title = item.querySelector('.event-title');
+                const itemRect = item.getBoundingClientRect();
+                const dayRect = day.getBoundingClientRect();
+                const ownerRect = owner.getBoundingClientRect();
+                const timeRect = time.getBoundingClientRect();
+                const titleRect = title.getBoundingClientRect();
+                return [
+                    itemRect.left - dayRect.left,
+                    dayRect.right - itemRect.right,
+                    ownerRect.top,
+                    timeRect.top,
+                    titleRect.top,
+                    title.scrollWidth > title.clientWidth ? 1 : 0,
+                    titleRect.right - itemRect.right
+                ];
+            }");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(layout[0], Is.GreaterThanOrEqualTo(-1d), "Event item should not extend past the left edge of its day.");
+            Assert.That(layout[1], Is.GreaterThanOrEqualTo(-1d), "Event item should not extend past the right edge of its day.");
+            Assert.That(layout[2], Is.LessThan(layout[3]), "Owner line should render above the time line.");
+            Assert.That(layout[3], Is.LessThan(layout[4]), "Time line should render above the title line.");
+            Assert.That(layout[5], Is.EqualTo(1d), "Long event titles should ellipsize inside the event item.");
+            Assert.That(layout[6], Is.LessThanOrEqualTo(1d), "Event title should stay inside the event item.");
+        });
     }
 
     [Test]

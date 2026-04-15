@@ -292,13 +292,11 @@ function openShoppingModal(item = null) {
   document.getElementById("shoppingForm").reset();
   document.getElementById("shoppingId").value = "";
   document.getElementById("shoppingQty").value = "1";
-  document.getElementById("deleteShoppingBtn").style.display = "none";
   if (item) {
     document.getElementById("shoppingId").value = item.id || "";
     document.getElementById("shoppingItem").value = item.item || "";
     document.getElementById("shoppingQty").value = item.quantity || 1;
     document.getElementById("shoppingOwner").value = item.owner_id || "";
-    document.getElementById("deleteShoppingBtn").style.display = "block";
   }
   openModal("shoppingModal");
 }

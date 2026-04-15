@@ -46,11 +46,14 @@ public sealed partial class PlannerStore
             _familyMembers.Update(member);
         }
 
+        DeleteBirthdayEventsForMember(member.Id);
         return member;
     }
 
     public void DeleteFamilyMember(int id)
     {
+        DeleteBirthdayEventsForMember(id);
+
         foreach (var item in _events.Find(x => x.OwnerId == id))
         {
             item.OwnerId = null;

@@ -4,11 +4,17 @@ namespace FamilyPlanner.Services.Storage;
 
 public sealed partial class PlannerStore
 {
-    public IReadOnlyList<ShoppingItem> GetShoppingItems() =>
-        _shoppingItems.FindAll()
+    private static readonly TimeSpan ShoppingDoneRetention = TimeSpan.FromSeconds(15);
+
+    public IReadOnlyList<ShoppingItem> GetShoppingItems()
+    {
+        DeleteExpiredDoneShoppingItems(DateTime.Now);
+
+        return _shoppingItems.FindAll()
             .OrderBy(x => x.Done)
             .ThenByDescending(x => x.CreatedAt)
             .ToList();
+    }
 
     public ShoppingItem UpsertShoppingItem(int? id, string item, int quantity, int? ownerId, int? sourceMealId)
     {
@@ -29,6 +35,10 @@ public sealed partial class PlannerStore
         entity.Quantity = quantity <= 0 ? 1 : quantity;
         entity.OwnerId = ownerId;
         entity.SourceMealId = sourceMealId;
+        if (!entity.Done)
+        {
+            entity.DoneAt = null;
+        }
 
         if (entity.Id == 0)
         {
@@ -51,10 +61,29 @@ public sealed partial class PlannerStore
         }
 
         item.Done = !item.Done;
+        item.DoneAt = item.Done ? DateTime.Now : null;
         _shoppingItems.Update(item);
     }
 
     public void DeleteShoppingItem(int id) => _shoppingItems.Delete(id);
+
+    private void DeleteExpiredDoneShoppingItems(DateTime now)
+    {
+        foreach (var item in _shoppingItems.Find(x => x.Done).ToList())
+        {
+            if (item.DoneAt is null)
+            {
+                item.DoneAt = now;
+                _shoppingItems.Update(item);
+                continue;
+            }
+
+            if (now - item.DoneAt >= ShoppingDoneRetention)
+            {
+                _shoppingItems.Delete(item.Id);
+            }
+        }
+    }
 
     public IReadOnlyList<FamilyAssignment> GetAssignments() =>
         _assignments.FindAll()

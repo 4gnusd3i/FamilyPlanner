@@ -31,6 +31,9 @@ public sealed class PlannerEventDto
     [JsonPropertyName("event_date")]
     public string EventDate { get; init; } = string.Empty;
 
+    [JsonPropertyName("source_type")]
+    public string? SourceType { get; init; }
+
     [JsonPropertyName("note")]
     public string? Note { get; init; }
 }
@@ -96,6 +99,9 @@ public sealed class MedicineItemDto
 
     [JsonPropertyName("taken")]
     public bool Taken { get; init; }
+
+    [JsonPropertyName("time")]
+    public string? Time { get; init; }
 }
 
 public sealed class NoteItemDto
@@ -123,6 +129,9 @@ public sealed class ShoppingItemDto
 
     [JsonPropertyName("done")]
     public bool Done { get; init; }
+
+    [JsonPropertyName("done_at")]
+    public DateTime? DoneAt { get; init; }
 }
 
 public sealed class AssignmentEnvelopeDto
