@@ -83,10 +83,7 @@ internal static class UiTestHost
         }
     }
 
-    public static Task<HttpClient> CreateClientAsync()
-    {
-        return Task.FromResult(CreateClient());
-    }
+    public static Task<HttpClient> CreateClientAsync() => Task.FromResult(CreateClient());
 
     private static async Task StartOrRestartAsync(bool resetData)
     {
@@ -167,7 +164,7 @@ internal static class UiTestHost
                 ["family_name"] = FamilyName,
                 ["first_member_name"] = "Anna",
                 ["first_member_birthday"] = DateOnly.FromDateTime(DateTime.Today.AddYears(-12)).ToString("yyyy-MM-dd"),
-                ["first_member_bio"] = "Liker håndball og faste rutiner.",
+                ["first_member_bio"] = "Liker handball og faste rutiner.",
                 ["first_member_color"] = "#e4f4ef",
             }));
 
@@ -191,7 +188,7 @@ internal static class UiTestHost
 
         await PostFormAsync(client, "/api/events", new Dictionary<string, string>
         {
-            ["title"] = "Håndballtrening",
+            ["title"] = "Handballtrening",
             ["event_date"] = today,
             ["start_time"] = "17:00",
             ["end_time"] = "18:30",
@@ -226,19 +223,11 @@ internal static class UiTestHost
             description = "Ukens storhandel",
         });
 
-        await PostFormAsync(client, "/api/medicines", new Dictionary<string, string>
-        {
-            ["name"] = "Allergitablett",
-            ["time"] = "07:30",
-            ["owner_id"] = annaId.ToString(),
-            ["note"] = "Tas før frokost.",
-        });
-
         await PostFormAsync(client, "/api/notes", new Dictionary<string, string>
         {
-            ["title"] = "Husk foreldremøte",
+            ["title"] = "Husk foreldremote",
             ["owner_id"] = oskarId.ToString(),
-            ["content"] = "Sjekk tidspunkt og hvem som kan gå.",
+            ["content"] = "Sjekk tidspunkt og hvem som kan ga.",
         });
 
         await PostFormAsync(client, "/api/shopping", new Dictionary<string, string>
@@ -252,7 +241,7 @@ internal static class UiTestHost
         {
             ["day_of_week"] = "0",
             ["member_id"] = annaId.ToString(),
-            ["activity_type"] = "medicine",
+            ["activity_type"] = "activity",
             ["note"] = "Morgenrutine",
         });
     }
@@ -354,5 +343,4 @@ internal static class UiTestHost
 
         throw new DirectoryNotFoundException("Could not locate repository root.");
     }
-
 }

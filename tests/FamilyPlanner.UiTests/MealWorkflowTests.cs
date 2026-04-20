@@ -49,9 +49,8 @@ public sealed class MealWorkflowTests : DesktopPlannerUiTestBase
 
         await mealCard.ClickAsync();
         await WaitForModalStateAsync("mealModal", open: true);
-        await AcceptDialogAsync(
-            () => Page.Locator("#deleteMealBtn").ClickAsync(),
-            "Slette");
+        await Page.Locator("#deleteMealBtn").ClickAsync();
+        await WaitForModalStateAsync("mealModal", open: false);
 
         await Expect(Page.Locator(".meal-entry", new() { HasTextString = "Wholegrain pancakes" })).ToHaveCountAsync(0);
         var finalMeals = await GetApiAsync<List<MealPlanDto>>("/api/meals") ?? [];

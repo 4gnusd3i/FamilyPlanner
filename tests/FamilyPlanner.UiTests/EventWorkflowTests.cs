@@ -29,8 +29,8 @@ public sealed class EventWorkflowTests : DesktopPlannerUiTestBase
 
         Assert.Multiple(() =>
         {
-            Assert.That(defaultTimes[0], Is.InRange(defaultTimes[2] - 2, defaultTimes[2] + 2), "Start time should default to current local time.");
-            Assert.That(defaultTimes[1], Is.EqualTo(defaultTimes[3]), "End time should default to one hour after start.");
+          Assert.That(defaultTimes[0], Is.InRange(defaultTimes[2] - 2, defaultTimes[2] + 2), "Start time should default to current local time.");
+          Assert.That(defaultTimes[1], Is.EqualTo(defaultTimes[3]), "End time should default to one hour after start.");
         });
 
         await Page.Locator("#eventStartTime").FillAsync("09:10");
@@ -49,10 +49,6 @@ public sealed class EventWorkflowTests : DesktopPlannerUiTestBase
 
         await Page.Locator("#eventEndTime").FillAsync(string.Empty);
         await Page.Locator("#eventEndTime").DispatchEventAsync("pointerdown");
-        await Expect(Page.Locator("#eventEndTime")).ToHaveValueAsync("12:20");
-
-        await Page.Locator("#eventEndTime").FillAsync(string.Empty);
-        await Page.Locator("#eventEndTime").ClickAsync();
         await Expect(Page.Locator("#eventEndTime")).ToHaveValueAsync("12:20");
     }
 
@@ -91,9 +87,8 @@ public sealed class EventWorkflowTests : DesktopPlannerUiTestBase
 
         await Page.Locator(".event-item", new() { HasTextString = "Updated parent meeting" }).ClickAsync();
         await WaitForModalStateAsync("eventModal", open: true);
-        await AcceptDialogAsync(
-            () => Page.Locator("#deleteEventBtn").ClickAsync(),
-            "Slette");
+        await Page.Locator("#deleteEventBtn").ClickAsync();
+        await WaitForModalStateAsync("eventModal", open: false);
 
         await Expect(Page.Locator(".event-item", new() { HasTextString = "Updated parent meeting" })).ToHaveCountAsync(0);
 
@@ -103,7 +98,54 @@ public sealed class EventWorkflowTests : DesktopPlannerUiTestBase
     }
 
     [Test]
-    public async Task Upcoming_ExcludesPastTimedEvents_AndIncludesGeneratedBirthdays()
+    public async Task RecurringEventCrud_UsesWholeSeriesScope()
+    {
+        var (start, end) = GetCurrentWeekRange();
+        var recurrenceEnd = DateTime.Today.AddDays(2).ToString("yyyy-MM-dd");
+
+        await OpenModalBySelectorAsync(".quick-action:has-text('Avtale')", "eventModal");
+        await Page.Locator("#eventTitle").FillAsync("Lekser");
+        await Page.Locator("#eventDate").FillAsync(DateTime.Today.ToString("yyyy-MM-dd"));
+        await Page.Locator("#eventStartTime").FillAsync("18:00");
+        await Page.Locator("#eventEndTime").FillAsync("18:45");
+        await Page.Locator("#eventRecurrenceType").SelectOptionAsync("daily");
+        await Page.Locator("#eventRecurrenceUntil").FillAsync(recurrenceEnd);
+        await Page.Locator("#eventNote").FillAsync("Stuebordet.");
+        await Page.Locator("#eventModal .btn-primary").ClickAsync();
+        await WaitForModalStateAsync("eventModal", open: false);
+
+        var createdEvents = await GetApiAsync<List<PlannerEventDto>>($"/api/events?start={start}&end={end}") ?? [];
+        var recurringEvents = createdEvents.Where(x => x.Title == "Lekser").ToList();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(recurringEvents, Has.Count.EqualTo(3));
+            Assert.That(recurringEvents.All(x => x.SourceType == "recurring"), Is.True);
+        });
+
+        await Page.Locator(".event-item", new() { HasTextString = "Lekser" }).Nth(1).ClickAsync();
+        await WaitForModalStateAsync("eventModal", open: true);
+        await Expect(Page.Locator("#eventDate")).ToHaveValueAsync(DateTime.Today.ToString("yyyy-MM-dd"));
+        await Page.Locator("#eventNote").FillAsync("Oppdatert serie.");
+        await Page.Locator("#eventModal .btn-primary").ClickAsync();
+        await WaitForModalStateAsync("eventModal", open: false);
+
+        var updatedEvents = await GetApiAsync<List<PlannerEventDto>>($"/api/events?start={start}&end={end}") ?? [];
+        Assert.That(updatedEvents.Where(x => x.Title == "Lekser").All(x => x.Note == "Oppdatert serie."), Is.True);
+
+        await Page.Locator(".event-item", new() { HasTextString = "Lekser" }).First.ClickAsync();
+        await WaitForModalStateAsync("eventModal", open: true);
+        await AcceptDialogAsync(
+            () => Page.Locator("#deleteEventBtn").ClickAsync(),
+            "gjentakende serien");
+        await WaitForModalStateAsync("eventModal", open: false);
+
+        var finalEvents = await GetApiAsync<List<PlannerEventDto>>($"/api/events?start={start}&end={end}") ?? [];
+        Assert.That(finalEvents.Any(x => x.Title == "Lekser"), Is.False);
+    }
+
+    [Test]
+    public async Task Upcoming_ExcludesPastTimedAndSameDayUntimedEvents_AndIncludesRecurringAndBirthdays()
     {
         var now = DateTime.Now;
         var pastMoment = now.TimeOfDay > TimeSpan.FromMinutes(5)
@@ -127,11 +169,28 @@ public sealed class EventWorkflowTests : DesktopPlannerUiTestBase
             ["end_time"] = "13:00",
         });
 
+        await PostFormAsync("/api/events", new Dictionary<string, string>
+        {
+            ["title"] = "Same day untimed",
+            ["event_date"] = now.Date.ToString("yyyy-MM-dd"),
+        });
+
+        await PostFormAsync("/api/events", new Dictionary<string, string>
+        {
+            ["title"] = "Training pickup",
+            ["event_date"] = now.Date.ToString("yyyy-MM-dd"),
+            ["start_time"] = now.AddMinutes(20).ToString("HH:mm"),
+            ["end_time"] = now.AddMinutes(40).ToString("HH:mm"),
+            ["recurrence_type"] = "weekly",
+        });
+
         var upcomingEvents = await GetApiAsync<List<PlannerEventDto>>("/api/events?upcoming=1") ?? [];
         Assert.Multiple(() =>
         {
             Assert.That(upcomingEvents.Any(x => x.Title == "Already finished"), Is.False);
             Assert.That(upcomingEvents.Any(x => x.Title == "Tomorrow appointment"), Is.True);
+            Assert.That(upcomingEvents.Any(x => x.Title == "Same day untimed"), Is.False);
+            Assert.That(upcomingEvents.Any(x => x.Title == "Training pickup" && x.SourceType == "recurring"), Is.True);
             Assert.That(
                 upcomingEvents.Any(x =>
                     x.SourceType == "birthday" &&

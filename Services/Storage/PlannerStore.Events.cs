@@ -6,20 +6,23 @@ namespace FamilyPlanner.Services.Storage;
 public sealed partial class PlannerStore
 {
     private const string BirthdaySourceType = "birthday";
+    private const string RecurringSourceType = "recurring";
+    private const int UpcomingRecurringWindowDays = 42;
+    private const int UpcomingBirthdayWindowDays = 7;
 
     public IReadOnlyList<PlannerEvent> GetEvents(DateOnly start, DateOnly end)
     {
         EnsureBirthdayEvents(start, end);
 
-        var startText = start.ToString("yyyy-MM-dd");
-        var endText = end.ToString("yyyy-MM-dd");
+        var directEvents = _events.FindAll()
+            .Where(x => !IsRecurringSeries(x) && IsWithinRange(x.EventDate, start, end))
+            .Select(CloneEvent)
+            .ToList();
 
-        return _events.FindAll()
-            .Where(x => !string.IsNullOrWhiteSpace(x.EventDate) &&
-                        string.CompareOrdinal(x.EventDate, startText) >= 0 &&
-                        string.CompareOrdinal(x.EventDate, endText) <= 0)
+        return directEvents
+            .Concat(ExpandRecurringEvents(start, end))
             .OrderBy(x => x.EventDate)
-            .ThenBy(x => x.StartTime ?? "99:99:99")
+            .ThenBy(GetEventSortTime)
             .ThenBy(x => x.Title)
             .ToList();
     }
@@ -27,12 +30,19 @@ public sealed partial class PlannerStore
     public IReadOnlyList<PlannerEvent> GetUpcomingEvents(DateOnly fromDate)
     {
         var now = DateTime.Now;
-        EnsureBirthdayEvents(fromDate, fromDate.AddYears(1));
+        var windowEnd = fromDate.AddDays(UpcomingRecurringWindowDays);
+        EnsureBirthdayEvents(fromDate, fromDate.AddDays(UpcomingBirthdayWindowDays));
 
-        return _events.FindAll()
-            .Where(x => IsUpcomingEvent(x, now))
+        var directEvents = _events.FindAll()
+            .Where(x => !IsRecurringSeries(x))
+            .Select(CloneEvent)
+            .Where(x => IsUpcomingEvent(x, now, windowEnd))
+            .ToList();
+
+        return directEvents
+            .Concat(ExpandRecurringEvents(fromDate, windowEnd).Where(x => IsUpcomingEvent(x, now, windowEnd)))
             .OrderBy(x => x.EventDate)
-            .ThenBy(x => x.StartTime ?? "99:99:99")
+            .ThenBy(GetEventSortTime)
             .ThenBy(x => x.Title)
             .ToList();
     }
@@ -43,6 +53,8 @@ public sealed partial class PlannerStore
         string eventDate,
         string? startTime,
         string? endTime,
+        string? recurrenceType,
+        string? recurrenceUntil,
         int? ownerId,
         string? color,
         string? note)
@@ -64,9 +76,12 @@ public sealed partial class PlannerStore
         entity.EventDate = eventDate;
         entity.StartTime = NormalizeOptional(startTime);
         entity.EndTime = NormalizeOptional(endTime);
+        entity.RecurrenceType = NormalizeOptional(recurrenceType);
+        entity.RecurrenceUntil = NormalizeOptional(recurrenceUntil);
         entity.OwnerId = ownerId;
         entity.Color = NormalizeOptional(color) ?? "#3b82f6";
         entity.Note = NormalizeOptional(note);
+        entity.SeriesStartDate = null;
 
         if (entity.Id == 0)
         {
@@ -127,7 +142,7 @@ public sealed partial class PlannerStore
                 EventDate = eventDate,
                 OwnerId = member.Id,
                 Color = color,
-                Note = "Fødselsdag",
+                Note = "F\u00f8dselsdag",
                 SourceType = BirthdaySourceType,
                 SourceMemberId = member.Id,
                 SourceYear = year,
@@ -140,7 +155,7 @@ public sealed partial class PlannerStore
         existing.EventDate = eventDate;
         existing.OwnerId = member.Id;
         existing.Color = color;
-        existing.Note = "Fødselsdag";
+        existing.Note = "F\u00f8dselsdag";
         _events.Update(existing);
     }
 
@@ -162,7 +177,7 @@ public sealed partial class PlannerStore
         return true;
     }
 
-    private static bool IsUpcomingEvent(PlannerEvent plannerEvent, DateTime now)
+    private static bool IsUpcomingEvent(PlannerEvent plannerEvent, DateTime now, DateOnly windowEnd)
     {
         if (!DateOnly.TryParse(plannerEvent.EventDate, out var eventDate))
         {
@@ -170,6 +185,16 @@ public sealed partial class PlannerStore
         }
 
         var today = DateOnly.FromDateTime(now);
+        if (eventDate > windowEnd)
+        {
+            return false;
+        }
+
+        if (string.Equals(plannerEvent.SourceType, BirthdaySourceType, StringComparison.Ordinal))
+        {
+            return eventDate >= today && eventDate <= today.AddDays(UpcomingBirthdayWindowDays);
+        }
+
         if (eventDate > today)
         {
             return true;
@@ -183,7 +208,7 @@ public sealed partial class PlannerStore
         var cutoffTime = NormalizeOptional(plannerEvent.EndTime) ?? NormalizeOptional(plannerEvent.StartTime);
         if (string.IsNullOrWhiteSpace(cutoffTime))
         {
-            return true;
+            return false;
         }
 
         return !TimeOnly.TryParse(cutoffTime, out var eventTime) ||
@@ -197,4 +222,115 @@ public sealed partial class PlannerStore
             _events.Delete(plannerEvent.Id);
         }
     }
+
+    private IEnumerable<PlannerEvent> ExpandRecurringEvents(DateOnly rangeStart, DateOnly rangeEnd)
+    {
+        if (rangeEnd < rangeStart)
+        {
+            yield break;
+        }
+
+        foreach (var series in _events.FindAll().Where(IsRecurringSeries))
+        {
+            if (!DateOnly.TryParse(series.EventDate, out var seriesStart))
+            {
+                continue;
+            }
+
+            var recurrenceEnd = DateOnly.TryParse(series.RecurrenceUntil, out var parsedRecurrenceEnd)
+                ? parsedRecurrenceEnd
+                : rangeEnd;
+            if (recurrenceEnd < rangeStart || recurrenceEnd < seriesStart)
+            {
+                continue;
+            }
+
+            var firstOccurrence = GetFirstOccurrenceOnOrAfter(seriesStart, series.RecurrenceType!, rangeStart);
+            var effectiveEnd = recurrenceEnd < rangeEnd ? recurrenceEnd : rangeEnd;
+            for (var occurrence = firstOccurrence; occurrence <= effectiveEnd; occurrence = NextOccurrence(occurrence, series.RecurrenceType!))
+            {
+                if (occurrence < seriesStart)
+                {
+                    continue;
+                }
+
+                yield return CreateRecurringOccurrence(series, occurrence);
+            }
+        }
+    }
+
+    private static PlannerEvent CloneEvent(PlannerEvent plannerEvent) => new()
+    {
+        Id = plannerEvent.Id,
+        UserId = plannerEvent.UserId,
+        CreatedAt = plannerEvent.CreatedAt,
+        Title = plannerEvent.Title,
+        EventDate = plannerEvent.EventDate,
+        StartTime = plannerEvent.StartTime,
+        EndTime = plannerEvent.EndTime,
+        RecurrenceType = plannerEvent.RecurrenceType,
+        RecurrenceUntil = plannerEvent.RecurrenceUntil,
+        OwnerId = plannerEvent.OwnerId,
+        Color = plannerEvent.Color,
+        Note = plannerEvent.Note,
+        SourceType = plannerEvent.SourceType,
+        SourceMemberId = plannerEvent.SourceMemberId,
+        SourceYear = plannerEvent.SourceYear,
+        SeriesStartDate = plannerEvent.SeriesStartDate
+    };
+
+    private static PlannerEvent CreateRecurringOccurrence(PlannerEvent series, DateOnly occurrenceDate) => new()
+    {
+        Id = series.Id,
+        UserId = series.UserId,
+        CreatedAt = series.CreatedAt,
+        Title = series.Title,
+        EventDate = occurrenceDate.ToString("yyyy-MM-dd"),
+        StartTime = series.StartTime,
+        EndTime = series.EndTime,
+        RecurrenceType = series.RecurrenceType,
+        RecurrenceUntil = series.RecurrenceUntil,
+        OwnerId = series.OwnerId,
+        Color = series.Color,
+        Note = series.Note,
+        SourceType = RecurringSourceType,
+        SeriesStartDate = series.EventDate
+    };
+
+    private static bool IsRecurringSeries(PlannerEvent plannerEvent) =>
+        string.Equals(plannerEvent.RecurrenceType, "daily", StringComparison.Ordinal) ||
+        string.Equals(plannerEvent.RecurrenceType, "weekly", StringComparison.Ordinal);
+
+    private static bool IsWithinRange(string? eventDate, DateOnly start, DateOnly end) =>
+        !string.IsNullOrWhiteSpace(eventDate) &&
+        string.CompareOrdinal(eventDate, start.ToString("yyyy-MM-dd")) >= 0 &&
+        string.CompareOrdinal(eventDate, end.ToString("yyyy-MM-dd")) <= 0;
+
+    private static string GetEventSortTime(PlannerEvent plannerEvent) =>
+        NormalizeOptional(plannerEvent.EndTime) ??
+        NormalizeOptional(plannerEvent.StartTime) ??
+        "99:99:99";
+
+    private static DateOnly GetFirstOccurrenceOnOrAfter(DateOnly seriesStart, string recurrenceType, DateOnly rangeStart)
+    {
+        if (rangeStart <= seriesStart)
+        {
+            return seriesStart;
+        }
+
+        return recurrenceType switch
+        {
+            "daily" => rangeStart,
+            "weekly" => seriesStart.AddDays((((rangeStart.DayNumber - seriesStart.DayNumber) + 6) / 7) * 7),
+            _ => seriesStart
+        };
+    }
+
+    private static DateOnly NextOccurrence(DateOnly occurrence, string recurrenceType) =>
+        recurrenceType switch
+        {
+            "daily" => occurrence.AddDays(1),
+            "weekly" => occurrence.AddDays(7),
+            _ => occurrence.AddDays(1)
+        };
 }

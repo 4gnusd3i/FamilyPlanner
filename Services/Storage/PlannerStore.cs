@@ -7,7 +7,8 @@ public sealed partial class PlannerStore : IDisposable
 {
     private static readonly string[] ObsoleteCollections =
     [
-        "users"
+        "users",
+        "medicines"
     ];
 
     private readonly LiteDatabase _database;
@@ -17,7 +18,6 @@ public sealed partial class PlannerStore : IDisposable
     private readonly ILiteCollection<MealPlan> _meals;
     private readonly ILiteCollection<BudgetMonth> _budgetMonths;
     private readonly ILiteCollection<ExpenseItem> _expenses;
-    private readonly ILiteCollection<MedicineItem> _medicines;
     private readonly ILiteCollection<NoteItem> _notes;
     private readonly ILiteCollection<ShoppingItem> _shoppingItems;
     private readonly ILiteCollection<FamilyAssignment> _assignments;
@@ -31,7 +31,6 @@ public sealed partial class PlannerStore : IDisposable
         _meals = _database.GetCollection<MealPlan>("meals");
         _budgetMonths = _database.GetCollection<BudgetMonth>("budgetMonths");
         _expenses = _database.GetCollection<ExpenseItem>("expenses");
-        _medicines = _database.GetCollection<MedicineItem>("medicines");
         _notes = _database.GetCollection<NoteItem>("notes");
         _shoppingItems = _database.GetCollection<ShoppingItem>("shoppingItems");
         _assignments = _database.GetCollection<FamilyAssignment>("familyAssignments");
@@ -69,7 +68,6 @@ public sealed partial class PlannerStore : IDisposable
         _meals.DeleteAll();
         _budgetMonths.DeleteAll();
         _expenses.DeleteAll();
-        _medicines.DeleteAll();
         _notes.DeleteAll();
         _shoppingItems.DeleteAll();
         _assignments.DeleteAll();
@@ -81,7 +79,6 @@ public sealed partial class PlannerStore : IDisposable
         DropObsoleteCollections();
         EnsureIndexes();
         DeleteExpiredDoneShoppingItems(DateTime.Now);
-        DeletePastTakenMedicines(DateTime.Now);
     }
 
     public void Dispose() => _database.Dispose();
@@ -98,10 +95,10 @@ public sealed partial class PlannerStore : IDisposable
         _events.EnsureIndex(x => x.SourceType);
         _events.EnsureIndex(x => x.SourceMemberId);
         _events.EnsureIndex(x => x.SourceYear);
+        _events.EnsureIndex(x => x.RecurrenceType);
+        _events.EnsureIndex(x => x.RecurrenceUntil);
         _budgetMonths.EnsureIndex(x => x.Month);
         _expenses.EnsureIndex(x => x.Month);
-        _medicines.EnsureIndex(x => x.Time);
-        _medicines.EnsureIndex(x => x.Taken);
         _notes.EnsureIndex(x => x.CreatedAt);
         _shoppingItems.EnsureIndex(x => x.Done);
         _shoppingItems.EnsureIndex(x => x.DoneAt);

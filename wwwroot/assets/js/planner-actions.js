@@ -5,6 +5,8 @@ async function submitEventForm(event) {
   formData.append("event_date", document.getElementById("eventDate").value);
   formData.append("start_time", document.getElementById("eventStartTime").value);
   formData.append("end_time", document.getElementById("eventEndTime").value);
+  formData.append("recurrence_type", document.getElementById("eventRecurrenceType").value);
+  formData.append("recurrence_until", document.getElementById("eventRecurrenceUntil").value);
   formData.append("owner_id", document.getElementById("eventOwner").value);
   formData.append("color", selectedColor);
   formData.append("note", document.getElementById("eventNote").value);
@@ -16,7 +18,8 @@ async function submitEventForm(event) {
 }
 
 async function deleteEvent() {
-  if (!confirm("Slette avtalen?")) return;
+  const recurrenceType = document.getElementById("eventRecurrenceType").value;
+  if (recurrenceType && !confirm("Slette hele den gjentakende serien?")) return;
   await apiFetch("/api/events", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -42,7 +45,6 @@ async function submitMealForm(event) {
 }
 
 async function deleteMeal() {
-  if (!confirm("Slette måltidet?")) return;
   await apiFetch("/api/meals", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -85,40 +87,6 @@ async function submitBudgetForm(event) {
   await loadBudget();
 }
 
-async function submitMedicineForm(event) {
-  event.preventDefault();
-  const formData = new FormData();
-  formData.append("name", document.getElementById("medicineName").value);
-  formData.append("time", document.getElementById("medicineTime").value);
-  formData.append("owner_id", document.getElementById("medicineOwner").value);
-  formData.append("note", document.getElementById("medicineNote").value);
-  const id = document.getElementById("medicineId").value;
-  if (id) formData.append("id", id);
-  await apiFetch("/api/medicines", { method: "POST", body: formData });
-  closeModal("medicineModal");
-  await loadMedicines();
-}
-
-async function toggleMed(id) {
-  await apiFetch("/api/medicines", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ toggle: true, id }),
-  });
-  await loadMedicines();
-}
-
-async function deleteMedicine() {
-  if (!confirm("Slette medisin?")) return;
-  await apiFetch("/api/medicines", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ delete: true, id: Number(document.getElementById("medicineId").value) }),
-  });
-  closeModal("medicineModal");
-  await loadMedicines();
-}
-
 async function submitNoteForm(event) {
   event.preventDefault();
   const formData = new FormData();
@@ -133,7 +101,6 @@ async function submitNoteForm(event) {
 }
 
 async function deleteNote() {
-  if (!confirm("Slette notat?")) return;
   await apiFetch("/api/notes", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -328,10 +295,6 @@ function toNullableNumber(value) {
 
 function openEventModalFromJson(payload) {
   openEventModal(decodePayload(payload));
-}
-
-function viewMedicineFromJson(payload) {
-  viewMedicine(decodePayload(payload));
 }
 
 function viewNoteFromJson(payload) {

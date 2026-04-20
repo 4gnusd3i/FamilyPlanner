@@ -8,50 +8,6 @@ namespace FamilyPlanner.Endpoints;
 
 public static partial class PlannerApiEndpoints
 {
-    private static async Task<IResult> PostMedicinesAsync(HttpRequest request, PlannerStore store, IOptions<JsonOptions> jsonOptions)
-    {
-        if (HasJsonContentType(request))
-        {
-            var body = await ReadJsonObjectAsync(request, jsonOptions.Value);
-            if (body is null)
-            {
-                return BadRequest("Ugyldig medisinforespørsel.");
-            }
-
-            if (HasTrueProperty(body.Value, "toggle"))
-            {
-                if (!TryGetRequiredInt(body.Value, "id", out var id))
-                {
-                    return BadRequest("Ugyldig medisin.");
-                }
-
-                store.ToggleMedicine(id);
-            }
-            else if (HasTrueProperty(body.Value, "delete"))
-            {
-                if (!TryGetRequiredInt(body.Value, "id", out var id))
-                {
-                    return BadRequest("Ugyldig medisin.");
-                }
-
-                store.DeleteMedicine(id);
-            }
-
-            return Results.Ok(new { ok = true });
-        }
-
-        var form = await request.ReadFormAsync();
-        var name = Required(form["name"], "Navn mangler.");
-        store.UpsertMedicine(
-            ParseNullableInt(form["id"]),
-            name,
-            form["time"],
-            ParseNullableInt(form["owner_id"]),
-            form["note"]);
-
-        return Results.Ok(new { ok = true });
-    }
-
     private static async Task<IResult> PostNotesAsync(HttpRequest request, PlannerStore store, IOptions<JsonOptions> jsonOptions)
     {
         if (HasJsonContentType(request))
@@ -129,5 +85,4 @@ public static partial class PlannerApiEndpoints
 
         return Results.Ok(new { ok = true });
     }
-
 }

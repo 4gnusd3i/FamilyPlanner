@@ -30,9 +30,7 @@ public sealed class NoteWorkflowTests : DesktopPlannerUiTestBase
 
         await Page.Locator(".note-item", new() { HasTextString = "Packing list" }).ClickAsync();
         await WaitForModalStateAsync("noteViewModal", open: true);
-        await AcceptDialogAsync(
-            () => Page.Locator("#noteViewModal .btn-danger").ClickAsync(),
-            "Slette");
+        await Page.Locator("#noteViewModal .btn-danger").ClickAsync();
         await WaitForModalStateAsync("noteViewModal", open: false);
         await Expect(Page.Locator(".note-item", new() { HasTextString = "Packing list" })).ToHaveCountAsync(0);
 

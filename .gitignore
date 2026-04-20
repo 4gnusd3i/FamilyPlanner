@@ -25,7 +25,6 @@ coverage.cobertura.xml
 
 # Playwright and browser regression artifacts
 .playwright-browsers/
-tests/Shakar.Familietavle.UiTests/.artifacts/
 tests/FamilyPlanner.UiTests/.artifacts/
 
 # IDE and editor state

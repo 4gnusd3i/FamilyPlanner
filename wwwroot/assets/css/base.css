@@ -483,7 +483,6 @@ header h1 {
 }
 
 .budget-card::before { background: linear-gradient(90deg, var(--icy-blue), var(--sky-blue)); }
-.medicine-card::before { background: linear-gradient(90deg, var(--baby-pink), var(--pastel-petal)); }
 .notes-card::before { background: linear-gradient(90deg, var(--pastel-petal), var(--thistle)); }
 .shopping-card::before { background: linear-gradient(90deg, var(--sky-blue), var(--thistle)); }
 .upcoming-card::before { background: linear-gradient(90deg, var(--thistle), var(--icy-blue)); }
@@ -741,6 +740,14 @@ header h1 {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.event-description {
+  min-width: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .day-footer {
@@ -1187,6 +1194,7 @@ header h1 {
 .color-picker {
   display: flex;
   gap: 0.4rem;
+  padding-block: 0.15rem;
   margin-bottom: 0.7rem;
   flex-wrap: wrap;
 }

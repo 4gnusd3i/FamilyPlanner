@@ -202,7 +202,7 @@ body.planner-page {
 
 .planner-page .quick-action-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.6rem;
 }
 
@@ -227,40 +227,76 @@ body.planner-page {
 }
 
 .planner-page .family-bar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.75rem;
-  align-items: center;
+  display: block;
   padding: 0.85rem;
   border-radius: 28px;
   margin: 0 0 0.9rem;
 }
 
 .planner-page .family-avatars {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
   gap: 0.7rem;
+  width: 100%;
+}
+
+.planner-page .family-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.42rem;
+  min-width: 0;
 }
 
 .planner-page .family-avatar {
-  width: 48px;
-  height: 48px;
-  min-width: 48px;
-  padding: 0.25rem;
-  border-radius: 50%;
+  cursor: pointer;
+}
+
+.planner-page .family-avatar-shell {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  border-radius: 18px;
   border: 1px solid rgba(var(--sky-blue-rgb), 0.24);
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--member-color, rgba(255, 255, 255, 0.72));
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.planner-page .family-member-avatar {
+  width: 100%;
+  height: 100%;
+  border: 0;
   box-shadow: none;
-  justify-content: center;
+}
+
+.planner-page .family-name {
+  max-width: 100%;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .planner-page .add-family-btn {
-  width: 48px;
-  height: 48px;
-  min-width: 48px;
   padding: 0;
-  border-radius: 50%;
-  font-size: 1.3rem;
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+  width: auto;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.planner-page .family-avatar-add {
+  background: linear-gradient(135deg, var(--baby-pink), var(--sky-blue));
+  color: var(--text);
+  font-size: 1.35rem;
 }
 
 .planner-page .main-container {
@@ -422,7 +458,6 @@ body.planner-page {
 .planner-page .event-item,
 .planner-page .meal-entry,
 .planner-page .note-item,
-.planner-page .med-item,
 .planner-page .shop-item,
 .planner-page .upcoming-item {
   border-radius: 14px;
@@ -434,11 +469,25 @@ body.planner-page {
 .planner-page .event-item {
   padding: 0.55rem 0.6rem;
   background: rgba(255, 255, 255, 0.9);
+  gap: 0.35rem;
 }
 
 .planner-page .event-time {
   background: rgba(var(--icy-blue-rgb), 0.42);
   color: var(--rose-ink);
+}
+
+.planner-page .event-title {
+  line-height: 1.25;
+}
+
+.planner-page .event-description {
+  color: var(--text-light);
+  line-height: 1.3;
+}
+
+.planner-page .event-description.is-empty {
+  color: rgba(34, 49, 77, 0.48);
 }
 
 .planner-page .task-chip {
@@ -472,10 +521,25 @@ body.planner-page {
 }
 
 .planner-page .upcoming-item,
-.planner-page .med-item,
 .planner-page .note-item,
 .planner-page .shop-item {
   padding: 0.65rem;
+}
+
+.planner-page .expense-meta {
+  color: var(--text-light);
+  font-size: 0.75rem;
+}
+
+.planner-page .expense-amount {
+  font-weight: 700;
+}
+
+.planner-page .expense-delete-btn {
+  min-height: 36px;
+  min-width: 36px;
+  padding: 0.35rem 0.7rem;
+  color: white;
 }
 
 .planner-page .empty-inline {
@@ -545,6 +609,10 @@ body.planner-page {
   font-size: 0.9rem;
 }
 
+.planner-page .act-btn[data-type="legacy"] {
+  display: none;
+}
+
 .planner-page .profile-modal {
   width: min(100%, 520px);
 }
@@ -581,7 +649,7 @@ body.planner-page {
   }
 
   .planner-page .quick-action-grid {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 0.45rem;
   }
 
@@ -667,12 +735,6 @@ body.planner-page {
     min-height: 0;
   }
 
-  .planner-page .medicine-card {
-    flex: 0 1 auto;
-    min-height: 0;
-    max-height: min(50vh, 50%);
-  }
-
   .planner-page .surface {
     min-height: 0;
     border-radius: 20px;
@@ -716,8 +778,7 @@ body.planner-page {
     flex: 1 1 auto;
   }
 
-  .planner-page .notes-card .card-content,
-  .planner-page .medicine-card .card-content {
+  .planner-page .notes-card .card-content {
     flex: 0 1 auto;
   }
 
@@ -837,10 +898,6 @@ body.planner-page {
 
   .planner-page .family-bar {
     grid-area: family;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-wrap: nowrap;
     min-height: 0;
     margin: 0;
     padding: 0.48rem 0.6rem;
@@ -848,17 +905,20 @@ body.planner-page {
   }
 
   .planner-page .family-avatars {
-    flex: 0 1 auto;
-    flex-wrap: nowrap;
+    grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
     gap: 0.42rem;
   }
 
-  .planner-page .family-avatar,
-  .planner-page .add-family-btn {
+  .planner-page .family-avatar-shell {
     width: 42px;
     height: 42px;
     min-width: 42px;
     min-height: 42px;
+    border-radius: 14px;
+  }
+
+  .planner-page .family-name {
+    font-size: 0.68rem;
   }
 }
 

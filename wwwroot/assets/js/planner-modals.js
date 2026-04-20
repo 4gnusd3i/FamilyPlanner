@@ -2,7 +2,7 @@ function updateOwnerSelects() {
   const options = ['<option value="">Ansvarlig...</option>']
     .concat(familyMembers.map((member) => `<option value="${member.id}">${escapeHtml(member.name)}</option>`))
     .join("");
-  ["eventOwner", "mealOwner", "medicineOwner", "noteOwner", "shoppingOwner", "expenseOwner"].forEach((id) => {
+  ["eventOwner", "mealOwner", "noteOwner", "shoppingOwner", "expenseOwner"].forEach((id) => {
     const element = document.getElementById(id);
     if (element) element.innerHTML = options;
   });
@@ -119,28 +119,43 @@ function bindTimeInputDefaults() {
   startInput.addEventListener("change", syncEndFromStart);
 }
 
-function applyMedicineTimeDefault(timeInput) {
-  const normalized = normalizeTimeValue(timeInput.value);
-  if (normalized) {
-    setTimeInputValue(timeInput, normalized);
-  } else {
-    setTimeInputValue(timeInput, formatTimeForInput(new Date()));
-  }
+function bindRecurrenceControls() {
+  const recurrenceType = document.getElementById("eventRecurrenceType");
+  const recurrenceUntil = document.getElementById("eventRecurrenceUntil");
+  if (!recurrenceType || !recurrenceUntil || recurrenceType.dataset.bound === "true") return;
+
+  const syncRecurrenceState = () => {
+    const hasRecurrence = recurrenceType.value !== "";
+    recurrenceUntil.disabled = !hasRecurrence;
+    recurrenceUntil.hidden = !hasRecurrence;
+    if (!hasRecurrence) {
+      recurrenceUntil.value = "";
+    }
+  };
+
+  recurrenceType.dataset.bound = "true";
+  recurrenceType.addEventListener("change", syncRecurrenceState);
+  syncRecurrenceState();
 }
 
 function openEventModal(event = null, date = null) {
   bindTimeInputDefaults();
+  bindRecurrenceControls();
   const startInput = document.getElementById("eventStartTime");
   const endInput = document.getElementById("eventEndTime");
+  const recurrenceType = document.getElementById("eventRecurrenceType");
+  const recurrenceUntil = document.getElementById("eventRecurrenceUntil");
   if (event) {
     document.getElementById("eventModalTitle").textContent = "Rediger avtale";
     document.getElementById("deleteEventBtn").style.display = "block";
     document.getElementById("eventId").value = event.id || "";
     document.getElementById("eventTitle").value = event.title || "";
-    document.getElementById("eventDate").value = event.event_date || "";
+    document.getElementById("eventDate").value = event.series_start_date || event.event_date || "";
     setTimeInputValue(startInput, event.start_time || "");
     setTimeInputValue(endInput, event.end_time || "");
     applyEventTimeDefaults(startInput, endInput);
+    recurrenceType.value = event.recurrence_type || "";
+    recurrenceUntil.value = event.recurrence_until || "";
     document.getElementById("eventOwner").value = event.owner_id || "";
     document.getElementById("eventNote").value = event.note || "";
     selectedColor = event.color || "#3b82f6";
@@ -152,8 +167,12 @@ function openEventModal(event = null, date = null) {
     setTimeInputValue(startInput, "");
     setTimeInputValue(endInput, "");
     applyEventTimeDefaults(startInput, endInput);
+    recurrenceType.value = "";
+    recurrenceUntil.value = "";
     selectedColor = "#3b82f6";
   }
+  recurrenceUntil.disabled = recurrenceType.value === "";
+  recurrenceUntil.hidden = recurrenceType.value === "";
   initColorOptions();
   openModal("eventModal");
   requestAnimationFrame(() => applyEventTimeDefaults(startInput, endInput));
@@ -193,58 +212,6 @@ function openBudgetModal() {
   openModal("budgetModal");
 }
 
-function openMedicineModal(medicine = null) {
-  document.getElementById("medicineForm").reset();
-  document.getElementById("deleteMedicineBtn").style.display = "none";
-  const medicineTimeInput = document.getElementById("medicineTime");
-  if (medicine) {
-    document.getElementById("medicineId").value = medicine.id || "";
-    document.getElementById("medicineName").value = medicine.name || "";
-    setTimeInputValue(medicineTimeInput, medicine.time || "");
-    applyMedicineTimeDefault(medicineTimeInput);
-    document.getElementById("medicineOwner").value = medicine.owner_id || "";
-    document.getElementById("medicineNote").value = medicine.note || "";
-    document.getElementById("deleteMedicineBtn").style.display = "block";
-  } else {
-    setTimeInputValue(medicineTimeInput, "");
-    applyMedicineTimeDefault(medicineTimeInput);
-  }
-  openModal("medicineModal");
-  requestAnimationFrame(() => applyMedicineTimeDefault(medicineTimeInput));
-}
-
-function viewMedicine(medicine) {
-  if (!medicine) return;
-  currentViewMedicine = medicine;
-  const owner = familyMembers.find((member) => member.id === medicine.owner_id);
-  const ownerAvatar = owner ? getMemberAvatar(owner, "small") : "";
-  const ownerName = owner ? owner.name : "Ingen";
-  document.getElementById("medicineViewTitle").textContent = medicine.name;
-  document.getElementById("medicineViewContent").innerHTML = `
-    <div class="view-field"><div class="view-label">Ansvarlig</div>${ownerAvatar} ${escapeHtml(ownerName)}</div>
-    <div class="view-field"><div class="view-label">Klokkeslett</div>${medicine.time ? medicine.time.slice(0, 5) : "-"}</div>
-    ${medicine.note ? `<div class="view-field"><div class="view-label">Notat</div>${escapeHtml(medicine.note)}</div>` : ""}
-    <div class="view-field"><div class="view-label">Status</div>${medicine.taken ? "✓ Tatt" : "Ikke tatt"}</div>`;
-  openModal("medicineViewModal");
-}
-
-function editMedicineFromView() {
-  if (!currentViewMedicine) return;
-  closeModal("medicineViewModal");
-  openMedicineModal(currentViewMedicine);
-}
-
-async function deleteMedicineFromView() {
-  if (!currentViewMedicine || !confirm("Slette medisin?")) return;
-  await apiFetch("/api/medicines", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ delete: true, id: currentViewMedicine.id }),
-  });
-  closeModal("medicineViewModal");
-  await loadMedicines();
-}
-
 function openNoteModal(note = null) {
   document.getElementById("noteForm").reset();
   document.getElementById("deleteNoteBtn").style.display = "none";
@@ -278,7 +245,7 @@ function editNoteFromView() {
 }
 
 async function deleteNoteFromView() {
-  if (!currentViewNote || !confirm("Slette notat?")) return;
+  if (!currentViewNote) return;
   await apiFetch("/api/notes", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -330,9 +297,9 @@ function showProfile(memberId) {
     ? `<img src="${member.avatar_url}" alt="${escapeHtml(member.name)}">`
     : memberEmojis[member.id % memberEmojis.length];
   document.getElementById("profileName").textContent = member.name;
-  document.getElementById("profileAge").textContent = member.birthday ? `${calculateAge(member.birthday)} år` : "";
+  document.getElementById("profileAge").textContent = member.birthday ? `${calculateAge(member.birthday)} \u00e5r` : "";
   document.getElementById("profileBirthday").innerHTML = member.birthday
-    ? `<div class="profile-section-label">Fødselsdag</div><div class="profile-section-content">${formatBirthday(member.birthday)}${isBirthdayWithinDays(member.birthday, 14) ? " 🎉" : ""}</div>`
+    ? `<div class="profile-section-label">F\u00f8dselsdag</div><div class="profile-section-content">${formatBirthday(member.birthday)}${isBirthdayWithinDays(member.birthday, 14) ? " \ud83c\udf89" : ""}</div>`
     : "";
   document.getElementById("profileBio").innerHTML = member.bio
     ? `<div class="profile-section-label">Om meg</div><div class="profile-section-content">${escapeHtml(member.bio)}</div>`
@@ -353,7 +320,7 @@ function openAssignModal(day, memberId) {
   document.getElementById("assignMemberId").value = memberId;
   document.getElementById("assignNote").value = "";
   const existing = (familyAssignments[day] || []).find((assignment) => assignment.family_member_id === memberId);
-  selectedActivityType = existing?.activity_type || "medicine";
+  selectedActivityType = existing?.activity_type || "activity";
   document.getElementById("assignNote").value = existing?.note || "";
   document.getElementById("removeAssignBtn").style.display = existing ? "block" : "none";
   document.querySelectorAll(".act-btn").forEach((button) => {

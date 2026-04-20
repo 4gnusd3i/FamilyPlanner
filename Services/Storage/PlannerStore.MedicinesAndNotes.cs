@@ -4,74 +4,6 @@ namespace FamilyPlanner.Services.Storage;
 
 public sealed partial class PlannerStore
 {
-    public IReadOnlyList<MedicineItem> GetMedicines()
-    {
-        DeletePastTakenMedicines(DateTime.Now);
-
-        return _medicines.FindAll()
-            .OrderBy(x => x.Time ?? "99:99:99")
-            .ThenBy(x => x.Name)
-            .ToList();
-    }
-
-    public MedicineItem UpsertMedicine(int? id, string name, string? time, int? ownerId, string? note)
-    {
-        MedicineItem entity;
-        if (id is > 0 && _medicines.FindById(id.Value) is { } existing)
-        {
-            entity = existing;
-        }
-        else
-        {
-            entity = new MedicineItem
-            {
-                CreatedAt = DateTime.UtcNow
-            };
-        }
-
-        entity.Name = name.Trim();
-        entity.Time = NormalizeOptional(time);
-        entity.OwnerId = ownerId;
-        entity.Note = NormalizeOptional(note);
-
-        if (entity.Id == 0)
-        {
-            _medicines.Insert(entity);
-        }
-        else
-        {
-            _medicines.Update(entity);
-        }
-
-        return entity;
-    }
-
-    public void ToggleMedicine(int id)
-    {
-        var medicine = _medicines.FindById(id);
-        if (medicine is null)
-        {
-            return;
-        }
-
-        medicine.Taken = !medicine.Taken;
-        _medicines.Update(medicine);
-    }
-
-    public void DeleteMedicine(int id) => _medicines.Delete(id);
-
-    private void DeletePastTakenMedicines(DateTime now)
-    {
-        var currentTime = TimeOnly.FromDateTime(now);
-        foreach (var medicine in _medicines.Find(x => x.Taken).ToList())
-        {
-            if (TimeOnly.TryParse(medicine.Time, out var medicineTime) && medicineTime < currentTime)
-            {
-                _medicines.Delete(medicine.Id);
-            }
-        }
-    }
-
     public IReadOnlyList<NoteItem> GetNotes() =>
         _notes.FindAll()
             .OrderByDescending(x => x.CreatedAt)
@@ -109,5 +41,4 @@ public sealed partial class PlannerStore
     }
 
     public void DeleteNote(int id) => _notes.Delete(id);
-
 }

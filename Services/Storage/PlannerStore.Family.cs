@@ -72,12 +72,6 @@ public sealed partial class PlannerStore
             _expenses.Update(item);
         }
 
-        foreach (var item in _medicines.Find(x => x.OwnerId == id))
-        {
-            item.OwnerId = null;
-            _medicines.Update(item);
-        }
-
         foreach (var item in _notes.Find(x => x.OwnerId == id))
         {
             item.OwnerId = null;

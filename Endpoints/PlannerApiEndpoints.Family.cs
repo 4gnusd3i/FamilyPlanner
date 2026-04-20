@@ -75,7 +75,7 @@ public static partial class PlannerApiEndpoints
             return Results.BadRequest(new { error = "Ugyldig oppgave." });
         }
 
-        var activityType = string.IsNullOrWhiteSpace(form["activity_type"]) ? "medicine" : form["activity_type"].ToString();
+        var activityType = string.IsNullOrWhiteSpace(form["activity_type"]) ? "activity" : form["activity_type"].ToString();
         store.UpsertAssignment(dayOfWeek, memberId, activityType, form["note"]);
         return Results.Ok(new { ok = true });
     }

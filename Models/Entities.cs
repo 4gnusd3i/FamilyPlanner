@@ -34,12 +34,15 @@ public sealed class PlannerEvent : EntityBase
     public string EventDate { get; set; } = string.Empty;
     public string? StartTime { get; set; }
     public string? EndTime { get; set; }
+    public string? RecurrenceType { get; set; }
+    public string? RecurrenceUntil { get; set; }
     public int? OwnerId { get; set; }
     public string? Color { get; set; }
     public string? Note { get; set; }
     public string? SourceType { get; set; }
     public int? SourceMemberId { get; set; }
     public int? SourceYear { get; set; }
+    public string? SeriesStartDate { get; set; }
 }
 
 public sealed class MealPlan : EntityBase
@@ -69,15 +72,6 @@ public sealed class ExpenseItem : EntityBase
     public string Month { get; set; } = string.Empty;
 }
 
-public sealed class MedicineItem : EntityBase
-{
-    public string Name { get; set; } = string.Empty;
-    public string? Time { get; set; }
-    public int? OwnerId { get; set; }
-    public string? Note { get; set; }
-    public bool Taken { get; set; }
-}
-
 public sealed class NoteItem : EntityBase
 {
     public string Title { get; set; } = string.Empty;
@@ -99,7 +93,7 @@ public sealed class FamilyAssignment : EntityBase
 {
     public int DayOfWeek { get; set; }
     public int FamilyMemberId { get; set; }
-    public string ActivityType { get; set; } = "medicine";
+    public string ActivityType { get; set; } = "activity";
     public string? Note { get; set; }
 }
 

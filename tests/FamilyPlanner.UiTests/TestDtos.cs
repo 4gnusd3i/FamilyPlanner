@@ -31,8 +31,26 @@ public sealed class PlannerEventDto
     [JsonPropertyName("event_date")]
     public string EventDate { get; init; } = string.Empty;
 
+    [JsonPropertyName("start_time")]
+    public string? StartTime { get; init; }
+
+    [JsonPropertyName("end_time")]
+    public string? EndTime { get; init; }
+
+    [JsonPropertyName("owner_id")]
+    public int? OwnerId { get; init; }
+
     [JsonPropertyName("source_type")]
     public string? SourceType { get; init; }
+
+    [JsonPropertyName("recurrence_type")]
+    public string? RecurrenceType { get; init; }
+
+    [JsonPropertyName("recurrence_until")]
+    public string? RecurrenceUntil { get; init; }
+
+    [JsonPropertyName("series_start_date")]
+    public string? SeriesStartDate { get; init; }
 
     [JsonPropertyName("note")]
     public string? Note { get; init; }
@@ -84,24 +102,6 @@ public sealed class BudgetSnapshotDto
 
     [JsonPropertyName("expenses")]
     public List<ExpenseItemDto> Expenses { get; init; } = [];
-}
-
-public sealed class MedicineItemDto
-{
-    [JsonPropertyName("id")]
-    public int Id { get; init; }
-
-    [JsonPropertyName("name")]
-    public string Name { get; init; } = string.Empty;
-
-    [JsonPropertyName("note")]
-    public string? Note { get; init; }
-
-    [JsonPropertyName("taken")]
-    public bool Taken { get; init; }
-
-    [JsonPropertyName("time")]
-    public string? Time { get; init; }
 }
 
 public sealed class NoteItemDto

@@ -1,7 +1,7 @@
 async function loadAll() {
   try {
     await loadFamily();
-    await Promise.all([loadEvents(), loadMeals(), loadBudget(), loadMedicines(), loadNotes(), loadShopping(), loadUpcoming()]);
+    await Promise.all([loadEvents(), loadMeals(), loadBudget(), loadNotes(), loadShopping(), loadUpcoming()]);
   } catch (error) {
     handleError(error);
   } finally {
@@ -14,20 +14,26 @@ async function loadFamily() {
   familyMembers = await response.json();
   updateOwnerSelects();
   const board = document.getElementById("familyBoard");
-  const addMemberButton = '<button type="button" class="btn btn-primary icon-action add-family-btn" onclick="openMemberModal()" aria-label="Nytt familiemedlem">+</button>';
+  const addMemberButton = `
+    <button type="button" class="family-tile add-family-btn" onclick="openMemberModal()" aria-label="Nytt familiemedlem">
+      <span class="family-avatar-shell family-avatar-add" aria-hidden="true">+</span>
+      <span class="family-name">Legg til</span>
+    </button>`;
 
   if (!familyMembers.length) {
     board.innerHTML = addMemberButton;
   } else {
     board.innerHTML = familyMembers.map((member, index) => {
       const avatar = member.avatar_url
-        ? `<img src="${member.avatar_url}" alt="${escapeHtml(member.name)}" class="member-avatar" style="width:36px;height:36px;">`
+        ? `<img src="${member.avatar_url}" alt="${escapeHtml(member.name)}" class="member-avatar family-member-avatar">`
         : `<span class="avatar-emoji">${memberEmojis[index % memberEmojis.length]}</span>`;
 
-      return `<div class="family-avatar" role="button" tabindex="0" aria-label="Vis profil for ${escapeHtml(member.name)}" title="${escapeHtml(member.name)}" style="background:${member.color || "#fefce8"}" draggable="true" data-id="${member.id}" data-name="${escapeHtml(member.name)}" onclick="showProfile(${member.id})">
-      ${avatar}
-      <span class="family-name sr-only">${escapeHtml(member.name)}</span>
-    </div>`;
+      return `<div class="family-tile family-avatar" role="button" tabindex="0" aria-label="Vis profil for ${escapeHtml(member.name)}" title="${escapeHtml(member.name)}" style="--member-color:${member.color || "#fefce8"}" draggable="true" data-id="${member.id}" data-name="${escapeHtml(member.name)}" onclick="showProfile(${member.id})">
+        <span class="family-avatar-shell">
+          ${avatar}
+        </span>
+        <span class="family-name">${escapeHtml(member.name)}</span>
+      </div>`;
     }).join("") + addMemberButton;
   }
 
@@ -55,7 +61,7 @@ function renderAssignments() {
     zone.innerHTML = (familyAssignments[day] || []).map((assignment) => {
       const member = familyMembers.find((item) => item.id === assignment.family_member_id);
       if (!member) return "";
-      const emoji = { medicine: "💊", doctor: "👨‍⚕️", activity: "⚽", meal: "🍽️" }[assignment.activity_type] || "📌";
+      const emoji = { doctor: "🩺", activity: "⚽", meal: "🍽️" }[assignment.activity_type] || "📌";
       const avatar = member.avatar_url
         ? `<img src="${member.avatar_url}" class="task-avatar" alt="${escapeHtml(member.name)}">`
         : `<span class="task-avatar-text">${memberEmojis[member.id % memberEmojis.length]}</span>`;
@@ -120,24 +126,24 @@ async function loadEvents() {
     const ownerAvatar = owner
       ? getMemberAvatar(owner, "small")
       : '<span class="event-owner-placeholder" aria-hidden="true"></span>';
-    const ownerName = owner ? owner.name : "Avtale";
+    const ownerName = owner ? owner.name : "Ingen";
     const payload = encodePayload(entry);
-    const timeDisplay = entry.start_time && entry.end_time
-      ? `${entry.start_time.slice(0, 5)} - ${entry.end_time.slice(0, 5)}`
-      : entry.start_time ? entry.start_time.slice(0, 5) : "";
-    const className = timeDisplay ? " has-time" : "";
-    const generatedClass = entry.source_type ? " generated-event" : "";
-    const interaction = entry.source_type
+    const timeDisplay = formatEventTimeRange(entry);
+    const description = entry.note || "-";
+    const generatedClass = entry.source_type ? ` source-${entry.source_type}` : "";
+    const timeClass = timeDisplay === "Hele dagen" ? "" : " has-time";
+    const interaction = entry.source_type === "birthday"
       ? `aria-label="${escapeHtml(entry.title)}"`
       : `onclick="openEventModalFromJson('${payload}')"`;
 
-    container.insertAdjacentHTML("beforeend", `<div class="event-item${className}${generatedClass}" style="--event-accent:${entry.color || "#4f46e5"}" ${interaction}>
+    container.insertAdjacentHTML("beforeend", `<div class="event-item${timeClass}${generatedClass}" style="--event-accent:${entry.color || "#4f46e5"}" ${interaction}>
       <div class="event-owner-line">
         ${ownerAvatar}
         <span class="event-owner-name">${escapeHtml(ownerName)}</span>
       </div>
-      ${timeDisplay ? `<span class="event-time">${timeDisplay}</span>` : ""}
       <span class="event-title">${escapeHtml(entry.title)}</span>
+      <span class="event-time">${escapeHtml(timeDisplay)}</span>
+      <span class="event-description${entry.note ? "" : " is-empty"}">${escapeHtml(description)}</span>
     </div>`);
   });
 }
@@ -156,10 +162,11 @@ async function loadUpcoming() {
     const owner = familyMembers.find((member) => member.id === entry.owner_id);
     const ownerAvatar = owner ? getMemberAvatar(owner, "small") : "";
     const payload = encodePayload(entry);
-    const generatedClass = entry.source_type ? " generated-event" : "";
-    const interaction = entry.source_type
+    const generatedClass = entry.source_type ? ` source-${entry.source_type}` : "";
+    const interaction = entry.source_type === "birthday"
       ? `aria-label="${escapeHtml(entry.title)}"`
       : `onclick="openEventModalFromJson('${payload}')"`;
+    const timeDisplay = formatEventTimeRange(entry, false);
     return `<div class="upcoming-item${generatedClass}" ${interaction}>
       <div class="upcoming-date">
         <span class="upcoming-dayname">${weekdayShort[normalizeWeekday(date)]}</span>
@@ -170,7 +177,7 @@ async function loadUpcoming() {
         ${ownerAvatar}
         <div class="upcoming-info">
           <span class="upcoming-title">${escapeHtml(entry.title)}</span>
-          ${entry.start_time ? `<span class="upcoming-time">Kl. ${entry.start_time.slice(0, 5)}</span>` : ""}
+          ${timeDisplay ? `<span class="upcoming-time">${escapeHtml(timeDisplay)}</span>` : ""}
         </div>
       </div>
     </div>`;
@@ -239,7 +246,7 @@ async function loadBudget() {
 
   const remaining = Number(data.remaining || 0);
   const remainingEl = document.getElementById("budgetRemaining");
-  remainingEl.textContent = `${remaining.toLocaleString("no-NO")} kr gjenstår`;
+  remainingEl.textContent = `${remaining.toLocaleString("no-NO")} kr gjenstar`;
   remainingEl.className = remaining >= 0 ? "budget-remaining positive" : "budget-remaining negative";
   scheduleKioskColumnSizing();
 }
@@ -258,18 +265,17 @@ async function loadExpenseHistory() {
     const ownerAvatar = owner ? getMemberAvatar(owner, "small") : "";
     const date = expense.expense_date ? parseDate(expense.expense_date).toLocaleDateString("no-NO", { day: "numeric", month: "short" }) : "";
     const label = expense.description || expense.category || "Utgift";
-    return `<div class="shop-item">
+    return `<div class="shop-item expense-history-item">
       <span class="item-name">${escapeHtml(label)}</span>
       ${ownerAvatar}
-      <span style="color:#64748b;font-size:0.75rem">${date}</span>
-      <span style="font-weight:700">${Number(expense.amount).toLocaleString("no-NO")} kr</span>
-      <button class="btn-small btn-danger" style="padding:0.3rem 0.6rem;color:white" onclick="deleteExpense(${expense.id})">×</button>
+      <span class="expense-meta">${escapeHtml(date)}</span>
+      <span class="expense-amount">${Number(expense.amount).toLocaleString("no-NO")} kr</span>
+      <button class="btn-small btn-danger expense-delete-btn" onclick="deleteExpense(${expense.id})">×</button>
     </div>`;
   }).join("");
 }
 
 async function deleteExpense(id) {
-  if (!confirm("Slette utgift?")) return;
   await apiFetch("/api/budget", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -277,28 +283,6 @@ async function deleteExpense(id) {
   });
   await loadBudget();
   await loadExpenseHistory();
-}
-
-async function loadMedicines() {
-  const response = await apiFetch("/api/medicines");
-  medicinesCache = await response.json();
-  const container = document.getElementById("medicineList");
-  if (!medicinesCache.length) {
-    container.innerHTML = '<div class="empty-state empty-state-collapsible">Ingen registrert</div>';
-    return;
-  }
-
-  container.innerHTML = medicinesCache.map((medicine) => {
-    const owner = familyMembers.find((member) => member.id === medicine.owner_id);
-    const ownerAvatar = owner ? getMemberAvatar(owner, "small") : "";
-    const payload = encodePayload(medicine);
-    return `<div class="med-item" onclick="viewMedicineFromJson('${payload}')">
-      <div class="med-check ${medicine.taken ? "taken" : ""}" onclick="event.stopPropagation(); toggleMed(${medicine.id})">${medicine.taken ? "✓" : ""}</div>
-      ${ownerAvatar}
-      <span class="item-name">${escapeHtml(medicine.name)}</span>
-      <span style="color:#64748b;font-size:0.7rem">${medicine.time ? medicine.time.slice(0, 5) : ""}</span>
-    </div>`;
-  }).join("");
 }
 
 async function loadNotes() {
@@ -439,4 +423,14 @@ function syncKioskLeftColumnSizing() {
   const hasNoteItems = notesList.querySelector(".note-item") !== null;
   notesCard.classList.toggle("is-empty", !hasNoteItems);
   leftPanel.style.setProperty("--left-notes-max", `${notesMax}px`);
+}
+
+function formatEventTimeRange(entry, allDayFallback = true) {
+  if (entry.start_time && entry.end_time) {
+    return `${entry.start_time.slice(0, 5)} - ${entry.end_time.slice(0, 5)}`;
+  }
+  if (entry.start_time) {
+    return entry.start_time.slice(0, 5);
+  }
+  return allDayFallback ? "Hele dagen" : "";
 }

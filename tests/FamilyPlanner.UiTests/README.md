@@ -8,15 +8,14 @@ What it covers:
 - responsive overflow protection
 - viewport-fit and non-overlap checks for major planner regions
 - touch-target sizing checks for primary interactive controls
-- event create, edit, and delete
+- event create, edit, delete, and recurrence series behavior
 - meal create, edit, delete, and send-to-shopping
 - budget update, expense add, and expense delete
 - shopping create, toggle, edit, and delayed auto-delete
-- medicine create, toggle, view, edit, and delete
 - note create, view, edit, and delete
 - family member create, profile edit, drag/drop assignment, assignment removal, and delete
-- API bad-request validation for malformed JSON mutation commands
-- storage maintenance for obsolete collections, expired lifecycle items, setup reset cleanup, and avatar extension validation
+- API bad-request validation for malformed JSON mutation commands and invalid recurrence values
+- storage maintenance for obsolete collections, expired lifecycle items, medicine collection purge, setup reset cleanup, and avatar extension validation
 
 First-time setup:
 ```powershell

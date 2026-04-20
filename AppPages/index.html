@@ -52,14 +52,6 @@
           <button
             type="button"
             class="quick-action"
-            onclick="openMedicineModal()"
-            aria-label="Legg til medisin"
-          >
-            <span class="quick-action-title">+ Medisin</span>
-          </button>
-          <button
-            type="button"
-            class="quick-action"
             onclick="openShoppingModal()"
             aria-label="Legg til vare"
           >
@@ -179,15 +171,6 @@
             </div>
             <div class="card-content" id="upcomingList"></div>
           </section>
-
-          <section class="surface medicine-card">
-            <div class="section-header">
-              <div>
-                <h2>Medisiner</h2>
-              </div>
-            </div>
-            <div class="card-content" id="medicineList"></div>
-          </section>
         </aside>
       </div>
     </div>
@@ -202,6 +185,18 @@
           <div class="form-row">
             <input type="time" id="eventStartTime" placeholder="Start" />
             <input type="time" id="eventEndTime" placeholder="Slutt" />
+          </div>
+          <div class="form-row">
+            <select id="eventRecurrenceType">
+              <option value="">Ingen gjentakelse</option>
+              <option value="daily">Daglig</option>
+              <option value="weekly">Ukentlig</option>
+            </select>
+            <input
+              type="date"
+              id="eventRecurrenceUntil"
+              placeholder="Gjentas til"
+            />
           </div>
           <select id="eventOwner">
             <option value="">Ansvarlig...</option>
@@ -340,62 +335,6 @@
               Lukk
             </button>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="modal-overlay" id="medicineModal">
-      <div class="modal">
-        <h3>Medisin</h3>
-        <form id="medicineForm">
-          <input type="hidden" id="medicineId" />
-          <input type="text" id="medicineName" placeholder="Navn" required />
-          <input type="time" id="medicineTime" required />
-          <select id="medicineOwner">
-            <option value="">Ansvarlig...</option>
-          </select>
-          <input type="text" id="medicineNote" placeholder="Notat" />
-          <div class="modal-btns">
-            <button
-              type="button"
-              id="deleteMedicineBtn"
-              onclick="deleteMedicine()"
-              class="btn-danger"
-              style="display: none"
-            >
-              Slett
-            </button>
-            <button type="button" onclick="closeModal('medicineModal')">
-              Avbryt
-            </button>
-            <button type="submit" class="btn-primary">Lagre</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <div class="modal-overlay" id="medicineViewModal">
-      <div class="modal">
-        <h3 id="medicineViewTitle">Medisin</h3>
-        <div class="view-content" id="medicineViewContent"></div>
-        <div class="modal-btns">
-          <button
-            type="button"
-            class="btn-danger"
-            onclick="deleteMedicineFromView()"
-          >
-            Slett
-          </button>
-          <button type="button" onclick="closeModal('medicineViewModal')">
-            Lukk
-          </button>
-          <button
-            type="button"
-            class="btn-primary"
-            onclick="editMedicineFromView()"
-          >
-            Rediger
-          </button>
         </div>
       </div>
     </div>
@@ -547,8 +486,8 @@
             <button
               type="button"
               class="act-btn active"
-              data-type="medicine"
-              onclick="selectActivityType('medicine')"
+              data-type="legacy"
+              onclick="selectActivityType('activity')"
             >
               💊
             </button>

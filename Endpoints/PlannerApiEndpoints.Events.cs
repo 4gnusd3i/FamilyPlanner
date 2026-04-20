@@ -45,12 +45,47 @@ public static partial class PlannerApiEndpoints
         var form = await request.ReadFormAsync();
         var title = Required(form["title"], "Tittel mangler.");
         var eventDate = Required(form["event_date"], "Dato mangler.");
+        if (!DateOnly.TryParse(eventDate, out var eventDateValue))
+        {
+            return BadRequest("Ugyldig dato.");
+        }
+
+        var rawRecurrenceType = form["recurrence_type"].ToString();
+        var recurrenceType = NormalizeRecurrenceType(rawRecurrenceType);
+        if (!string.IsNullOrWhiteSpace(rawRecurrenceType) && recurrenceType is null)
+        {
+            return BadRequest("Ugyldig gjentakelse.");
+        }
+
+        var recurrenceUntil = string.IsNullOrWhiteSpace(form["recurrence_until"])
+            ? null
+            : form["recurrence_until"].ToString().Trim();
+        if (recurrenceType is null && recurrenceUntil is not null)
+        {
+            return BadRequest("Sluttdato krever gjentakelse.");
+        }
+
+        if (recurrenceUntil is not null)
+        {
+            if (!DateOnly.TryParse(recurrenceUntil, out var recurrenceUntilDate))
+            {
+                return BadRequest("Ugyldig sluttdato.");
+            }
+
+            if (recurrenceUntilDate < eventDateValue)
+            {
+                return BadRequest("Sluttdato kan ikke være før startdato.");
+            }
+        }
+
         store.UpsertEvent(
             ParseNullableInt(form["id"]),
             title,
             eventDate,
             form["start_time"],
             form["end_time"],
+            recurrenceType,
+            recurrenceUntil,
             ParseNullableInt(form["owner_id"]),
             form["color"],
             form["note"]);
@@ -58,4 +93,13 @@ public static partial class PlannerApiEndpoints
         return Results.Ok(new { ok = true });
     }
 
+    private static string? NormalizeRecurrenceType(string? value) =>
+        string.IsNullOrWhiteSpace(value)
+            ? null
+            : value.Trim().ToLowerInvariant() switch
+            {
+                "daily" => "daily",
+                "weekly" => "weekly",
+                _ => null
+            };
 }

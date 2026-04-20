@@ -20,7 +20,7 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
         await AssertNoHorizontalOverflowAsync();
 
         Assert.That(await GetGridColumnCountAsync(".main-container"), Is.EqualTo(3));
-        Assert.That(await GetGridColumnCountAsync(".quick-action-grid"), Is.EqualTo(6));
+        Assert.That(await GetGridColumnCountAsync(".quick-action-grid"), Is.EqualTo(5));
         Assert.That(await GetGridColumnCountAsync(".week-days"), Is.EqualTo(7));
         Assert.That(await GetGridColumnCountAsync(".meals-grid"), Is.EqualTo(7));
 
@@ -34,15 +34,13 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
         await Expect(Page.Locator(".shopping-card")).ToBeVisibleAsync();
         await Expect(Page.Locator(".side-panel .notes-card")).ToBeVisibleAsync();
         await Expect(Page.Locator(".upcoming-card")).ToBeVisibleAsync();
-        await Expect(Page.Locator(".medicine-card")).ToBeVisibleAsync();
         await Expect(Page.Locator(".family-bar")).ToBeVisibleAsync();
         await Expect(Page.Locator(".planner-toolbar")).ToBeVisibleAsync();
         await Expect(Page.Locator("#shoppingList")).ToContainTextAsync("Vi har det vi trenger!");
         await Expect(Page.Locator("#upcomingList")).ToContainTextAsync("Anna har bursdag");
-        await Expect(Page.Locator("#medicineList .empty-state-collapsible")).ToBeHiddenAsync();
         await Expect(Page.Locator("#notesList .empty-state-collapsible")).ToBeHiddenAsync();
-
-        Assert.That(await Page.GetByText("I DAG").CountAsync(), Is.EqualTo(0));
+        await Expect(Page.Locator(".family-name", new() { HasTextString = "Anna" })).ToBeVisibleAsync();
+        await Expect(Page.Locator(".side-panel-right .surface")).ToHaveCountAsync(1);
 
         var layout = await Page.EvaluateAsync<double[]>(
             @"() => {
@@ -54,7 +52,6 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
                 const notes = rect('.notes-card');
                 const planner = rect('.planner-surface');
                 const upcoming = rect('.upcoming-card');
-                const medicine = rect('.medicine-card');
                 const family = rect('.family-bar');
                 const lastAvatar = Array.from(document.querySelectorAll('.family-avatar')).at(-1).getBoundingClientRect();
                 const addMember = document.querySelector('.add-family-btn').getBoundingClientRect();
@@ -67,19 +64,15 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
                     planner[0],
                     planner[2],
                     upcoming[0],
-                    medicine[0],
                     workspace[3],
                     family[1],
                     document.documentElement.scrollHeight,
                     window.innerHeight,
                     Math.abs(lastAvatar.top - addMember.top),
-                    addMember.left - lastAvatar.right,
+                    Math.abs(lastAvatar.left - addMember.left),
                     quickActions.boxShadow === 'none' ? 1 : 0,
                     budget[3] - budget[1],
-                    budgetDisplay.height,
-                    medicine[3] - medicine[1],
-                    upcoming[3] - upcoming[1],
-                    notes[3] - notes[1]
+                    budgetDisplay.height
                 ];
             }");
 
@@ -88,15 +81,12 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
             Assert.That(layout[0], Is.LessThanOrEqualTo(layout[2]), "Budget should stay in the left widget column.");
             Assert.That(layout[1], Is.LessThanOrEqualTo(layout[2]), "Notes should stay in the left widget column.");
             Assert.That(layout[4], Is.GreaterThanOrEqualTo(layout[3]), "Upcoming should stay in the right widget column.");
-            Assert.That(layout[5], Is.GreaterThanOrEqualTo(layout[3]), "Medicines should stay in the right widget column.");
-            Assert.That(layout[7], Is.GreaterThanOrEqualTo(layout[6] - 1d), "Family strip should sit below the workspace.");
-            Assert.That(layout[8], Is.LessThanOrEqualTo(layout[9] + 2d), "Tablet kiosk layout should fit the viewport without page-level vertical scrolling.");
-            Assert.That(layout[10], Is.LessThanOrEqualTo(2d), "Family add button should stay on the avatar row.");
-            Assert.That(layout[11], Is.GreaterThanOrEqualTo(-1d), "Family add button should tail the avatars.");
-            Assert.That(layout[12], Is.EqualTo(1d), "Quick actions should not keep the outer card shadow in kiosk mode.");
-            Assert.That(layout[13], Is.GreaterThanOrEqualTo(layout[14]), "Budget card should not shrink below its content.");
-            Assert.That(layout[15], Is.LessThan(layout[16]), "Empty medicines should stay compact below upcoming.");
-            Assert.That(layout[17], Is.LessThan(layout[13]), "Empty notes should stay compact below the protected budget card.");
+            Assert.That(layout[6], Is.GreaterThanOrEqualTo(layout[5] - 1d), "Family strip should sit below the workspace.");
+            Assert.That(layout[7], Is.LessThanOrEqualTo(layout[8] + 2d), "Tablet kiosk layout should fit the viewport without page-level vertical scrolling.");
+            Assert.That(layout[9], Is.LessThanOrEqualTo(2d), "Family add button should stay aligned with avatar tiles.");
+            Assert.That(layout[10], Is.GreaterThan(0d), "Family add button should remain a distinct tile after the member tiles.");
+            Assert.That(layout[11], Is.EqualTo(1d), "Quick actions should not keep the outer card shadow in kiosk mode.");
+            Assert.That(layout[12], Is.GreaterThanOrEqualTo(layout[13]), "Budget card should not shrink below its content.");
         });
 
         await OpenModalBySelectorAsync(".quick-action:has-text('Måltid')", "mealModal");
@@ -113,6 +103,7 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
     {
         var today = DateTime.Today.ToString("yyyy-MM-dd");
         const string longTitle = "Ekstra lang avtaletittel som skal kuttes rent uten aa stikke ut av kalenderdagen";
+        const string longDescription = "Dette er en lang beskrivelse som skal holde seg inne i kortet, klampes rent og ikke dytte resten av oppsettet ut av kurs.";
 
         await PostFormAsync("/api/events", new Dictionary<string, string>
         {
@@ -120,6 +111,7 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
             ["event_date"] = today,
             ["start_time"] = "17:10",
             ["end_time"] = "18:10",
+            ["note"] = longDescription,
         });
         await Page.ReloadAsync();
 
@@ -130,21 +122,24 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
             @"item => {
                 const day = item.closest('.day-box');
                 const owner = item.querySelector('.event-owner-line');
-                const time = item.querySelector('.event-time');
                 const title = item.querySelector('.event-title');
+                const time = item.querySelector('.event-time');
+                const description = item.querySelector('.event-description');
                 const itemRect = item.getBoundingClientRect();
                 const dayRect = day.getBoundingClientRect();
-                const ownerRect = owner.getBoundingClientRect();
-                const timeRect = time.getBoundingClientRect();
                 const titleRect = title.getBoundingClientRect();
+                const timeRect = time.getBoundingClientRect();
+                const descriptionRect = description.getBoundingClientRect();
                 return [
                     itemRect.left - dayRect.left,
                     dayRect.right - itemRect.right,
-                    ownerRect.top,
-                    timeRect.top,
+                    owner.getBoundingClientRect().top,
                     titleRect.top,
+                    timeRect.top,
+                    descriptionRect.top,
                     title.scrollWidth > title.clientWidth ? 1 : 0,
-                    titleRect.right - itemRect.right
+                    description.scrollHeight > description.clientHeight ? 1 : 0,
+                    descriptionRect.right - itemRect.right
                 ];
             }");
 
@@ -152,10 +147,12 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
         {
             Assert.That(layout[0], Is.GreaterThanOrEqualTo(-1d), "Event item should not extend past the left edge of its day.");
             Assert.That(layout[1], Is.GreaterThanOrEqualTo(-1d), "Event item should not extend past the right edge of its day.");
-            Assert.That(layout[2], Is.LessThan(layout[3]), "Owner line should render above the time line.");
-            Assert.That(layout[3], Is.LessThan(layout[4]), "Time line should render above the title line.");
-            Assert.That(layout[5], Is.EqualTo(1d), "Long event titles should ellipsize inside the event item.");
-            Assert.That(layout[6], Is.LessThanOrEqualTo(1d), "Event title should stay inside the event item.");
+            Assert.That(layout[2], Is.LessThan(layout[3]), "Owner line should render above the title line.");
+            Assert.That(layout[3], Is.LessThan(layout[4]), "Title line should render above the time line.");
+            Assert.That(layout[4], Is.LessThan(layout[5]), "Time line should render above the description line.");
+            Assert.That(layout[6], Is.EqualTo(1d), "Long event titles should ellipsize inside the event item.");
+            Assert.That(layout[7], Is.EqualTo(1d), "Long descriptions should clamp inside the event item.");
+            Assert.That(layout[8], Is.LessThanOrEqualTo(1d), "Event description should stay inside the event item.");
         });
     }
 
@@ -233,12 +230,6 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
     {
         using var client = await UiTestHost.CreateClientAsync();
 
-        foreach (var medicine in await GetApiAsync<List<MedicineItemDto>>("/api/medicines") ?? [])
-        {
-            var response = await client.PostAsJsonAsync("/api/medicines", new { delete = true, id = medicine.Id });
-            response.EnsureSuccessStatusCode();
-        }
-
         foreach (var note in await GetApiAsync<List<NoteItemDto>>("/api/notes") ?? [])
         {
             var response = await client.PostAsJsonAsync("/api/notes", new { delete = true, id = note.Id });
@@ -251,8 +242,11 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
             response.EnsureSuccessStatusCode();
         }
 
-        foreach (var entry in await GetApiAsync<List<PlannerEventDto>>("/api/events?upcoming=1") ?? [])
+        var start = DateTime.Today.AddDays(-14).ToString("yyyy-MM-dd");
+        var end = DateTime.Today.AddDays(42).ToString("yyyy-MM-dd");
+        foreach (var entry in await GetApiAsync<List<PlannerEventDto>>($"/api/events?start={start}&end={end}") ?? [])
         {
+            if (entry.SourceType == "birthday") continue;
             var response = await client.PostAsJsonAsync("/api/events", new { delete = true, id = entry.Id });
             response.EnsureSuccessStatusCode();
         }

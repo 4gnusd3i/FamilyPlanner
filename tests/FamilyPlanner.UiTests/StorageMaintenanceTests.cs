@@ -22,17 +22,12 @@ public sealed class StorageMaintenanceTests
 
                 var shoppingItem = store.UpsertShoppingItem(null, "Ferdig vare", 1, null, null);
                 store.ToggleShoppingItem(shoppingItem.Id);
-
-                var pastTime = DateTime.Now.TimeOfDay > TimeSpan.FromMinutes(2)
-                    ? DateTime.Now.AddMinutes(-2).ToString("HH:mm")
-                    : "00:00";
-                var medicine = store.UpsertMedicine(null, "Gammel dose", pastTime, null, null);
-                store.ToggleMedicine(medicine.Id);
             }
 
             using (var database = new LiteDatabase(Path.Combine(dataRoot, "familyplanner.db")))
             {
                 database.GetCollection("users").Insert(new BsonDocument { ["email"] = "legacy@example.test" });
+                database.GetCollection("medicines").Insert(new BsonDocument { ["name"] = "Legacy medicine" });
 
                 var shoppingItems = database.GetCollection<ShoppingItem>("shoppingItems");
                 var doneItem = shoppingItems.FindOne(x => x.Item == "Ferdig vare");
@@ -47,13 +42,16 @@ public sealed class StorageMaintenanceTests
                 Assert.Multiple(() =>
                 {
                     Assert.That(store.GetShoppingItems().Any(x => x.Item == "Ferdig vare"), Is.False);
-                    Assert.That(store.GetMedicines().Any(x => x.Name == "Gammel dose"), Is.False);
                 });
             }
 
             using (var database = new LiteDatabase(Path.Combine(dataRoot, "familyplanner.db")))
             {
-                Assert.That(database.GetCollectionNames(), Does.Not.Contain("users"));
+                Assert.Multiple(() =>
+                {
+                    Assert.That(database.GetCollectionNames(), Does.Not.Contain("users"));
+                    Assert.That(database.GetCollectionNames(), Does.Not.Contain("medicines"));
+                });
             }
         }
         finally

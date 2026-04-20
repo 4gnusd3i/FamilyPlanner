@@ -101,7 +101,7 @@ public sealed partial class PlannerStore
                          CreatedAt = DateTime.UtcNow
                      };
 
-        entity.ActivityType = string.IsNullOrWhiteSpace(activityType) ? "medicine" : activityType.Trim();
+        entity.ActivityType = string.IsNullOrWhiteSpace(activityType) ? "activity" : activityType.Trim();
         entity.Note = NormalizeOptional(note);
 
         if (entity.Id == 0)

@@ -17,7 +17,6 @@ public sealed class ApiValidationTests
             new InvalidJsonCase("/api/events", """{"delete":true}"""),
             new InvalidJsonCase("/api/meals", """{"delete":true}"""),
             new InvalidJsonCase("/api/budget", """{"delete_expense":true}"""),
-            new InvalidJsonCase("/api/medicines", """{"toggle":true}"""),
             new InvalidJsonCase("/api/notes", """{"delete":true}"""),
             new InvalidJsonCase("/api/shopping", """{"delete":true}""")
         };
@@ -40,7 +39,7 @@ public sealed class ApiValidationTests
     [Test]
     public async Task JsonObjectEndpoints_ReturnBadRequestForNonObjectBodies()
     {
-        var paths = new[] { "/api/budget", "/api/medicines", "/api/shopping" };
+        var paths = new[] { "/api/budget", "/api/shopping" };
         using var client = await UiTestHost.CreateClientAsync();
 
         foreach (var path in paths)

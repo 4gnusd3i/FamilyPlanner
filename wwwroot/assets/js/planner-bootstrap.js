@@ -1,24 +1,22 @@
 const colors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16"];
-const memberEmojis = ["👨", "👩", "👦", "👧", "🧒", "👴", "👵", "🧑"];
-const weekdayNames = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"];
-const weekdayShort = ["Man", "Tir", "Ons", "Tor", "Fre", "Lør", "Søn"];
+const memberEmojis = ["\ud83d\udc68", "\ud83d\udc69", "\ud83d\udc66", "\ud83d\udc67", "\ud83e\uddd2", "\ud83d\udc74", "\ud83d\udc75", "\ud83e\uddd1"];
+const weekdayNames = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "L\u00f8rdag", "S\u00f8ndag"];
+const weekdayShort = ["Man", "Tir", "Ons", "Tor", "Fre", "L\u00f8r", "S\u00f8n"];
 const mealTypes = [
-  { key: "breakfast", label: "🌅", name: "Frokost" },
-  { key: "lunch", label: "☀️", name: "Lunsj" },
-  { key: "dinner", label: "🍽️", name: "Middag" },
+  { key: "breakfast", label: "\ud83c\udf04", name: "Frokost" },
+  { key: "lunch", label: "\u2600\ufe0f", name: "Lunsj" },
+  { key: "dinner", label: "\ud83c\udf7d\ufe0f", name: "Middag" },
 ];
 let selectedColor = "#3b82f6";
-let selectedActivityType = "medicine";
+let selectedActivityType = "activity";
 let currentWeekStart = "";
 let currentWeekEnd = "";
 let familyMembers = [];
 let familyAssignments = {};
 let eventsCache = [];
 let mealsCache = [];
-let medicinesCache = [];
 let notesCache = [];
 let shoppingCache = [];
-let currentViewMedicine = null;
 let currentViewNote = null;
 let currentProfileMemberId = null;
 let statusTimer = null;
@@ -32,6 +30,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initColorOptions();
   bindForms();
   bindAvatarPreview();
+  removeLegacyAssignmentOptions();
   await loadAll();
   if (typeof scheduleKioskColumnSizing === "function") {
     window.addEventListener("resize", scheduleKioskColumnSizing, { passive: true });
@@ -47,7 +46,7 @@ async function apiFetch(url, options = {}) {
   }
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || "Forespørselen feilet.");
+    throw new Error(text || "Foresp\u00f8rselen feilet.");
   }
   return response;
 }
@@ -123,7 +122,6 @@ function bindForms() {
   document.getElementById("mealForm").addEventListener("submit", submitMealForm);
   document.getElementById("expenseForm").addEventListener("submit", submitExpenseForm);
   document.getElementById("budgetForm").addEventListener("submit", submitBudgetForm);
-  document.getElementById("medicineForm").addEventListener("submit", submitMedicineForm);
   document.getElementById("noteForm").addEventListener("submit", submitNoteForm);
   document.getElementById("shoppingForm").addEventListener("submit", submitShoppingForm);
   document.getElementById("memberForm").addEventListener("submit", submitMemberForm);
@@ -140,4 +138,8 @@ function bindAvatarPreview() {
     };
     reader.readAsDataURL(file);
   });
+}
+
+function removeLegacyAssignmentOptions() {
+  document.querySelectorAll('.act-btn[data-type="legacy"]').forEach((button) => button.remove());
 }

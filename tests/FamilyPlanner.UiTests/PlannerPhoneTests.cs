@@ -37,7 +37,6 @@ public sealed class PlannerPhoneTests : PlannerUiTestBase
     public async Task PhonePlanner_KeepsPrimaryInteractiveElementsUsable()
     {
         await AssertAllMinimumSizeAsync(".quick-action", 240, 56);
-        await AssertAllMinimumSizeAsync(".med-check", 36, 36);
         await AssertAllMinimumSizeAsync(".shop-check", 36, 36);
 
         await Page.GetByRole(AriaRole.Button, new() { Name = "Registrer utgift", Exact = true }).ClickAsync();
