@@ -7,7 +7,7 @@ namespace FamilyPlanner.UiTests;
 public sealed class MealWorkflowTests : DesktopPlannerUiTestBase
 {
     [Test]
-    public async Task MealCrud_AndMealToShoppingShortcut_PersistCorrectly()
+    public async Task MealCrud_PersistsCorrectly()
     {
         var family = await GetApiAsync<List<FamilyMemberDto>>("/api/family") ?? [];
         var annaId = family.Single(x => x.Name == "Anna").Id;
@@ -39,14 +39,6 @@ public sealed class MealWorkflowTests : DesktopPlannerUiTestBase
         Assert.That(updatedMeal.Note, Is.EqualTo("Oats, milk and berries"));
 
         var mealCard = Page.Locator(".meal-entry", new() { HasTextString = "Wholegrain pancakes" });
-        await AcceptDialogAsync(
-            () => mealCard.Locator(".meal-add-btn").ClickAsync(),
-            "Legge");
-        await WaitForToastAsync("Handlelisten er oppdatert.");
-
-        var shoppingItems = await GetApiAsync<List<ShoppingItemDto>>("/api/shopping") ?? [];
-        Assert.That(shoppingItems.Any(x => x.Item == "Oats, milk and berries"), Is.True);
-
         await mealCard.ClickAsync();
         await WaitForModalStateAsync("mealModal", open: true);
         await Page.Locator("#deleteMealBtn").ClickAsync();

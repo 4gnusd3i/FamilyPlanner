@@ -49,7 +49,7 @@ public sealed class RecurrenceApiTests
     }
 
     [Test]
-    public async Task Upcoming_AppliesRecurringAndTimedVisibilityRules()
+    public async Task Upcoming_AppliesRecurringAndSameDayVisibilityRules()
     {
         using var client = await UiTestHost.CreateClientAsync();
         var now = DateTime.Now;
@@ -75,12 +75,22 @@ public sealed class RecurrenceApiTests
             }));
         untimedResponse.EnsureSuccessStatusCode();
 
+        using var outsideWindowResponse = await client.PostAsync(
+            "/api/events",
+            new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["title"] = "Outside upcoming window",
+                ["event_date"] = now.AddDays(3).ToString("yyyy-MM-dd"),
+            }));
+        outsideWindowResponse.EnsureSuccessStatusCode();
+
         var upcoming = await client.GetFromJsonAsync<List<PlannerEventDto>>("/api/events?upcoming=1") ?? [];
 
         Assert.Multiple(() =>
         {
             Assert.That(upcoming.Any(x => x.Title == "Hent barn" && x.SourceType == "recurring"), Is.True);
-            Assert.That(upcoming.Any(x => x.Title == "Same-day untimed"), Is.False);
+            Assert.That(upcoming.Any(x => x.Title == "Same-day untimed"), Is.True);
+            Assert.That(upcoming.Any(x => x.Title == "Outside upcoming window"), Is.False);
             Assert.That(upcoming.Any(x => x.SourceType == "birthday" && x.Title == "Anna har bursdag"), Is.True);
         });
     }

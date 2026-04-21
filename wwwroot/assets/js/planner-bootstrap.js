@@ -1,4 +1,9 @@
-const colors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16"];
+const colors = [
+  "#2563eb", "#059669", "#d97706", "#dc2626", "#7c3aed",
+  "#db2777", "#0891b2", "#65a30d", "#9333ea", "#ea580c",
+  "#0f766e", "#be123c", "#4f46e5", "#15803d", "#b45309",
+  "#c026d3", "#0284c7", "#ca8a04", "#16a34a", "#e11d48",
+];
 const memberEmojis = ["\ud83d\udc68", "\ud83d\udc69", "\ud83d\udc66", "\ud83d\udc67", "\ud83e\uddd2", "\ud83d\udc74", "\ud83d\udc75", "\ud83e\uddd1"];
 const weekdayNames = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "L\u00f8rdag", "S\u00f8ndag"];
 const weekdayShort = ["Man", "Tir", "Ons", "Tor", "Fre", "L\u00f8r", "S\u00f8n"];
@@ -8,11 +13,9 @@ const mealTypes = [
   { key: "dinner", label: "\ud83c\udf7d\ufe0f", name: "Middag" },
 ];
 let selectedColor = "#3b82f6";
-let selectedActivityType = "activity";
 let currentWeekStart = "";
 let currentWeekEnd = "";
 let familyMembers = [];
-let familyAssignments = {};
 let eventsCache = [];
 let mealsCache = [];
 let notesCache = [];
@@ -30,7 +33,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   initColorOptions();
   bindForms();
   bindAvatarPreview();
-  removeLegacyAssignmentOptions();
   await loadAll();
   if (typeof scheduleKioskColumnSizing === "function") {
     window.addEventListener("resize", scheduleKioskColumnSizing, { passive: true });
@@ -79,14 +81,13 @@ function renderWeekShell() {
     const isToday = dateText === todayText;
     const dayLabel = `${weekdayNames[index]} ${date.getDate()}.${isToday ? " i dag" : ""}`;
 
-    return `<div class="day-box ${isToday ? "today" : ""}" data-day="${index}" aria-label="${dayLabel}">
+    return `<div class="day-box ${isToday ? "today" : ""}" data-day="${index}" data-date="${dateText}" aria-label="${dayLabel}">
       <div class="day-header">
         <span class="day-name">${weekdayNames[index]}</span>
         <span class="day-num">${date.getDate()}.</span>
       </div>
       <div class="day-body">
         <div class="day-content" id="events-${dateText}"></div>
-        <div class="day-tasks" id="tasks-${index}"></div>
       </div>
     </div>`;
   }).join("");
@@ -99,7 +100,6 @@ function shiftWeek(direction) {
   currentWeekEnd = formatDate(end);
   renderWeekShell();
   initDragDrop();
-  renderAssignments();
   Promise.all([loadEvents(), loadUpcoming()]).catch(handleError);
 }
 
@@ -107,7 +107,6 @@ function goToCurrentWeek() {
   initWeek();
   renderWeekShell();
   initDragDrop();
-  renderAssignments();
   Promise.all([loadEvents(), loadUpcoming()]).catch(handleError);
 }
 
@@ -125,7 +124,6 @@ function bindForms() {
   document.getElementById("noteForm").addEventListener("submit", submitNoteForm);
   document.getElementById("shoppingForm").addEventListener("submit", submitShoppingForm);
   document.getElementById("memberForm").addEventListener("submit", submitMemberForm);
-  document.getElementById("assignForm").addEventListener("submit", submitAssignmentForm);
 }
 
 function bindAvatarPreview() {
@@ -138,8 +136,4 @@ function bindAvatarPreview() {
     };
     reader.readAsDataURL(file);
   });
-}
-
-function removeLegacyAssignmentOptions() {
-  document.querySelectorAll('.act-btn[data-type="legacy"]').forEach((button) => button.remove());
 }

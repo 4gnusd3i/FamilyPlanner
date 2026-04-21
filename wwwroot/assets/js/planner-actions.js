@@ -8,7 +8,6 @@ async function submitEventForm(event) {
   formData.append("recurrence_type", document.getElementById("eventRecurrenceType").value);
   formData.append("recurrence_until", document.getElementById("eventRecurrenceUntil").value);
   formData.append("owner_id", document.getElementById("eventOwner").value);
-  formData.append("color", selectedColor);
   formData.append("note", document.getElementById("eventNote").value);
   const id = document.getElementById("eventId").value;
   if (id) formData.append("id", id);
@@ -160,34 +159,6 @@ async function deleteMember() {
   });
   closeModal("memberModal");
   await loadAll();
-}
-
-async function submitAssignmentForm(event) {
-  event.preventDefault();
-  await apiFetch("/api/family/assignments", {
-    method: "POST",
-    body: new URLSearchParams({
-      day_of_week: document.getElementById("assignDay").value,
-      member_id: document.getElementById("assignMemberId").value,
-      activity_type: selectedActivityType,
-      note: document.getElementById("assignNote").value,
-    }),
-  });
-  closeModal("assignModal");
-  await loadAssignments();
-}
-
-async function removeAssignment() {
-  await apiFetch("/api/family/assignments", {
-    method: "POST",
-    body: new URLSearchParams({
-      remove_assignment: "1",
-      day_of_week: document.getElementById("assignDay").value,
-      member_id: document.getElementById("assignMemberId").value,
-    }),
-  });
-  closeModal("assignModal");
-  await loadAssignments();
 }
 
 function getMemberAvatar(member, size = "small") {

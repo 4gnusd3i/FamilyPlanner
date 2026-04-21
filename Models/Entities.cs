@@ -86,15 +86,6 @@ public sealed class ShoppingItem : EntityBase
     public int Quantity { get; set; } = 1;
     public bool Done { get; set; }
     public DateTime? DoneAt { get; set; }
-    public int? SourceMealId { get; set; }
-}
-
-public sealed class FamilyAssignment : EntityBase
-{
-    public int DayOfWeek { get; set; }
-    public int FamilyMemberId { get; set; }
-    public string ActivityType { get; set; } = "activity";
-    public string? Note { get; set; }
 }
 
 public sealed class BudgetSnapshot
@@ -105,9 +96,4 @@ public sealed class BudgetSnapshot
     public decimal Remaining { get; set; }
     public decimal Available { get; set; }
     public IReadOnlyList<ExpenseItem> Expenses { get; set; } = [];
-}
-
-public sealed class AssignmentEnvelope
-{
-    public IReadOnlyList<FamilyAssignment> Assignments { get; set; } = [];
 }

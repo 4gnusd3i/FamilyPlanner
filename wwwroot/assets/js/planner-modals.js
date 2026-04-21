@@ -9,17 +9,12 @@ function updateOwnerSelects() {
 }
 
 function initColorOptions() {
-  const eventColors = document.getElementById("colorOptions");
   const memberColors = document.getElementById("memberColorOptions");
-  if (eventColors) {
-    eventColors.innerHTML = colors.map((color) => `<div class="color-opt ${color === selectedColor ? "selected" : ""}" style="background:${color}" onclick="selColor('${color}')"></div>`).join("");
-  }
   if (memberColors) {
     memberColors.innerHTML = colors.map((color) => `<div class="color-opt ${color === selectedColor ? "selected" : ""}" style="background:${color}" onclick="selMemberColor('${color}')"></div>`).join("");
   }
 }
 
-function selColor(color) { selectedColor = color; initColorOptions(); }
 function selMemberColor(color) { selectedColor = color; initColorOptions(); }
 
 function formatTimeForInput(date) {
@@ -138,7 +133,7 @@ function bindRecurrenceControls() {
   syncRecurrenceState();
 }
 
-function openEventModal(event = null, date = null) {
+function openEventModal(event = null, date = null, ownerId = null) {
   bindTimeInputDefaults();
   bindRecurrenceControls();
   const startInput = document.getElementById("eventStartTime");
@@ -158,7 +153,6 @@ function openEventModal(event = null, date = null) {
     recurrenceUntil.value = event.recurrence_until || "";
     document.getElementById("eventOwner").value = event.owner_id || "";
     document.getElementById("eventNote").value = event.note || "";
-    selectedColor = event.color || "#3b82f6";
   } else {
     document.getElementById("eventModalTitle").textContent = "Ny avtale";
     document.getElementById("deleteEventBtn").style.display = "none";
@@ -169,11 +163,10 @@ function openEventModal(event = null, date = null) {
     applyEventTimeDefaults(startInput, endInput);
     recurrenceType.value = "";
     recurrenceUntil.value = "";
-    selectedColor = "#3b82f6";
+    document.getElementById("eventOwner").value = ownerId || "";
   }
   recurrenceUntil.disabled = recurrenceType.value === "";
   recurrenceUntil.hidden = recurrenceType.value === "";
-  initColorOptions();
   openModal("eventModal");
   requestAnimationFrame(() => applyEventTimeDefaults(startInput, endInput));
 }
@@ -313,27 +306,6 @@ function editProfileFromModal() {
     closeModal("profileModal");
     openMemberModal(member);
   }
-}
-
-function openAssignModal(day, memberId) {
-  document.getElementById("assignDay").value = day;
-  document.getElementById("assignMemberId").value = memberId;
-  document.getElementById("assignNote").value = "";
-  const existing = (familyAssignments[day] || []).find((assignment) => assignment.family_member_id === memberId);
-  selectedActivityType = existing?.activity_type || "activity";
-  document.getElementById("assignNote").value = existing?.note || "";
-  document.getElementById("removeAssignBtn").style.display = existing ? "block" : "none";
-  document.querySelectorAll(".act-btn").forEach((button) => {
-    button.classList.toggle("active", button.dataset.type === selectedActivityType);
-  });
-  openModal("assignModal");
-}
-
-function selectActivityType(type) {
-  selectedActivityType = type;
-  document.querySelectorAll(".act-btn").forEach((button) => {
-    button.classList.toggle("active", button.dataset.type === type);
-  });
 }
 
 function openModal(id) {

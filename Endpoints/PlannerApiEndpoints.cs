@@ -23,8 +23,6 @@ public static partial class PlannerApiEndpoints
 
         api.MapGet("/family", GetFamily);
         api.MapPost("/family", PostFamilyAsync);
-        api.MapGet("/family/assignments", (PlannerStore store) => Results.Ok(new AssignmentEnvelope { Assignments = store.GetAssignments() }));
-        api.MapPost("/family/assignments", PostAssignmentsAsync);
 
         api.MapGet("/notes", (PlannerStore store) => Results.Ok(store.GetNotes()));
         api.MapPost("/notes", PostNotesAsync);

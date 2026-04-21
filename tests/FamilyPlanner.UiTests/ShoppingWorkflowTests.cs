@@ -23,10 +23,14 @@ public sealed class ShoppingWorkflowTests : DesktopPlannerUiTestBase
         Assert.That(createdItems.Count(x => !x.Done), Is.EqualTo(2));
 
         var shoppingRow = Page.Locator(".shop-item", new() { HasTextString = "Diapers" });
+        var rowIndexBeforeToggle = await Page.Locator(".shop-item").EvaluateAllAsync<int>(
+            "items => items.findIndex(item => item.textContent.includes('Diapers'))");
         await shoppingRow.Locator(".shop-check").ClickAsync();
         await Expect(shoppingRow.Locator(".shop-check")).ToHaveClassAsync(new Regex("checked"));
-        await Expect(shoppingRow.Locator(".shop-check")).ToHaveClassAsync(new Regex("taken"));
         await Expect(shoppingRow).ToHaveClassAsync(new Regex("is-delete-pending"));
+        var rowIndexAfterToggle = await Page.Locator(".shop-item").EvaluateAllAsync<int>(
+            "items => items.findIndex(item => item.textContent.includes('Diapers'))");
+        Assert.That(rowIndexAfterToggle, Is.EqualTo(rowIndexBeforeToggle), "Checked shopping items should not move in the visible list.");
 
         var toggledItems = await GetApiAsync<List<ShoppingItemDto>>("/api/shopping") ?? [];
         var toggledItem = toggledItems.Single(x => x.Id == createdItem.Id);
@@ -43,6 +47,9 @@ public sealed class ShoppingWorkflowTests : DesktopPlannerUiTestBase
                 return !!row && !row.querySelector('.shop-check')?.classList.contains('checked');
             }",
             "Diapers");
+        var rowIndexAfterCancel = await Page.Locator(".shop-item").EvaluateAllAsync<int>(
+            "items => items.findIndex(item => item.textContent.includes('Diapers'))");
+        Assert.That(rowIndexAfterCancel, Is.EqualTo(rowIndexBeforeToggle), "Unchecking should keep the item in place.");
         var canceledItems = await GetApiAsync<List<ShoppingItemDto>>("/api/shopping") ?? [];
         var canceledItem = canceledItems.Single(x => x.Id == createdItem.Id);
         Assert.That(canceledItem.Done, Is.False);

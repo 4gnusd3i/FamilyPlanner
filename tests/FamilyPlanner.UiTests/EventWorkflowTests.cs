@@ -56,6 +56,8 @@ public sealed class EventWorkflowTests : DesktopPlannerUiTestBase
     public async Task EventCrud_PersistsThroughUiApiAndStore()
     {
         var (start, end) = GetCurrentWeekRange();
+        var family = await GetApiAsync<List<FamilyMemberDto>>("/api/family") ?? [];
+        var anna = family.Single(x => x.Name == "Anna");
         var initialEvents = await GetApiAsync<List<PlannerEventDto>>($"/api/events?start={start}&end={end}") ?? [];
         var initialCount = initialEvents.Count;
 
@@ -64,6 +66,7 @@ public sealed class EventWorkflowTests : DesktopPlannerUiTestBase
         await Page.Locator("#eventDate").FillAsync(DateTime.Today.ToString("yyyy-MM-dd"));
         await Page.Locator("#eventStartTime").FillAsync("19:00");
         await Page.Locator("#eventEndTime").FillAsync("20:00");
+        await Page.Locator("#eventOwner").SelectOptionAsync(anna.Id.ToString());
         await Page.Locator("#eventNote").FillAsync("Bring the schedule.");
         await Page.Locator("#eventModal .btn-primary").ClickAsync();
         await WaitForModalStateAsync("eventModal", open: false);
@@ -72,6 +75,7 @@ public sealed class EventWorkflowTests : DesktopPlannerUiTestBase
 
         var createdEvents = await GetApiAsync<List<PlannerEventDto>>($"/api/events?start={start}&end={end}") ?? [];
         var createdEvent = createdEvents.Single(x => x.Title == "Parent meeting");
+        Assert.That(createdEvent.Color, Is.EqualTo(anna.Color));
 
         await Page.Locator(".event-item", new() { HasTextString = "Parent meeting" }).ClickAsync();
         await WaitForModalStateAsync("eventModal", open: true);
@@ -145,7 +149,7 @@ public sealed class EventWorkflowTests : DesktopPlannerUiTestBase
     }
 
     [Test]
-    public async Task Upcoming_ExcludesPastTimedAndSameDayUntimedEvents_AndIncludesRecurringAndBirthdays()
+    public async Task Upcoming_UsesThreeCalendarDays_AndKeepsSameDayUntimedEventsUntilTomorrow()
     {
         var now = DateTime.Now;
         var pastMoment = now.TimeOfDay > TimeSpan.FromMinutes(5)
@@ -177,6 +181,22 @@ public sealed class EventWorkflowTests : DesktopPlannerUiTestBase
 
         await PostFormAsync("/api/events", new Dictionary<string, string>
         {
+            ["title"] = "Day after appointment",
+            ["event_date"] = now.Date.AddDays(2).ToString("yyyy-MM-dd"),
+            ["start_time"] = "09:00",
+            ["end_time"] = "10:00",
+        });
+
+        await PostFormAsync("/api/events", new Dictionary<string, string>
+        {
+            ["title"] = "Outside three day window",
+            ["event_date"] = now.Date.AddDays(3).ToString("yyyy-MM-dd"),
+            ["start_time"] = "09:00",
+            ["end_time"] = "10:00",
+        });
+
+        await PostFormAsync("/api/events", new Dictionary<string, string>
+        {
             ["title"] = "Training pickup",
             ["event_date"] = now.Date.ToString("yyyy-MM-dd"),
             ["start_time"] = now.AddMinutes(20).ToString("HH:mm"),
@@ -189,7 +209,9 @@ public sealed class EventWorkflowTests : DesktopPlannerUiTestBase
         {
             Assert.That(upcomingEvents.Any(x => x.Title == "Already finished"), Is.False);
             Assert.That(upcomingEvents.Any(x => x.Title == "Tomorrow appointment"), Is.True);
-            Assert.That(upcomingEvents.Any(x => x.Title == "Same day untimed"), Is.False);
+            Assert.That(upcomingEvents.Any(x => x.Title == "Same day untimed"), Is.True);
+            Assert.That(upcomingEvents.Any(x => x.Title == "Day after appointment"), Is.True);
+            Assert.That(upcomingEvents.Any(x => x.Title == "Outside three day window"), Is.False);
             Assert.That(upcomingEvents.Any(x => x.Title == "Training pickup" && x.SourceType == "recurring"), Is.True);
             Assert.That(
                 upcomingEvents.Any(x =>

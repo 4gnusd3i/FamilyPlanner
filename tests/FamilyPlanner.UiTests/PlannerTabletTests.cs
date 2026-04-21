@@ -23,12 +23,12 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
         Assert.That(await GetGridColumnCountAsync(".quick-action-grid"), Is.EqualTo(5));
         Assert.That(await GetGridColumnCountAsync(".week-days"), Is.EqualTo(7));
         Assert.That(await GetGridColumnCountAsync(".meals-grid"), Is.EqualTo(7));
+        await Expect(Page.Locator(".meal-day-header")).ToHaveCountAsync(0);
 
         await AssertLocatorFitsViewportWidthAsync(".quick-actions");
         await AssertLocatorFitsViewportWidthAsync(".main-container");
         await AssertLocatorFitsViewportWidthAsync(".family-bar");
         await AssertAllMinimumSizeAsync(".week-nav-btn", 44, 44);
-        Assert.That(await Page.Locator(".add-day-btn").CountAsync(), Is.EqualTo(0), "Per-day add appointment buttons should be deprecated.");
 
         await Expect(Page.Locator(".budget-card")).ToBeVisibleAsync();
         await Expect(Page.Locator(".shopping-card")).ToBeVisibleAsync();
@@ -56,6 +56,7 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
                 const lastAvatar = Array.from(document.querySelectorAll('.family-avatar')).at(-1).getBoundingClientRect();
                 const addMember = document.querySelector('.add-family-btn').getBoundingClientRect();
                 const quickActions = getComputedStyle(document.querySelector('.quick-actions'));
+                const familyStyles = getComputedStyle(document.querySelector('.family-bar'));
                 const budgetDisplay = document.querySelector('.budget-display').getBoundingClientRect();
                 const workspace = rect('.main-container');
                 return [
@@ -72,7 +73,10 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
                     Math.abs(lastAvatar.left - addMember.left),
                     quickActions.boxShadow === 'none' ? 1 : 0,
                     budget[3] - budget[1],
-                    budgetDisplay.height
+                    budgetDisplay.height,
+                    notes[3],
+                    familyStyles.boxShadow === 'none' ? 1 : 0,
+                    familyStyles.backgroundColor === 'rgba(0, 0, 0, 0)' ? 1 : 0
                 ];
             }");
 
@@ -87,6 +91,9 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
             Assert.That(layout[10], Is.GreaterThan(0d), "Family add button should remain a distinct tile after the member tiles.");
             Assert.That(layout[11], Is.EqualTo(1d), "Quick actions should not keep the outer card shadow in kiosk mode.");
             Assert.That(layout[12], Is.GreaterThanOrEqualTo(layout[13]), "Budget card should not shrink below its content.");
+            Assert.That(layout[14], Is.LessThanOrEqualTo(layout[6] + 1d), "Notes should not overlap the family strip.");
+            Assert.That(layout[15], Is.EqualTo(1d), "Family strip should not keep an outer card shadow in kiosk mode.");
+            Assert.That(layout[16], Is.EqualTo(1d), "Family strip should be visually transparent in kiosk mode.");
         });
 
         await OpenModalBySelectorAsync(".quick-action:has-text('Måltid')", "mealModal");
@@ -102,6 +109,8 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
     public async Task TabletLandscape_CalendarEventItemsStayContainedWithStructuredLines()
     {
         var today = DateTime.Today.ToString("yyyy-MM-dd");
+        var family = await GetApiAsync<List<FamilyMemberDto>>("/api/family") ?? [];
+        var annaId = family.Single(x => x.Name == "Anna").Id;
         const string longTitle = "Ekstra lang avtaletittel som skal kuttes rent uten aa stikke ut av kalenderdagen";
         const string longDescription = "Dette er en lang beskrivelse som skal holde seg inne i kortet, klampes rent og ikke dytte resten av oppsettet ut av kurs.";
 
@@ -111,8 +120,23 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
             ["event_date"] = today,
             ["start_time"] = "17:10",
             ["end_time"] = "18:10",
+            ["owner_id"] = annaId.ToString(),
             ["note"] = longDescription,
         });
+
+        for (var idx = 1; idx <= 8; idx += 1)
+        {
+            await PostFormAsync("/api/events", new Dictionary<string, string>
+            {
+                ["title"] = $"Tett avtale {idx}",
+                ["event_date"] = today,
+                ["start_time"] = $"1{idx % 10}:00",
+                ["end_time"] = $"1{idx % 10}:30",
+                ["owner_id"] = annaId.ToString(),
+                ["note"] = $"Kort notat {idx}",
+            });
+        }
+
         await Page.ReloadAsync();
 
         var longEvent = Page.Locator(".event-item", new() { HasTextString = longTitle });
@@ -121,6 +145,7 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
         var layout = await longEvent.EvaluateAsync<double[]>(
             @"item => {
                 const day = item.closest('.day-box');
+                const dayContent = day.querySelector('.day-content');
                 const owner = item.querySelector('.event-owner-line');
                 const title = item.querySelector('.event-title');
                 const time = item.querySelector('.event-time');
@@ -139,7 +164,8 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
                     descriptionRect.top,
                     title.scrollWidth > title.clientWidth ? 1 : 0,
                     description.scrollHeight > description.clientHeight ? 1 : 0,
-                    descriptionRect.right - itemRect.right
+                    descriptionRect.right - itemRect.right,
+                    dayContent.scrollHeight > dayContent.clientHeight ? 1 : 0
                 ];
             }");
 
@@ -153,6 +179,7 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
             Assert.That(layout[6], Is.EqualTo(1d), "Long event titles should ellipsize inside the event item.");
             Assert.That(layout[7], Is.EqualTo(1d), "Long descriptions should clamp inside the event item.");
             Assert.That(layout[8], Is.LessThanOrEqualTo(1d), "Event description should stay inside the event item.");
+            Assert.That(layout[9], Is.EqualTo(1d), "Dense calendar days should scroll internally instead of cutting entries.");
         });
     }
 

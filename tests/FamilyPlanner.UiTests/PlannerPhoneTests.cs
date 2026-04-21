@@ -22,7 +22,6 @@ public sealed class PlannerPhoneTests : PlannerUiTestBase
         await AssertLocatorFitsViewportWidthAsync(".planner-toolbar");
         await AssertLocatorFitsViewportWidthAsync(".week-switcher");
         await AssertAllMinimumSizeAsync(".week-nav-btn", 44, 44);
-        Assert.That(await Page.Locator(".add-day-btn").CountAsync(), Is.EqualTo(0), "Per-day add appointment buttons should be deprecated.");
 
         await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Nytt familiemedlem", Exact = true })).ToBeVisibleAsync();
         await Page.Locator(".quick-action", new() { HasTextString = "Måltid" }).First.ClickAsync();
@@ -54,8 +53,8 @@ public sealed class PlannerPhoneTests : PlannerUiTestBase
         await WaitForModalStateAsync("profileModal", open: false);
 
         await DragFamilyMemberToDayAsync("Anna", 0);
-        await WaitForModalStateAsync("assignModal", open: true);
-        await AssertModalFitsViewportAsync("assignModal");
-        await AssertAllMinimumSizeAsync(".act-btn", 44, 44);
+        await WaitForModalStateAsync("eventModal", open: true);
+        await AssertModalFitsViewportAsync("eventModal");
+        await Expect(Page.Locator("#eventOwner")).Not.ToHaveValueAsync("");
     }
 }

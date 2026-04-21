@@ -1,20 +1,11 @@
-using System.Text.Json;
-using Microsoft.AspNetCore.Http.Json;
-using Microsoft.Extensions.Options;
-using FamilyPlanner.Models;
 using FamilyPlanner.Services.Storage;
 
 namespace FamilyPlanner.Endpoints;
 
 public static partial class PlannerApiEndpoints
 {
-    private static IResult GetFamily(HttpRequest request, PlannerStore store)
+    private static IResult GetFamily(PlannerStore store)
     {
-        if (request.Query.TryGetValue("assignments", out var assignmentValue) && assignmentValue == "1")
-        {
-            return Results.Ok(new AssignmentEnvelope { Assignments = store.GetAssignments() });
-        }
-
         return Results.Ok(store.GetFamilyMembers());
     }
 
@@ -53,30 +44,6 @@ public static partial class PlannerApiEndpoints
             form["color"],
             avatarUrl);
 
-        return Results.Ok(new { ok = true });
-    }
-
-    private static async Task<IResult> PostAssignmentsAsync(HttpRequest request, PlannerStore store)
-    {
-        var form = await request.ReadFormAsync();
-        if (form.TryGetValue("remove_assignment", out var removeValue) && removeValue == "1")
-        {
-            if (int.TryParse(form["day_of_week"], out var removeDay) && int.TryParse(form["member_id"], out var removeMemberId))
-            {
-                store.RemoveAssignment(removeDay, removeMemberId);
-            }
-
-            return Results.Ok(new { ok = true });
-        }
-
-        if (!int.TryParse(form["day_of_week"], out var dayOfWeek) ||
-            !int.TryParse(form["member_id"], out var memberId))
-        {
-            return Results.BadRequest(new { error = "Ugyldig oppgave." });
-        }
-
-        var activityType = string.IsNullOrWhiteSpace(form["activity_type"]) ? "activity" : form["activity_type"].ToString();
-        store.UpsertAssignment(dayOfWeek, memberId, activityType, form["note"]);
         return Results.Ok(new { ok = true });
     }
 

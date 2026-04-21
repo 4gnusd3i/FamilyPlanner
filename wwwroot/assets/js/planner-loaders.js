@@ -37,37 +37,7 @@ async function loadFamily() {
     }).join("") + addMemberButton;
   }
 
-  setCount("familyCountLabel", familyMembers.length);
-
   initDragDrop();
-  await loadAssignments();
-}
-
-async function loadAssignments() {
-  const response = await apiFetch("/api/family/assignments");
-  const data = await response.json();
-  familyAssignments = {};
-  (data.assignments || []).forEach((assignment) => {
-    if (!familyAssignments[assignment.day_of_week]) familyAssignments[assignment.day_of_week] = [];
-    familyAssignments[assignment.day_of_week].push(assignment);
-  });
-  renderAssignments();
-}
-
-function renderAssignments() {
-  for (let day = 0; day < 7; day += 1) {
-    const zone = document.getElementById(`tasks-${day}`);
-    if (!zone) continue;
-    zone.innerHTML = (familyAssignments[day] || []).map((assignment) => {
-      const member = familyMembers.find((item) => item.id === assignment.family_member_id);
-      if (!member) return "";
-      const emoji = { doctor: "🩺", activity: "⚽", meal: "🍽️" }[assignment.activity_type] || "📌";
-      const avatar = member.avatar_url
-        ? `<img src="${member.avatar_url}" class="task-avatar" alt="${escapeHtml(member.name)}">`
-        : `<span class="task-avatar-text">${memberEmojis[member.id % memberEmojis.length]}</span>`;
-      return `<div class="task-chip" style="background:${member.color}" onclick="openAssignModal(${day}, ${member.id})">${avatar}${emoji}</div>`;
-    }).join("");
-  }
 }
 
 function initDragDrop() {
@@ -89,8 +59,7 @@ function initDragDrop() {
       event.preventDefault();
       zone.classList.remove("is-drop-target");
       const memberId = Number(event.dataTransfer.getData("text/plain"));
-      const day = Number(zone.dataset.day);
-      if (memberId) openAssignModal(day, memberId);
+      if (memberId) openEventModal(null, zone.dataset.date, memberId);
     });
   });
 
@@ -123,27 +92,23 @@ async function loadEvents() {
     const container = document.getElementById(`events-${entry.event_date}`);
     if (!container) return;
     const owner = familyMembers.find((member) => member.id === entry.owner_id);
-    const ownerAvatar = owner
-      ? getMemberAvatar(owner, "small")
-      : '<span class="event-owner-placeholder" aria-hidden="true"></span>';
-    const ownerName = owner ? owner.name : "Ingen";
+    const ownerLine = owner
+      ? `<div class="event-owner-line">${getMemberAvatar(owner, "small")}<span class="event-owner-name">${escapeHtml(owner.name)}</span></div>`
+      : "";
     const payload = encodePayload(entry);
-    const timeDisplay = formatEventTimeRange(entry);
-    const description = entry.note || "-";
+    const timeDisplay = formatEventTimeRange(entry, false);
     const generatedClass = entry.source_type ? ` source-${entry.source_type}` : "";
-    const timeClass = timeDisplay === "Hele dagen" ? "" : " has-time";
+    const timeClass = timeDisplay ? " has-time" : "";
+    const eventAccent = owner?.color || entry.color || "#eaf4ff";
     const interaction = entry.source_type === "birthday"
       ? `aria-label="${escapeHtml(entry.title)}"`
       : `onclick="openEventModalFromJson('${payload}')"`;
 
-    container.insertAdjacentHTML("beforeend", `<div class="event-item${timeClass}${generatedClass}" style="--event-accent:${entry.color || "#4f46e5"}" ${interaction}>
-      <div class="event-owner-line">
-        ${ownerAvatar}
-        <span class="event-owner-name">${escapeHtml(ownerName)}</span>
-      </div>
+    container.insertAdjacentHTML("beforeend", `<div class="event-item${timeClass}${generatedClass}" style="--event-accent:${eventAccent}" ${interaction}>
+      ${ownerLine}
       <span class="event-title">${escapeHtml(entry.title)}</span>
-      <span class="event-time">${escapeHtml(timeDisplay)}</span>
-      <span class="event-description${entry.note ? "" : " is-empty"}">${escapeHtml(description)}</span>
+      ${timeDisplay ? `<span class="event-time">${escapeHtml(timeDisplay)}</span>` : ""}
+      ${entry.note ? `<span class="event-description">${escapeHtml(entry.note)}</span>` : ""}
     </div>`);
   });
 }
@@ -157,7 +122,7 @@ async function loadUpcoming() {
     return;
   }
 
-  container.innerHTML = events.slice(0, 4).map((entry) => {
+  container.innerHTML = events.map((entry) => {
     const date = parseDate(entry.event_date);
     const owner = familyMembers.find((member) => member.id === entry.owner_id);
     const ownerAvatar = owner ? getMemberAvatar(owner, "small") : "";
@@ -189,7 +154,7 @@ async function loadMeals() {
   mealsCache = await response.json();
   const container = document.getElementById("mealsWeekGrid");
 
-  container.innerHTML = weekdayShort.map((dayLabel, dayIndex) => {
+  container.innerHTML = weekdayShort.map((_, dayIndex) => {
     const entries = mealTypes.map((mealType) => {
       const meal = mealsCache.find((item) => item.day_of_week === dayIndex && item.meal_type === mealType.key);
       if (!meal) {
@@ -201,31 +166,17 @@ async function loadMeals() {
 
       const owner = familyMembers.find((member) => member.id === meal.owner_id);
       const ownerBadge = owner ? `<span class="meal-owner" style="background:${owner.color}">${escapeHtml(owner.name.charAt(0))}</span>` : "";
-      const mealShoppingPayload = encodeURIComponent(meal.note || meal.meal || "");
       return `<div class="meal-entry meal-${mealType.key}" onclick="openMealModal(${dayIndex}, ${meal.id})">
         <span class="meal-type-label">${mealType.label}</span>
         ${ownerBadge}
         <span class="meal-text">${escapeHtml(meal.meal)}</span>
-        ${meal.note ? `<span class="meal-add-btn" onclick="event.stopPropagation(); addMealToShopping(${meal.id}, decodeURIComponent('${mealShoppingPayload}'))">🛒</span>` : ""}
       </div>`;
     }).join("");
 
     return `<div class="meal-day">
-      <div class="meal-day-header">${dayLabel}</div>
       <div class="meal-day-content">${entries}</div>
     </div>`;
   }).join("");
-}
-
-async function addMealToShopping(mealId, item) {
-  if (!confirm(`Legge "${item}" til i handlelisten?`)) return;
-  await apiFetch("/api/shopping", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ item, quantity: 1, source_meal_id: mealId }),
-  });
-  await loadShopping();
-  showStatus("Handlelisten er oppdatert.", "success");
 }
 
 async function loadBudget() {
@@ -270,7 +221,7 @@ async function loadExpenseHistory() {
       ${ownerAvatar}
       <span class="expense-meta">${escapeHtml(date)}</span>
       <span class="expense-amount">${Number(expense.amount).toLocaleString("no-NO")} kr</span>
-      <button class="btn-small btn-danger expense-delete-btn" onclick="deleteExpense(${expense.id})">×</button>
+      <button type="button" class="btn-small btn-danger expense-delete-btn" aria-label="Slett utgift ${escapeHtml(label)}" onclick="deleteExpense(${expense.id})">Slett</button>
     </div>`;
   }).join("");
 }
@@ -331,7 +282,7 @@ async function loadShopping() {
       ? ` style="--delete-duration:${SHOPPING_DELETE_DELAY_MS}ms;--delete-delay-offset:-${progress.elapsed}ms"`
       : "";
     return `<div class="shop-item${pendingClass}"${progressStyle}>
-      <button type="button" class="med-check shop-check ${item.done ? "taken checked" : ""}" aria-label="${item.done ? "Behold vare" : "Marker vare som handlet"}" aria-pressed="${item.done ? "true" : "false"}" onclick="toggleShop(${item.id})">${item.done ? "&#10003;" : ""}</button>
+      <button type="button" class="shop-check ${item.done ? "checked" : ""}" aria-label="${item.done ? "Behold vare" : "Marker vare som handlet"}" aria-pressed="${item.done ? "true" : "false"}" onclick="toggleShop(${item.id})">${item.done ? "&#10003;" : ""}</button>
       ${ownerAvatar}
       <span class="item-name shop-name ${item.done ? "done" : ""}" onclick="openShoppingModalFromJson('${payload}')">${escapeHtml(item.item)}</span>
       <span class="shop-qty">${item.quantity}</span>
@@ -380,10 +331,6 @@ function setText(id, value) {
   if (element) {
     element.textContent = value;
   }
-}
-
-function setCount(id, value) {
-  setText(id, String(value));
 }
 
 let kioskSizingFrame = null;

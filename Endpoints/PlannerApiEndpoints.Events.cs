@@ -87,7 +87,6 @@ public static partial class PlannerApiEndpoints
             recurrenceType,
             recurrenceUntil,
             ParseNullableInt(form["owner_id"]),
-            form["color"],
             form["note"]);
 
         return Results.Ok(new { ok = true });

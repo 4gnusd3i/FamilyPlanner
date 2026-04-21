@@ -66,10 +66,9 @@ public static partial class PlannerApiEndpoints
 
             var item = body.Value.TryGetProperty("item", out var itemElement) ? itemElement.GetString() : null;
             var quantity = body.Value.TryGetProperty("quantity", out var quantityElement) ? quantityElement.GetInt32() : 1;
-            var sourceMealId = TryGetNullableInt(body.Value, "source_meal_id");
             var ownerId = TryGetNullableInt(body.Value, "owner_id");
 
-            store.UpsertShoppingItem(null, Required(item, "Vare mangler."), quantity, ownerId, sourceMealId);
+            store.UpsertShoppingItem(null, Required(item, "Vare mangler."), quantity, ownerId);
             return Results.Ok(new { ok = true });
         }
 
@@ -80,8 +79,7 @@ public static partial class PlannerApiEndpoints
             ParseNullableInt(form["id"]),
             itemValue,
             quantityValue,
-            ParseNullableInt(form["owner_id"]),
-            ParseNullableInt(form["source_meal_id"]));
+            ParseNullableInt(form["owner_id"]));
 
         return Results.Ok(new { ok = true });
     }

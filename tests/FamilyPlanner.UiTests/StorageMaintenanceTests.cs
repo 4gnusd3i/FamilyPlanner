@@ -20,7 +20,7 @@ public sealed class StorageMaintenanceTests
             {
                 store.InitializeHousehold("Testfamilien");
 
-                var shoppingItem = store.UpsertShoppingItem(null, "Ferdig vare", 1, null, null);
+                var shoppingItem = store.UpsertShoppingItem(null, "Ferdig vare", 1, null);
                 store.ToggleShoppingItem(shoppingItem.Id);
             }
 
@@ -28,6 +28,7 @@ public sealed class StorageMaintenanceTests
             {
                 database.GetCollection("users").Insert(new BsonDocument { ["email"] = "legacy@example.test" });
                 database.GetCollection("medicines").Insert(new BsonDocument { ["name"] = "Legacy medicine" });
+                database.GetCollection("familyAssignments").Insert(new BsonDocument { ["note"] = "Legacy assignment" });
 
                 var shoppingItems = database.GetCollection<ShoppingItem>("shoppingItems");
                 var doneItem = shoppingItems.FindOne(x => x.Item == "Ferdig vare");
@@ -51,6 +52,7 @@ public sealed class StorageMaintenanceTests
                 {
                     Assert.That(database.GetCollectionNames(), Does.Not.Contain("users"));
                     Assert.That(database.GetCollectionNames(), Does.Not.Contain("medicines"));
+                    Assert.That(database.GetCollectionNames(), Does.Not.Contain("familyAssignments"));
                 });
             }
         }

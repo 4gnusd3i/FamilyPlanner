@@ -7,8 +7,8 @@ public sealed partial class PlannerStore
 {
     private const string BirthdaySourceType = "birthday";
     private const string RecurringSourceType = "recurring";
-    private const int UpcomingRecurringWindowDays = 42;
-    private const int UpcomingBirthdayWindowDays = 7;
+    private const int UpcomingWindowDays = 2;
+    private const string DefaultEventColor = "#eaf4ff";
 
     public IReadOnlyList<PlannerEvent> GetEvents(DateOnly start, DateOnly end)
     {
@@ -21,6 +21,7 @@ public sealed partial class PlannerStore
 
         return directEvents
             .Concat(ExpandRecurringEvents(start, end))
+            .Select(ApplyCurrentEventColor)
             .OrderBy(x => x.EventDate)
             .ThenBy(GetEventSortTime)
             .ThenBy(x => x.Title)
@@ -30,8 +31,8 @@ public sealed partial class PlannerStore
     public IReadOnlyList<PlannerEvent> GetUpcomingEvents(DateOnly fromDate)
     {
         var now = DateTime.Now;
-        var windowEnd = fromDate.AddDays(UpcomingRecurringWindowDays);
-        EnsureBirthdayEvents(fromDate, fromDate.AddDays(UpcomingBirthdayWindowDays));
+        var windowEnd = fromDate.AddDays(UpcomingWindowDays);
+        EnsureBirthdayEvents(fromDate, windowEnd);
 
         var directEvents = _events.FindAll()
             .Where(x => !IsRecurringSeries(x))
@@ -41,6 +42,7 @@ public sealed partial class PlannerStore
 
         return directEvents
             .Concat(ExpandRecurringEvents(fromDate, windowEnd).Where(x => IsUpcomingEvent(x, now, windowEnd)))
+            .Select(ApplyCurrentEventColor)
             .OrderBy(x => x.EventDate)
             .ThenBy(GetEventSortTime)
             .ThenBy(x => x.Title)
@@ -56,7 +58,6 @@ public sealed partial class PlannerStore
         string? recurrenceType,
         string? recurrenceUntil,
         int? ownerId,
-        string? color,
         string? note)
     {
         PlannerEvent entity;
@@ -79,7 +80,7 @@ public sealed partial class PlannerStore
         entity.RecurrenceType = NormalizeOptional(recurrenceType);
         entity.RecurrenceUntil = NormalizeOptional(recurrenceUntil);
         entity.OwnerId = ownerId;
-        entity.Color = NormalizeOptional(color) ?? "#3b82f6";
+        entity.Color = ResolveEventColor(ownerId);
         entity.Note = NormalizeOptional(note);
         entity.SeriesStartDate = null;
 
@@ -190,11 +191,6 @@ public sealed partial class PlannerStore
             return false;
         }
 
-        if (string.Equals(plannerEvent.SourceType, BirthdaySourceType, StringComparison.Ordinal))
-        {
-            return eventDate >= today && eventDate <= today.AddDays(UpcomingBirthdayWindowDays);
-        }
-
         if (eventDate > today)
         {
             return true;
@@ -208,11 +204,27 @@ public sealed partial class PlannerStore
         var cutoffTime = NormalizeOptional(plannerEvent.EndTime) ?? NormalizeOptional(plannerEvent.StartTime);
         if (string.IsNullOrWhiteSpace(cutoffTime))
         {
-            return false;
+            return true;
         }
 
         return !TimeOnly.TryParse(cutoffTime, out var eventTime) ||
                eventTime >= TimeOnly.FromDateTime(now);
+    }
+
+    private PlannerEvent ApplyCurrentEventColor(PlannerEvent plannerEvent)
+    {
+        plannerEvent.Color = ResolveEventColor(plannerEvent.OwnerId);
+        return plannerEvent;
+    }
+
+    private string ResolveEventColor(int? ownerId)
+    {
+        if (ownerId is > 0 && _familyMembers.FindById(ownerId.Value) is { } member && !string.IsNullOrWhiteSpace(member.Color))
+        {
+            return member.Color;
+        }
+
+        return DefaultEventColor;
     }
 
     private void DeleteBirthdayEventsForMember(int memberId)

@@ -60,9 +60,8 @@
         </div>
       </section>
 
-      <section class="family-bar surface">
+      <section class="family-bar">
         <div class="family-avatars" id="familyBoard"></div>
-        <strong id="familyCountLabel" hidden>0</strong>
       </section>
 
       <div class="main-container">
@@ -201,7 +200,6 @@
           <select id="eventOwner">
             <option value="">Ansvarlig...</option>
           </select>
-          <div class="color-picker" id="colorOptions"></div>
           <textarea id="eventNote" placeholder="Notat"></textarea>
           <div class="modal-btns">
             <button
@@ -242,7 +240,7 @@
           <select id="mealOwner">
             <option value="">Ansvarlig...</option>
           </select>
-          <input type="text" id="mealNote" placeholder="Notat / handleliste" />
+          <input type="text" id="mealNote" placeholder="Notat" />
           <div class="modal-btns">
             <button
               type="button"
@@ -473,66 +471,6 @@
             Rediger
           </button>
         </div>
-      </div>
-    </div>
-
-    <div class="modal-overlay" id="assignModal">
-      <div class="modal">
-        <h3>Aktivitet</h3>
-        <form id="assignForm">
-          <input type="hidden" id="assignDay" />
-          <input type="hidden" id="assignMemberId" />
-          <div class="activity-btns">
-            <button
-              type="button"
-              class="act-btn active"
-              data-type="legacy"
-              onclick="selectActivityType('activity')"
-            >
-              💊
-            </button>
-            <button
-              type="button"
-              class="act-btn"
-              data-type="doctor"
-              onclick="selectActivityType('doctor')"
-            >
-              👨‍⚕️
-            </button>
-            <button
-              type="button"
-              class="act-btn"
-              data-type="activity"
-              onclick="selectActivityType('activity')"
-            >
-              ⚽
-            </button>
-            <button
-              type="button"
-              class="act-btn"
-              data-type="meal"
-              onclick="selectActivityType('meal')"
-            >
-              🍽️
-            </button>
-          </div>
-          <input type="text" id="assignNote" placeholder="Notat" />
-          <div class="modal-btns">
-            <button
-              type="button"
-              id="removeAssignBtn"
-              onclick="removeAssignment()"
-              class="btn-danger"
-              style="display: none"
-            >
-              Fjern
-            </button>
-            <button type="button" onclick="closeModal('assignModal')">
-              Avbryt
-            </button>
-            <button type="submit" class="btn-primary">Lagre</button>
-          </div>
-        </form>
       </div>
     </div>
 

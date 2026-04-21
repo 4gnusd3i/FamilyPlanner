@@ -233,9 +233,7 @@ button {
 
 .login-btn:hover,
 .btn-primary:hover,
-.add-event-header:hover,
-.add-family-btn:hover,
-.add-meal-btn:hover {
+.add-family-btn:hover {
   transform: translateY(-2px);
 }
 
@@ -271,8 +269,7 @@ header h1 {
 }
 
 .header-quick button,
-.btn-plus,
-.add-day-btn {
+.btn-plus {
   cursor: pointer;
 }
 
@@ -379,7 +376,6 @@ header h1 {
 .family-avatar:hover,
 .event-item:hover,
 .note-item:hover,
-.med-item:hover,
 .upcoming-item:hover,
 .meal-entry:hover {
   transform: translateY(-2px);
@@ -428,8 +424,6 @@ header h1 {
 }
 
 .add-family-btn,
-.add-event-header,
-.add-meal-btn,
 .btn-primary {
   background: linear-gradient(135deg, var(--baby-pink), var(--sky-blue));
   color: var(--text);
@@ -498,8 +492,7 @@ header h1 {
   align-items: center;
 }
 
-.btn-plus,
-.add-day-btn {
+.btn-plus {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -559,8 +552,6 @@ header h1 {
   font-weight: 500;
 }
 
-.add-event-header,
-.add-meal-btn,
 .btn-primary {
   padding: 0.65rem 1.2rem;
   border-radius: 24px;
@@ -760,46 +751,6 @@ header h1 {
   min-height: 32px;
 }
 
-.day-tasks {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  flex: 1;
-  border-radius: 8px;
-  transition: background 0.2s;
-}
-
-.task-chip {
-  padding: 0.2rem 0.5rem;
-  border-radius: 12px;
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: white;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.task-avatar {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 1px solid white;
-}
-
-.task-avatar-text {
-  font-size: 0.75rem;
-}
-
-.add-day-btn {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: rgba(var(--icy-blue-rgb), 0.55);
-  color: var(--text);
-}
-
 .meals-wrapper {
   padding: 0.75rem;
   border: 2px solid var(--border);
@@ -830,15 +781,6 @@ header h1 {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-}
-
-.meal-day-header {
-  font-weight: 800;
-  font-size: 0.7rem;
-  text-align: center;
-  color: var(--blue-ink);
-  margin-bottom: 0.25rem;
-  text-transform: uppercase;
 }
 
 .meal-entry {
@@ -891,18 +833,6 @@ header h1 {
   color: white;
   flex-shrink: 0;
   font-weight: 700;
-}
-
-.meal-add-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 36px;
-  min-height: 36px;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  opacity: 0.85;
-  background: rgba(29, 107, 99, 0.08);
 }
 
 .budget-display {
@@ -969,7 +899,6 @@ header h1 {
 }
 
 .upcoming-item,
-.med-item,
 .note-item,
 .shop-item {
   display: flex;
@@ -1023,11 +952,6 @@ header h1 {
   color: var(--text-light);
 }
 
-.med-item {
-  background: linear-gradient(135deg, rgba(var(--pastel-petal-rgb), 0.42), rgba(var(--baby-pink-rgb), 0.3));
-  border-left: 3px solid var(--baby-pink);
-}
-
 .note-item {
   background: linear-gradient(135deg, rgba(var(--pastel-petal-rgb), 0.36), rgba(var(--thistle-rgb), 0.28));
   border-left: 3px solid var(--thistle);
@@ -1069,25 +993,10 @@ header h1 {
   font-weight: 600;
 }
 
-.med-check,
 .shop-check {
   width: 36px;
   height: 36px;
   flex-shrink: 0;
-}
-
-.med-check {
-  border-radius: 50%;
-  border: 2px solid var(--baby-pink);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.med-check.taken {
-  background: var(--icy-blue);
-  border-color: var(--sky-blue);
-  color: var(--text);
 }
 
 .shop-check {
@@ -1192,11 +1101,18 @@ header h1 {
 }
 
 .color-picker {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(10, 36px);
   gap: 0.4rem;
   padding-block: 0.15rem;
   margin-bottom: 0.7rem;
-  flex-wrap: wrap;
+  align-items: center;
+}
+
+@media (max-width: 520px) {
+  .color-picker {
+    grid-template-columns: repeat(5, 36px);
+  }
 }
 
 .color-opt {
@@ -1331,27 +1247,6 @@ header h1 {
 
 .profile-section-content {
   font-size: 0.95rem;
-}
-
-.activity-btns {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.7rem;
-}
-
-.act-btn {
-  width: 46px;
-  height: 46px;
-  border: 2px solid var(--border);
-  background: white;
-  border-radius: 12px;
-  cursor: pointer;
-  font-size: 1.3rem;
-}
-
-.act-btn.active {
-  border-color: var(--sky-blue);
-  background: rgba(var(--icy-blue-rgb), 0.46);
 }
 
 .view-content {

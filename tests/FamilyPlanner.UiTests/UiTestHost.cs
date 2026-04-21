@@ -236,14 +236,6 @@ internal static class UiTestHost
             ["quantity"] = "4",
             ["owner_id"] = annaId.ToString(),
         });
-
-        await PostFormAsync(client, "/api/family/assignments", new Dictionary<string, string>
-        {
-            ["day_of_week"] = "0",
-            ["member_id"] = annaId.ToString(),
-            ["activity_type"] = "activity",
-            ["note"] = "Morgenrutine",
-        });
     }
 
     private static async Task WaitForHealthyAsync()

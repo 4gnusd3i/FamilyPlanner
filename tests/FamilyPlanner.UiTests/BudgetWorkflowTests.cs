@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using static Microsoft.Playwright.Assertions;
 
 namespace FamilyPlanner.UiTests;
 
@@ -38,7 +39,9 @@ public sealed class BudgetWorkflowTests : DesktopPlannerUiTestBase
         await OpenModalBySelectorAsync(".quick-action:has-text('Utgift')", "budgetModal");
         await Page.Locator("#budgetModal .tabs button").Nth(2).ClickAsync();
         await Page.Locator("#expenseHistory").WaitForAsync();
-        await Page.Locator("#expenseList .shop-item", new() { HasTextString = "Movie night" }).Locator("button").ClickAsync();
+        var expenseDelete = Page.Locator("#expenseList .shop-item", new() { HasTextString = "Movie night" }).Locator("button", new() { HasTextString = "Slett" });
+        await Expect(expenseDelete).ToBeVisibleAsync();
+        await expenseDelete.ClickAsync();
         await Page.Locator("#expenseList .shop-item", new() { HasTextString = "Movie night" }).WaitForAsync(new() { State = Microsoft.Playwright.WaitForSelectorState.Detached });
 
         var finalBudget = await GetApiAsync<BudgetSnapshotDto>("/api/budget")

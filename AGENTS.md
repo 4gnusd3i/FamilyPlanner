@@ -9,7 +9,7 @@ This file is intended to let another workstation pick up work quickly without re
 ## Current State
 
 - Primary working branch: `feature/frontend-redesign`
-- Current expected regression result: `23 passed, 0 failed`
+- Current expected regression result: `31 passed, 0 failed`
 - Legacy live-import functionality has been removed from setup, UI, API, and storage code
 - Frontend assets and backend planner/storage code are now split into smaller feature files for safer maintenance
 
@@ -133,8 +133,6 @@ Routes under `/api`:
 - `GET/POST /api/meals`
 - `GET/POST /api/budget`
 - `GET/POST /api/family`
-- `GET/POST /api/family/assignments`
-- `GET/POST /api/medicines`
 - `GET/POST /api/notes`
 - `GET/POST /api/shopping`
 
@@ -147,8 +145,6 @@ Conventions:
   - `day_of_week`
   - `meal_type`
   - `owner_id`
-  - `source_meal_id`
-  - `taken`
   - `done`
 
 ## Data Model Summary
@@ -161,10 +157,8 @@ LiteDB collections:
 - `meals`
 - `budgetMonths`
 - `expenses`
-- `medicines`
 - `notes`
 - `shoppingItems`
-- `familyAssignments`
 
 ## Functional Regression Baseline
 
@@ -183,16 +177,15 @@ What it currently covers:
 - setup routing after initialization
 - kiosk layout above threshold and stacked layout below threshold
 - horizontal overflow checks
-- overlap and viewport-fit checks for major UI regions
+- overlap and viewport-fit checks for major UI regions, including desktop viewport samples at 1366x768, 1920x1080, and 2560x1440
 - touch-target sizing checks for primary interactive controls
 - event create/edit/delete
-- meal create/edit/delete and meal-to-shopping
+- meal create/edit/delete
 - budget update and expense add/delete
 - shopping create/toggle/edit/delayed auto-delete
-- medicine create/toggle/view/edit/delete
 - note create/view/edit/delete
 - family member create/profile edit/delete
-- family assignment add/remove through drag/drop path
+- avatar-to-calendar drag/drop opening the event form with date and owner prefilled
 - API bad-request validation for malformed JSON mutation commands
 - storage maintenance for obsolete collections, expired lifecycle items, setup reset cleanup, and avatar extension validation
 

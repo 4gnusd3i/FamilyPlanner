@@ -81,7 +81,6 @@ body.planner-page {
 }
 
 .planner-page .surface,
-.planner-page .family-bar,
 .planner-page .status-banner {
   background: var(--surface);
   border: 1px solid rgba(255, 255, 255, 0.72);
@@ -159,16 +158,13 @@ body.planner-page {
 .planner-page .family-avatar:hover,
 .planner-page .event-item:hover,
 .planner-page .note-item:hover,
-.planner-page .med-item:hover,
 .planner-page .upcoming-item:hover,
 .planner-page .meal-entry:hover {
   transform: translateY(-2px);
 }
 
 .planner-page .btn-primary,
-.planner-page .add-family-btn,
-.planner-page .add-event-header,
-.planner-page .add-meal-btn {
+.planner-page .add-family-btn {
   background: linear-gradient(135deg, var(--baby-pink), var(--sky-blue));
   color: var(--text);
   box-shadow: 0 14px 28px rgba(var(--baby-pink-rgb), 0.28);
@@ -231,6 +227,10 @@ body.planner-page {
   padding: 0.85rem;
   border-radius: 28px;
   margin: 0 0 0.9rem;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 .planner-page .family-avatars {
@@ -249,7 +249,12 @@ body.planner-page {
 }
 
 .planner-page .family-avatar {
-  cursor: pointer;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  cursor: grab;
 }
 
 .planner-page .family-avatar-shell {
@@ -431,8 +436,7 @@ body.planner-page {
 }
 
 .planner-page .day-body,
-.planner-page .day-content,
-.planner-page .day-tasks {
+.planner-page .day-content {
   position: relative;
 }
 
@@ -446,13 +450,13 @@ body.planner-page {
 
 .planner-page .day-content {
   flex: 1;
-}
-
-.planner-page .day-tasks {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
+  flex-direction: column;
+  gap: 0.35rem;
   min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 .planner-page .event-item,
@@ -470,6 +474,9 @@ body.planner-page {
   padding: 0.55rem 0.6rem;
   background: rgba(255, 255, 255, 0.9);
   gap: 0.35rem;
+  flex: 0 0 auto;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .planner-page .event-time {
@@ -479,22 +486,12 @@ body.planner-page {
 
 .planner-page .event-title {
   line-height: 1.25;
+  max-width: 100%;
 }
 
 .planner-page .event-description {
   color: var(--text-light);
   line-height: 1.3;
-}
-
-.planner-page .event-description.is-empty {
-  color: rgba(34, 49, 77, 0.48);
-}
-
-.planner-page .task-chip {
-  min-height: 36px;
-  padding: 0.25rem 0.55rem;
-  border-radius: 999px;
-  box-shadow: none;
 }
 
 .planner-page .meals-wrapper {
@@ -503,12 +500,6 @@ body.planner-page {
 
 .planner-page .meals-grid {
   gap: 0.65rem;
-}
-
-.planner-page .meal-day-header {
-  color: var(--text);
-  font-size: 0.76rem;
-  margin-bottom: 0.45rem;
 }
 
 .planner-page .meal-entry {
@@ -537,9 +528,10 @@ body.planner-page {
 
 .planner-page .expense-delete-btn {
   min-height: 36px;
-  min-width: 36px;
-  padding: 0.35rem 0.7rem;
+  min-width: 58px;
+  padding: 0.35rem 0.75rem;
   color: white;
+  letter-spacing: 0.01em;
 }
 
 .planner-page .empty-inline {
@@ -597,22 +589,6 @@ body.planner-page {
   border-radius: 999px;
 }
 
-.planner-page .activity-btns {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.planner-page .act-btn {
-  width: 100%;
-  min-height: 50px;
-  border-radius: 16px;
-  font-size: 0.9rem;
-}
-
-.planner-page .act-btn[data-type="legacy"] {
-  display: none;
-}
-
 .planner-page .profile-modal {
   width: min(100%, 520px);
 }
@@ -654,15 +630,15 @@ body.planner-page {
   }
 
   .planner-page .quick-action {
-    min-height: 48px;
-    padding: 0.55rem;
+    min-height: 44px;
+    padding: 0.48rem;
     border-radius: 16px;
   }
 
   .planner-page .main-container {
     grid-area: workspace;
     --left-shopping-min: 196px;
-    --left-notes-min: 132px;
+    --left-notes-min: 108px;
     --left-notes-max: 50%;
     height: 100%;
     min-height: 0;
@@ -727,7 +703,7 @@ body.planner-page {
 
   .planner-page .meals-surface {
     flex: 0 0 auto;
-    min-height: 112px;
+    min-height: 104px;
   }
 
   .planner-page .upcoming-card {
@@ -881,11 +857,6 @@ body.planner-page {
     gap: 0.42rem;
   }
 
-  .planner-page .meal-day-header {
-    font-size: 0.68rem;
-    margin-bottom: 0.32rem;
-  }
-
   .planner-page .meal-day-content {
     gap: 0.18rem;
   }
@@ -900,8 +871,8 @@ body.planner-page {
     grid-area: family;
     min-height: 0;
     margin: 0;
-    padding: 0.48rem 0.6rem;
-    border-radius: 20px;
+    padding: 0.24rem 0.4rem;
+    border-radius: 0;
   }
 
   .planner-page .family-avatars {
@@ -910,11 +881,11 @@ body.planner-page {
   }
 
   .planner-page .family-avatar-shell {
-    width: 42px;
-    height: 42px;
-    min-width: 42px;
-    min-height: 42px;
-    border-radius: 14px;
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    min-height: 38px;
+    border-radius: 13px;
   }
 
   .planner-page .family-name {

@@ -16,6 +16,9 @@ public sealed class FamilyMemberDto
     [JsonPropertyName("birthday")]
     public string? Birthday { get; init; }
 
+    [JsonPropertyName("color")]
+    public string? Color { get; init; }
+
     [JsonPropertyName("avatar_url")]
     public string? AvatarUrl { get; init; }
 }
@@ -54,6 +57,9 @@ public sealed class PlannerEventDto
 
     [JsonPropertyName("note")]
     public string? Note { get; init; }
+
+    [JsonPropertyName("color")]
+    public string? Color { get; init; }
 }
 
 public sealed class MealPlanDto
@@ -132,25 +138,4 @@ public sealed class ShoppingItemDto
 
     [JsonPropertyName("done_at")]
     public DateTime? DoneAt { get; init; }
-}
-
-public sealed class AssignmentEnvelopeDto
-{
-    [JsonPropertyName("assignments")]
-    public List<FamilyAssignmentDto> Assignments { get; init; } = [];
-}
-
-public sealed class FamilyAssignmentDto
-{
-    [JsonPropertyName("day_of_week")]
-    public int DayOfWeek { get; init; }
-
-    [JsonPropertyName("family_member_id")]
-    public int FamilyMemberId { get; init; }
-
-    [JsonPropertyName("activity_type")]
-    public string ActivityType { get; init; } = string.Empty;
-
-    [JsonPropertyName("note")]
-    public string? Note { get; init; }
 }

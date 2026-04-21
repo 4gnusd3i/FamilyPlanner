@@ -8,7 +8,8 @@ public sealed partial class PlannerStore : IDisposable
     private static readonly string[] ObsoleteCollections =
     [
         "users",
-        "medicines"
+        "medicines",
+        "familyAssignments"
     ];
 
     private readonly LiteDatabase _database;
@@ -20,7 +21,6 @@ public sealed partial class PlannerStore : IDisposable
     private readonly ILiteCollection<ExpenseItem> _expenses;
     private readonly ILiteCollection<NoteItem> _notes;
     private readonly ILiteCollection<ShoppingItem> _shoppingItems;
-    private readonly ILiteCollection<FamilyAssignment> _assignments;
 
     public PlannerStore(StoragePaths storagePaths)
     {
@@ -33,7 +33,6 @@ public sealed partial class PlannerStore : IDisposable
         _expenses = _database.GetCollection<ExpenseItem>("expenses");
         _notes = _database.GetCollection<NoteItem>("notes");
         _shoppingItems = _database.GetCollection<ShoppingItem>("shoppingItems");
-        _assignments = _database.GetCollection<FamilyAssignment>("familyAssignments");
 
         EnsureIndexes();
     }
@@ -70,7 +69,6 @@ public sealed partial class PlannerStore : IDisposable
         _expenses.DeleteAll();
         _notes.DeleteAll();
         _shoppingItems.DeleteAll();
-        _assignments.DeleteAll();
         DropObsoleteCollections();
     }
 
@@ -102,8 +100,6 @@ public sealed partial class PlannerStore : IDisposable
         _notes.EnsureIndex(x => x.CreatedAt);
         _shoppingItems.EnsureIndex(x => x.Done);
         _shoppingItems.EnsureIndex(x => x.DoneAt);
-        _assignments.EnsureIndex(x => x.DayOfWeek);
-        _assignments.EnsureIndex(x => x.FamilyMemberId);
     }
 
     private void DropObsoleteCollections()

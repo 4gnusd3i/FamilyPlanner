@@ -84,11 +84,6 @@ public sealed partial class PlannerStore
             _shoppingItems.Update(item);
         }
 
-        foreach (var assignment in _assignments.Find(x => x.FamilyMemberId == id).ToList())
-        {
-            _assignments.Delete(assignment.Id);
-        }
-
         _familyMembers.Delete(id);
     }
 
