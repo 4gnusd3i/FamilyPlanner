@@ -937,12 +937,42 @@ header h1 {
   line-height: 1;
 }
 
+.upcoming-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.upcoming-owner-line {
+  display: flex;
+  align-items: center;
+  gap: 0.32rem;
+  min-width: 0;
+}
+
+.upcoming-owner-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--blue-ink);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
 .upcoming-info {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .upcoming-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-weight: 700;
   font-size: 0.82rem;
 }

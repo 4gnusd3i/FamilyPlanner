@@ -222,6 +222,29 @@ public sealed class EventWorkflowTests : DesktopPlannerUiTestBase
         });
     }
 
+    [Test]
+    public async Task UpcomingList_RendersOwnerNameBesideAvatar()
+    {
+        var family = await GetApiAsync<List<FamilyMemberDto>>("/api/family") ?? [];
+        var oskar = family.Single(x => x.Name == "Oskar");
+
+        await PostFormAsync("/api/events", new Dictionary<string, string>
+        {
+            ["title"] = "Bibliotekbesok",
+            ["event_date"] = DateTime.Today.AddDays(1).ToString("yyyy-MM-dd"),
+            ["start_time"] = "12:00",
+            ["end_time"] = "12:30",
+            ["owner_id"] = oskar.Id.ToString(),
+        });
+
+        await Page.ReloadAsync();
+
+        var upcomingItem = Page.Locator(".upcoming-item", new() { HasTextString = "Bibliotekbesok" });
+        await Expect(upcomingItem).ToBeVisibleAsync();
+        await Expect(upcomingItem.Locator(".member-avatar")).ToBeVisibleAsync();
+        await Expect(upcomingItem.Locator(".upcoming-owner-name")).ToHaveTextAsync("Oskar");
+    }
+
     private static (string Start, string End) GetCurrentWeekRange()
     {
         var today = DateTime.Today;

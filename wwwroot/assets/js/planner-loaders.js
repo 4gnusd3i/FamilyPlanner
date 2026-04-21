@@ -126,6 +126,9 @@ async function loadUpcoming() {
     const date = parseDate(entry.event_date);
     const owner = familyMembers.find((member) => member.id === entry.owner_id);
     const ownerAvatar = owner ? getMemberAvatar(owner, "small") : "";
+    const ownerLine = owner
+      ? `<div class="upcoming-owner-line">${ownerAvatar}<span class="upcoming-owner-name">${escapeHtml(owner.name)}</span></div>`
+      : "";
     const payload = encodePayload(entry);
     const generatedClass = entry.source_type ? ` source-${entry.source_type}` : "";
     const interaction = entry.source_type === "birthday"
@@ -139,7 +142,7 @@ async function loadUpcoming() {
         <span class="upcoming-month">${date.toLocaleDateString("no-NO", { month: "short" })}</span>
       </div>
       <div class="upcoming-content">
-        ${ownerAvatar}
+        ${ownerLine}
         <div class="upcoming-info">
           <span class="upcoming-title">${escapeHtml(entry.title)}</span>
           ${timeDisplay ? `<span class="upcoming-time">${escapeHtml(timeDisplay)}</span>` : ""}
