@@ -7,6 +7,7 @@ namespace FamilyPlanner.UiTests;
 [TestFixture(1180, 820)]
 [TestFixture(1920, 1080)]
 [TestFixture(2560, 1440)]
+[TestFixture(3440, 1440)]
 public sealed class PlannerDesktopViewportTests : PlannerUiTestBase
 {
     private readonly int _viewportWidth;
@@ -49,6 +50,7 @@ public sealed class PlannerDesktopViewportTests : PlannerUiTestBase
                     const box = element.getBoundingClientRect();
                     return { left: box.left, top: box.top, right: box.right, bottom: box.bottom, width: box.width, height: box.height };
                 };
+                const shell = rect('.app-shell');
                 const actions = rect('.quick-actions');
                 const workspace = rect('.main-container');
                 const family = rect('.family-bar');
@@ -62,7 +64,9 @@ public sealed class PlannerDesktopViewportTests : PlannerUiTestBase
                     .map((item) => item.getBoundingClientRect().height);
                 const familyShellHeights = Array.from(document.querySelectorAll('.family-avatar-shell'))
                     .map((item) => item.getBoundingClientRect().height);
-                const kioskScale = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--kiosk-scale'));
+                const rootStyles = getComputedStyle(document.documentElement);
+                const kioskScaleX = Number.parseFloat(rootStyles.getPropertyValue('--kiosk-scale-x'));
+                const kioskScaleY = Number.parseFloat(rootStyles.getPropertyValue('--kiosk-scale-y'));
                 return [
                     document.documentElement.scrollWidth,
                     window.innerWidth,
@@ -83,7 +87,12 @@ public sealed class PlannerDesktopViewportTests : PlannerUiTestBase
                     familyStyles.backgroundColor === 'rgba(0, 0, 0, 0)' ? 1 : 0,
                     Math.max(...actionHeights),
                     Math.max(...familyShellHeights),
-                    kioskScale
+                    kioskScaleX,
+                    kioskScaleY,
+                    shell.left,
+                    shell.top,
+                    shell.width,
+                    shell.height
                 ];
             }");
 
@@ -101,8 +110,14 @@ public sealed class PlannerDesktopViewportTests : PlannerUiTestBase
             Assert.That(layout[14], Is.EqualTo(1d), "Quick actions should stay visually lightweight in kiosk mode.");
             Assert.That(layout[15], Is.EqualTo(1d), "Family row should not regain a card shadow in kiosk mode.");
             Assert.That(layout[16], Is.EqualTo(1d), "Family row should stay transparent in kiosk mode.");
-            Assert.That(layout[17], Is.InRange((52d * layout[19]) - 4d, (52d * layout[19]) + 4d), "Quick actions should scale uniformly from the kiosk baseline.");
-            Assert.That(layout[18], Is.InRange((52d * layout[19]) - 4d, (52d * layout[19]) + 4d), "Avatar row should scale uniformly from the kiosk baseline.");
+            Assert.That(layout[17], Is.InRange((52d * layout[20]) - 4d, (52d * layout[20]) + 4d), "Quick actions should scale vertically from the kiosk baseline.");
+            Assert.That(layout[18], Is.InRange((52d * layout[20]) - 4d, (52d * layout[20]) + 4d), "Avatar row should scale vertically from the kiosk baseline.");
+            Assert.That(layout[19], Is.EqualTo((double)ViewportWidth / 1180d).Within(0.01d), "Kiosk width scale should be derived from the 1180px baseline.");
+            Assert.That(layout[20], Is.EqualTo((double)ViewportHeight / 820d).Within(0.01d), "Kiosk height scale should be derived from the 820px baseline.");
+            Assert.That(layout[21], Is.EqualTo(0d).Within(1.5d), "Kiosk shell should fill from the left viewport edge.");
+            Assert.That(layout[22], Is.EqualTo(0d).Within(1.5d), "Kiosk shell should fill from the top viewport edge.");
+            Assert.That(layout[23], Is.EqualTo(ViewportWidth).Within(2d), "Kiosk shell should fill the viewport width.");
+            Assert.That(layout[24], Is.EqualTo(ViewportHeight).Within(2d), "Kiosk shell should fill the viewport height.");
         });
     }
 

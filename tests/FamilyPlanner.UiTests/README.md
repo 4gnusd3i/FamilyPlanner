@@ -6,7 +6,7 @@ What it covers:
 - first-run setup redirect/lockout behavior
 - kiosk layout above width threshold and stacked layout below threshold regression
 - responsive overflow protection
-- viewport-fit and non-overlap checks for major planner regions, including kiosk samples at 1024x768, 1180x820, 1366x768, 1920x1080, and 2560x1440
+- viewport-fit and non-overlap checks for major planner regions, including kiosk samples at 1024x768, 1180x820, 1366x768, 1920x1080, 2560x1440, and 3440x1440
 - touch-target sizing checks for primary interactive controls
 - event create, summary, edit, delete, and recurrence series behavior
 - meal create, summary, edit, and delete

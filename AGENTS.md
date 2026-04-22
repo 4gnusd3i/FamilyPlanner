@@ -9,7 +9,7 @@ This file is intended to let another workstation pick up work quickly without re
 ## Current State
 
 - Primary working branch: `feature/frontend-redesign`
-- Current expected regression result: `37 passed, 0 failed`
+- Current expected regression result: `39 passed, 0 failed`
 - Legacy live-import functionality has been removed from setup, UI, API, and storage code
 - Frontend assets and backend planner/storage code are now split into smaller feature files for safer maintenance
 
@@ -177,7 +177,7 @@ What it currently covers:
 - setup routing after initialization
 - kiosk layout above threshold and stacked layout below threshold
 - horizontal overflow checks
-- overlap and viewport-fit checks for major UI regions, including kiosk viewport samples at 1024x768, 1180x820, 1366x768, 1920x1080, and 2560x1440
+- overlap and viewport-fit checks for major UI regions, including kiosk viewport samples at 1024x768, 1180x820, 1366x768, 1920x1080, 2560x1440, and 3440x1440
 - touch-target sizing checks for primary interactive controls
 - event create/edit/delete
 - meal create/edit/delete

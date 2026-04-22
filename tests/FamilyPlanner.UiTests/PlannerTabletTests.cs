@@ -59,6 +59,7 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
                 const familyStyles = getComputedStyle(document.querySelector('.family-bar'));
                 const budgetDisplay = document.querySelector('.budget-display').getBoundingClientRect();
                 const workspace = rect('.main-container');
+                const shell = document.querySelector('.app-shell').getBoundingClientRect();
                 return [
                     budget[2],
                     notes[2],
@@ -76,7 +77,11 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
                     budgetDisplay.height,
                     notes[3],
                     familyStyles.boxShadow === 'none' ? 1 : 0,
-                    familyStyles.backgroundColor === 'rgba(0, 0, 0, 0)' ? 1 : 0
+                    familyStyles.backgroundColor === 'rgba(0, 0, 0, 0)' ? 1 : 0,
+                    shell.left,
+                    shell.top,
+                    shell.width,
+                    shell.height
                 ];
             }");
 
@@ -94,6 +99,10 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
             Assert.That(layout[14], Is.LessThanOrEqualTo(layout[6] + 1d), "Notes should not overlap the family strip.");
             Assert.That(layout[15], Is.EqualTo(1d), "Family strip should not keep an outer card shadow in kiosk mode.");
             Assert.That(layout[16], Is.EqualTo(1d), "Family strip should be visually transparent in kiosk mode.");
+            Assert.That(layout[17], Is.EqualTo(0d).Within(1.5d), "Tablet kiosk shell should fill from the left viewport edge.");
+            Assert.That(layout[18], Is.EqualTo(0d).Within(1.5d), "Tablet kiosk shell should fill from the top viewport edge.");
+            Assert.That(layout[19], Is.EqualTo(ViewportWidth).Within(2d), "Tablet kiosk shell should fill the viewport width.");
+            Assert.That(layout[20], Is.EqualTo(ViewportHeight).Within(2d), "Tablet kiosk shell should fill the viewport height.");
         });
 
         await OpenModalBySelectorAsync(".quick-action:has-text('Måltid')", "mealModal");

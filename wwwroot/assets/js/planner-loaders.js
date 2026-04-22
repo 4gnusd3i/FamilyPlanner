@@ -532,10 +532,12 @@ function scheduleKioskColumnSizing() {
 }
 
 function syncKioskScale() {
-  const scale = window.innerWidth >= KIOSK_BREAKPOINT
-    ? Math.min(window.innerWidth / KIOSK_BASE_WIDTH, window.innerHeight / KIOSK_BASE_HEIGHT)
-    : 1;
-  document.documentElement.style.setProperty("--kiosk-scale", scale.toFixed(4));
+  const isKiosk = window.innerWidth >= KIOSK_BREAKPOINT;
+  const scaleX = isKiosk ? window.innerWidth / KIOSK_BASE_WIDTH : 1;
+  const scaleY = isKiosk ? window.innerHeight / KIOSK_BASE_HEIGHT : 1;
+  document.documentElement.style.setProperty("--kiosk-scale", Math.min(scaleX, scaleY).toFixed(4));
+  document.documentElement.style.setProperty("--kiosk-scale-x", scaleX.toFixed(4));
+  document.documentElement.style.setProperty("--kiosk-scale-y", scaleY.toFixed(4));
 }
 
 function syncKioskLeftColumnSizing() {
@@ -552,8 +554,8 @@ function syncKioskLeftColumnSizing() {
   const notesList = document.getElementById("notesList");
   if (!budgetCard || !notesCard || !notesList) return;
 
-  const panelHeight = leftPanel.getBoundingClientRect().height;
-  const budgetHeight = budgetCard.getBoundingClientRect().height;
+  const panelHeight = leftPanel.clientHeight;
+  const budgetHeight = budgetCard.offsetHeight;
   const panelStyles = getComputedStyle(leftPanel);
   const gap = Number.parseFloat(panelStyles.rowGap || panelStyles.gap || "0") || 0;
   const remainingAfterBudget = Math.max(0, panelHeight - budgetHeight - (gap * 2));

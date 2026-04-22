@@ -668,7 +668,7 @@ body.planner-page {
     gap: 0.55rem;
     padding: 0.65rem;
     overflow: hidden;
-    transform: translate(-50%, -50%) scale(var(--kiosk-scale, 1));
+    transform: translate(-50%, -50%) scale(var(--kiosk-scale-x, 1), var(--kiosk-scale-y, 1));
     transform-origin: center center;
   }
 
