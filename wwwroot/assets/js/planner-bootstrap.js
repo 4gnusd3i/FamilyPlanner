@@ -20,23 +20,37 @@ let eventsCache = [];
 let mealsCache = [];
 let notesCache = [];
 let shoppingCache = [];
-let currentViewNote = null;
 let currentProfileMemberId = null;
 let statusTimer = null;
 const SHOPPING_DELETE_DELAY_MS = 15000;
+const KIOSK_BASE_WIDTH = 1180;
+const KIOSK_BASE_HEIGHT = 820;
+const KIOSK_BREAKPOINT = 1000;
+const CUSTOM_SELECT_IDS = [
+  "eventRecurrenceType",
+  "eventOwner",
+  "mealDay",
+  "mealType",
+  "mealOwner",
+  "expenseOwner",
+  "noteOwner",
+  "shoppingOwner",
+];
 const shoppingDeleteTimers = new Map();
+let currentViewEntry = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
   initWeek();
   renderWeekShell();
   renderMealDayOptions();
+  initCustomSelects();
   initColorOptions();
   bindForms();
   bindAvatarPreview();
   await loadAll();
-  if (typeof scheduleKioskColumnSizing === "function") {
-    window.addEventListener("resize", scheduleKioskColumnSizing, { passive: true });
-    scheduleKioskColumnSizing();
+  if (typeof scheduleKioskLayout === "function") {
+    window.addEventListener("resize", scheduleKioskLayout, { passive: true });
+    scheduleKioskLayout();
   }
 });
 

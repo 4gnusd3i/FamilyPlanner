@@ -5,7 +5,7 @@ async function loadAll() {
   } catch (error) {
     handleError(error);
   } finally {
-    scheduleKioskColumnSizing();
+    scheduleKioskLayout();
   }
 }
 
@@ -73,12 +73,186 @@ function initDragDrop() {
     avatar.addEventListener("dragend", () => {
       document.body.classList.remove("is-dragging-family");
     });
+    avatar.addEventListener("click", (event) => {
+      if (avatar.dataset.suppressClick !== "true") return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      avatar.dataset.suppressClick = "false";
+    }, true);
+    avatar.addEventListener("pointerdown", beginTouchFamilyDrag);
+    avatar.addEventListener("touchstart", beginNativeFamilyTouchDrag, { passive: false });
     avatar.addEventListener("keydown", (event) => {
       if (event.key !== "Enter" && event.key !== " ") return;
       event.preventDefault();
       showProfile(Number(avatar.dataset.id));
     });
   });
+}
+
+function beginTouchFamilyDrag(event) {
+  if (event.pointerType === "mouse") return;
+  const avatar = event.currentTarget;
+  const memberId = Number(avatar.dataset.id);
+  if (!memberId) return;
+
+  let dragging = false;
+  let currentZone = null;
+  const pointerId = event.pointerId;
+  const startX = event.clientX;
+  const startY = event.clientY;
+  const longPressTimer = window.setTimeout(() => {
+    if (avatar.dataset.longPressActive === "true") return;
+    avatar.dataset.longPressActive = "true";
+    dragging = true;
+    avatar.dataset.suppressClick = "true";
+    document.body.classList.add("is-dragging-family");
+    try {
+      avatar.setPointerCapture?.(pointerId);
+    } catch {
+      // Synthetic touch events used by regression tests do not always own a browser pointer capture.
+    }
+    updateTouchDropTarget(startX, startY);
+  }, 360);
+
+  const clearCurrentZone = () => {
+    currentZone?.classList.remove("is-drop-target");
+    currentZone = null;
+  };
+
+  const updateTouchDropTarget = (clientX, clientY) => {
+    const target = document.elementFromPoint(clientX, clientY)?.closest(".day-box");
+    if (target === currentZone) return;
+    clearCurrentZone();
+    currentZone = target;
+    currentZone?.classList.add("is-drop-target");
+  };
+
+  const cleanup = () => {
+    window.clearTimeout(longPressTimer);
+    clearCurrentZone();
+    document.body.classList.remove("is-dragging-family");
+    avatar.dataset.longPressActive = "false";
+    try {
+      avatar.releasePointerCapture?.(pointerId);
+    } catch {
+      // Ignore missing capture for canceled or synthetic touch drags.
+    }
+    window.setTimeout(() => {
+      avatar.dataset.suppressClick = "false";
+    }, 500);
+    window.removeEventListener("pointermove", onMove, true);
+    window.removeEventListener("pointerup", onEnd, true);
+    window.removeEventListener("pointercancel", cleanup, true);
+  };
+
+  const onMove = (moveEvent) => {
+    if (moveEvent.pointerId !== pointerId) return;
+    const moved = Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY);
+    if (!dragging && moved > 14) {
+      cleanup();
+      return;
+    }
+
+    if (!dragging) return;
+    moveEvent.preventDefault();
+    updateTouchDropTarget(moveEvent.clientX, moveEvent.clientY);
+  };
+
+  const onEnd = (endEvent) => {
+    if (endEvent.pointerId !== pointerId) return;
+    window.clearTimeout(longPressTimer);
+    if (dragging && currentZone) {
+      endEvent.preventDefault();
+      openEventModal(null, currentZone.dataset.date, memberId);
+    }
+    cleanup();
+  };
+
+  window.addEventListener("pointermove", onMove, true);
+  window.addEventListener("pointerup", onEnd, true);
+  window.addEventListener("pointercancel", cleanup, true);
+}
+
+function beginNativeFamilyTouchDrag(event) {
+  const touch = event.changedTouches?.[0];
+  if (!touch) return;
+
+  const avatar = event.currentTarget;
+  const memberId = Number(avatar.dataset.id);
+  if (!memberId) return;
+  if (avatar.dataset.longPressActive === "true") return;
+  avatar.dataset.longPressActive = "true";
+
+  let dragging = false;
+  let currentZone = null;
+  const touchId = touch.identifier;
+  const startX = touch.clientX;
+  const startY = touch.clientY;
+  const longPressTimer = window.setTimeout(() => {
+    dragging = true;
+    avatar.dataset.suppressClick = "true";
+    document.body.classList.add("is-dragging-family");
+    updateTouchDropTarget(startX, startY);
+  }, 360);
+
+  const getTrackedTouch = (touchEvent) =>
+    Array.from(touchEvent.changedTouches || []).find((item) => item.identifier === touchId) ||
+    Array.from(touchEvent.touches || []).find((item) => item.identifier === touchId);
+
+  const clearCurrentZone = () => {
+    currentZone?.classList.remove("is-drop-target");
+    currentZone = null;
+  };
+
+  const updateTouchDropTarget = (clientX, clientY) => {
+    const target = document.elementFromPoint(clientX, clientY)?.closest(".day-box");
+    if (target === currentZone) return;
+    clearCurrentZone();
+    currentZone = target;
+    currentZone?.classList.add("is-drop-target");
+  };
+
+  const cleanup = () => {
+    window.clearTimeout(longPressTimer);
+    clearCurrentZone();
+    document.body.classList.remove("is-dragging-family");
+    avatar.dataset.longPressActive = "false";
+    window.setTimeout(() => {
+      avatar.dataset.suppressClick = "false";
+    }, 500);
+    document.removeEventListener("touchmove", onMove, true);
+    document.removeEventListener("touchend", onEnd, true);
+    document.removeEventListener("touchcancel", cleanup, true);
+  };
+
+  const onMove = (moveEvent) => {
+    const activeTouch = getTrackedTouch(moveEvent);
+    if (!activeTouch) return;
+    const moved = Math.hypot(activeTouch.clientX - startX, activeTouch.clientY - startY);
+    if (!dragging && moved > 14) {
+      cleanup();
+      return;
+    }
+
+    if (!dragging) return;
+    moveEvent.preventDefault();
+    updateTouchDropTarget(activeTouch.clientX, activeTouch.clientY);
+  };
+
+  const onEnd = (endEvent) => {
+    const endedTouch = getTrackedTouch(endEvent);
+    if (!endedTouch) return;
+    window.clearTimeout(longPressTimer);
+    if (dragging && currentZone) {
+      endEvent.preventDefault();
+      openEventModal(null, currentZone.dataset.date, memberId);
+    }
+    cleanup();
+  };
+
+  document.addEventListener("touchmove", onMove, { capture: true, passive: false });
+  document.addEventListener("touchend", onEnd, { capture: true, passive: false });
+  document.addEventListener("touchcancel", cleanup, true);
 }
 
 async function loadEvents() {
@@ -96,19 +270,21 @@ async function loadEvents() {
       ? `<div class="event-owner-line">${getMemberAvatar(owner, "small")}<span class="event-owner-name">${escapeHtml(owner.name)}</span></div>`
       : "";
     const payload = encodePayload(entry);
-    const timeDisplay = formatEventTimeRange(entry, false);
+    const startDisplay = formatEventStart(entry);
+    const endDisplay = formatEventEnd(entry);
     const generatedClass = entry.source_type ? ` source-${entry.source_type}` : "";
-    const timeClass = timeDisplay ? " has-time" : "";
+    const timeClass = startDisplay || endDisplay ? " has-time" : "";
     const eventAccent = owner?.color || entry.color || "#eaf4ff";
     const interaction = entry.source_type === "birthday"
       ? `aria-label="${escapeHtml(entry.title)}"`
-      : `onclick="openEventModalFromJson('${payload}')"`;
+      : `onclick="viewEventFromJson('${payload}')"`;
 
     container.insertAdjacentHTML("beforeend", `<div class="event-item${timeClass}${generatedClass}" style="--event-accent:${eventAccent}" ${interaction}>
       ${ownerLine}
       <span class="event-title">${escapeHtml(entry.title)}</span>
-      ${timeDisplay ? `<span class="event-time">${escapeHtml(timeDisplay)}</span>` : ""}
-      ${entry.note ? `<span class="event-description">${escapeHtml(entry.note)}</span>` : ""}
+      ${startDisplay ? `<span class="event-time event-start">${escapeHtml(startDisplay)}</span>` : ""}
+      ${entry.note ? `<span class="event-more">Vis mer...</span>` : ""}
+      ${endDisplay ? `<span class="event-time event-end">${escapeHtml(endDisplay)}</span>` : ""}
     </div>`);
   });
 }
@@ -133,7 +309,7 @@ async function loadUpcoming() {
     const generatedClass = entry.source_type ? ` source-${entry.source_type}` : "";
     const interaction = entry.source_type === "birthday"
       ? `aria-label="${escapeHtml(entry.title)}"`
-      : `onclick="openEventModalFromJson('${payload}')"`;
+      : `onclick="viewEventFromJson('${payload}')"`;
     const timeDisplay = formatEventTimeRange(entry, false);
     return `<div class="upcoming-item${generatedClass}" ${interaction}>
       <div class="upcoming-date">
@@ -169,7 +345,8 @@ async function loadMeals() {
 
       const owner = familyMembers.find((member) => member.id === meal.owner_id);
       const ownerBadge = owner ? `<span class="meal-owner" style="background:${owner.color}">${escapeHtml(owner.name.charAt(0))}</span>` : "";
-      return `<div class="meal-entry meal-${mealType.key}" onclick="openMealModal(${dayIndex}, ${meal.id})">
+      const payload = encodePayload(meal);
+      return `<div class="meal-entry meal-${mealType.key}" onclick="viewMealFromJson('${payload}')">
         <span class="meal-type-label">${mealType.label}</span>
         ${ownerBadge}
         <span class="meal-text">${escapeHtml(meal.meal)}</span>
@@ -202,7 +379,7 @@ async function loadBudget() {
   const remainingEl = document.getElementById("budgetRemaining");
   remainingEl.textContent = `${remaining.toLocaleString("no-NO")} kr gjenstar`;
   remainingEl.className = remaining >= 0 ? "budget-remaining positive" : "budget-remaining negative";
-  scheduleKioskColumnSizing();
+  scheduleKioskLayout();
 }
 
 async function loadExpenseHistory() {
@@ -224,7 +401,7 @@ async function loadExpenseHistory() {
       ${ownerAvatar}
       <span class="expense-meta">${escapeHtml(date)}</span>
       <span class="expense-amount">${Number(expense.amount).toLocaleString("no-NO")} kr</span>
-      <button type="button" class="btn-small btn-danger expense-delete-btn" aria-label="Slett utgift ${escapeHtml(label)}" onclick="deleteExpense(${expense.id})">Slett</button>
+      <button type="button" class="btn-small btn-danger" aria-label="Slett utgift ${escapeHtml(label)}" onclick="deleteExpense(${expense.id})">Slett</button>
     </div>`;
   }).join("");
 }
@@ -247,7 +424,7 @@ async function loadNotes() {
   if (!notesCache.length) {
     container.innerHTML = '<div class="empty-state empty-state-collapsible">Ingen notater</div>';
     notesCard?.classList.add("is-empty");
-    scheduleKioskColumnSizing();
+    scheduleKioskLayout();
     return;
   }
 
@@ -261,7 +438,7 @@ async function loadNotes() {
       <span class="item-name">${escapeHtml(note.title)}</span>
     </div>`;
   }).join("");
-  scheduleKioskColumnSizing();
+  scheduleKioskLayout();
 }
 
 async function loadShopping() {
@@ -271,7 +448,7 @@ async function loadShopping() {
   const container = document.getElementById("shoppingList");
   if (!shoppingCache.length) {
     container.innerHTML = '<div class="empty-state">Vi har det vi trenger!</div>';
-    scheduleKioskColumnSizing();
+    scheduleKioskLayout();
     return;
   }
 
@@ -284,15 +461,15 @@ async function loadShopping() {
     const progressStyle = item.done
       ? ` style="--delete-duration:${SHOPPING_DELETE_DELAY_MS}ms;--delete-delay-offset:-${progress.elapsed}ms"`
       : "";
-    return `<div class="shop-item${pendingClass}"${progressStyle}>
-      <button type="button" class="shop-check ${item.done ? "checked" : ""}" aria-label="${item.done ? "Behold vare" : "Marker vare som handlet"}" aria-pressed="${item.done ? "true" : "false"}" onclick="toggleShop(${item.id})">${item.done ? "&#10003;" : ""}</button>
+    return `<div class="shop-item${pendingClass}"${progressStyle} onclick="viewShoppingFromJson('${payload}')">
+      <button type="button" class="shop-check ${item.done ? "checked" : ""}" aria-label="${item.done ? "Behold vare" : "Marker vare som handlet"}" aria-pressed="${item.done ? "true" : "false"}" onclick="event.stopPropagation(); toggleShop(${item.id})">${item.done ? "&#10003;" : ""}</button>
       ${ownerAvatar}
-      <span class="item-name shop-name ${item.done ? "done" : ""}" onclick="openShoppingModalFromJson('${payload}')">${escapeHtml(item.item)}</span>
+      <span class="item-name shop-name ${item.done ? "done" : ""}">${escapeHtml(item.item)}</span>
       <span class="shop-qty">${item.quantity}</span>
     </div>`;
   }).join("");
   shoppingCache.filter((item) => item.done).forEach(scheduleShoppingDeletion);
-  scheduleKioskColumnSizing();
+  scheduleKioskLayout();
 }
 
 function syncShoppingDeletionTimers(items) {
@@ -336,24 +513,36 @@ function setText(id, value) {
   }
 }
 
-let kioskSizingFrame = null;
+let kioskLayoutFrame = null;
 
-function scheduleKioskColumnSizing() {
-  if (kioskSizingFrame !== null) {
-    cancelAnimationFrame(kioskSizingFrame);
+function scheduleKioskLayout() {
+  if (kioskLayoutFrame !== null) {
+    cancelAnimationFrame(kioskLayoutFrame);
   }
 
-  kioskSizingFrame = requestAnimationFrame(() => {
-    kioskSizingFrame = null;
+  kioskLayoutFrame = requestAnimationFrame(() => {
+    kioskLayoutFrame = null;
+    syncKioskScale();
     syncKioskLeftColumnSizing();
   });
+}
+
+function scheduleKioskColumnSizing() {
+  scheduleKioskLayout();
+}
+
+function syncKioskScale() {
+  const scale = window.innerWidth >= KIOSK_BREAKPOINT
+    ? Math.min(window.innerWidth / KIOSK_BASE_WIDTH, window.innerHeight / KIOSK_BASE_HEIGHT)
+    : 1;
+  document.documentElement.style.setProperty("--kiosk-scale", scale.toFixed(4));
 }
 
 function syncKioskLeftColumnSizing() {
   const leftPanel = document.querySelector(".planner-page .side-panel:not(.side-panel-right)");
   if (!leftPanel) return;
 
-  if (window.matchMedia("(max-width: 899px)").matches) {
+  if (window.matchMedia(`(max-width: ${KIOSK_BREAKPOINT - 1}px)`).matches) {
     leftPanel.style.removeProperty("--left-notes-max");
     return;
   }
@@ -383,4 +572,12 @@ function formatEventTimeRange(entry, allDayFallback = true) {
     return entry.start_time.slice(0, 5);
   }
   return allDayFallback ? "Hele dagen" : "";
+}
+
+function formatEventStart(entry) {
+  return entry.start_time ? `Start ${entry.start_time.slice(0, 5)}` : "";
+}
+
+function formatEventEnd(entry) {
+  return entry.end_time ? `Slutt ${entry.end_time.slice(0, 5)}` : "";
 }

@@ -7,6 +7,33 @@ namespace FamilyPlanner.UiTests;
 public sealed class FamilyWorkflowTests : DesktopPlannerUiTestBase
 {
     [Test]
+    public async Task FamilyAvatar_LongPressTouchDrag_OpensEventModalWithOwnerAndDate()
+    {
+        var family = await GetApiAsync<List<FamilyMemberDto>>("/api/family") ?? [];
+        var anna = family.Single(x => x.Name == "Anna");
+        var targetDate = await Page.Locator(".day-box[data-day='1']").GetAttributeAsync("data-date")
+            ?? throw new AssertionException("Target day date was missing.");
+
+        await LongPressFamilyMemberToDayAsync("Anna", 1);
+
+        await WaitForModalStateAsync("eventModal", open: true);
+        await Expect(Page.Locator("#eventDate")).ToHaveValueAsync(targetDate);
+        await Expect(Page.Locator("#eventOwner")).ToHaveValueAsync(anna.Id.ToString());
+        await Page.GetByRole(Microsoft.Playwright.AriaRole.Button, new() { Name = "Avbryt", Exact = true }).First.ClickAsync();
+        await WaitForModalStateAsync("eventModal", open: false);
+
+        await Page.WaitForFunctionAsync(
+            @"name => {
+                const avatar = Array.from(document.querySelectorAll('.family-avatar'))
+                    .find((element) => element.textContent && element.textContent.includes(name));
+                return !!avatar && avatar.dataset.suppressClick !== 'true';
+            }",
+            "Anna");
+        await Page.Locator(".family-avatar", new() { HasTextString = "Anna" }).ClickAsync();
+        await WaitForModalStateAsync("profileModal", open: true);
+    }
+
+    [Test]
     public async Task FamilyCrud_ProfileAndDragToEvent_PersistCorrectly()
     {
         var avatarPath = Path.Combine(UiTestHost.RepositoryRoot, "wwwroot", "pwa", "icon-72.png");

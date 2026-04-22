@@ -13,10 +13,10 @@ public sealed class MealWorkflowTests : DesktopPlannerUiTestBase
         var annaId = family.Single(x => x.Name == "Anna").Id;
 
         await OpenModalBySelectorAsync(".quick-action:has-text('Måltid')", "mealModal");
-        await Page.Locator("#mealDay").SelectOptionAsync("2");
-        await Page.Locator("#mealType").SelectOptionAsync("breakfast");
+        await SelectCustomOptionAsync("mealDay", "2");
+        await SelectCustomOptionAsync("mealType", "breakfast");
         await Page.Locator("#mealName").FillAsync("Pancakes");
-        await Page.Locator("#mealOwner").SelectOptionAsync(annaId.ToString());
+        await SelectCustomOptionAsync("mealOwner", annaId.ToString());
         await Page.Locator("#mealNote").FillAsync("Oats and milk");
         await Page.Locator("#mealModal .btn-primary").ClickAsync();
         await WaitForModalStateAsync("mealModal", open: false);
@@ -27,6 +27,9 @@ public sealed class MealWorkflowTests : DesktopPlannerUiTestBase
         var createdMeal = createdMeals.Single(x => x.Meal == "Pancakes");
 
         await Page.Locator(".meal-entry", new() { HasTextString = "Pancakes" }).ClickAsync();
+        await WaitForModalStateAsync("entryViewModal", open: true);
+        await Expect(Page.Locator("#entryViewContent")).ToContainTextAsync("Oats and milk");
+        await Page.Locator("#entryViewModal .btn-primary").ClickAsync();
         await WaitForModalStateAsync("mealModal", open: true);
         await Page.Locator("#mealName").FillAsync("Wholegrain pancakes");
         await Page.Locator("#mealNote").FillAsync("Oats, milk and berries");
@@ -40,9 +43,9 @@ public sealed class MealWorkflowTests : DesktopPlannerUiTestBase
 
         var mealCard = Page.Locator(".meal-entry", new() { HasTextString = "Wholegrain pancakes" });
         await mealCard.ClickAsync();
-        await WaitForModalStateAsync("mealModal", open: true);
-        await Page.Locator("#deleteMealBtn").ClickAsync();
-        await WaitForModalStateAsync("mealModal", open: false);
+        await WaitForModalStateAsync("entryViewModal", open: true);
+        await Page.Locator("#entryViewModal .btn-danger").ClickAsync();
+        await WaitForModalStateAsync("entryViewModal", open: false);
 
         await Expect(Page.Locator(".meal-entry", new() { HasTextString = "Wholegrain pancakes" })).ToHaveCountAsync(0);
         var finalMeals = await GetApiAsync<List<MealPlanDto>>("/api/meals") ?? [];

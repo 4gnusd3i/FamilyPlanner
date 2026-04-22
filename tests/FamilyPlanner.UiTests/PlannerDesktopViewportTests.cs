@@ -4,6 +4,7 @@ using static Microsoft.Playwright.Assertions;
 namespace FamilyPlanner.UiTests;
 
 [TestFixture(1366, 768)]
+[TestFixture(1180, 820)]
 [TestFixture(1920, 1080)]
 [TestFixture(2560, 1440)]
 public sealed class PlannerDesktopViewportTests : PlannerUiTestBase
@@ -61,6 +62,7 @@ public sealed class PlannerDesktopViewportTests : PlannerUiTestBase
                     .map((item) => item.getBoundingClientRect().height);
                 const familyShellHeights = Array.from(document.querySelectorAll('.family-avatar-shell'))
                     .map((item) => item.getBoundingClientRect().height);
+                const kioskScale = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--kiosk-scale'));
                 return [
                     document.documentElement.scrollWidth,
                     window.innerWidth,
@@ -80,7 +82,8 @@ public sealed class PlannerDesktopViewportTests : PlannerUiTestBase
                     familyStyles.boxShadow === 'none' ? 1 : 0,
                     familyStyles.backgroundColor === 'rgba(0, 0, 0, 0)' ? 1 : 0,
                     Math.max(...actionHeights),
-                    Math.max(...familyShellHeights)
+                    Math.max(...familyShellHeights),
+                    kioskScale
                 ];
             }");
 
@@ -98,8 +101,8 @@ public sealed class PlannerDesktopViewportTests : PlannerUiTestBase
             Assert.That(layout[14], Is.EqualTo(1d), "Quick actions should stay visually lightweight in kiosk mode.");
             Assert.That(layout[15], Is.EqualTo(1d), "Family row should not regain a card shadow in kiosk mode.");
             Assert.That(layout[16], Is.EqualTo(1d), "Family row should stay transparent in kiosk mode.");
-            Assert.That(layout[17], Is.LessThanOrEqualTo(56d), "Quick actions should stay compact on desktop kiosk viewports.");
-            Assert.That(layout[18], Is.LessThanOrEqualTo(52d), "Avatar row should stay compact on desktop kiosk viewports.");
+            Assert.That(layout[17], Is.InRange((52d * layout[19]) - 4d, (52d * layout[19]) + 4d), "Quick actions should scale uniformly from the kiosk baseline.");
+            Assert.That(layout[18], Is.InRange((52d * layout[19]) - 4d, (52d * layout[19]) + 4d), "Avatar row should scale uniformly from the kiosk baseline.");
         });
     }
 
@@ -140,7 +143,7 @@ public sealed class PlannerDesktopViewportTests : PlannerUiTestBase
                 const longEvent = Array.from(dayContent.querySelectorAll('.event-item'))
                     .find((item) => item.textContent.includes('Ekstra lang avtaletittel'));
                 const title = longEvent.querySelector('.event-title');
-                const description = longEvent.querySelector('.event-description');
+                const more = longEvent.querySelector('.event-more');
                 const allEventsFitDay = Array.from(dayContent.querySelectorAll('.event-item')).every((item) => {
                     const itemRect = rect(item);
                     return itemRect.left >= dayRect.left - 1 &&
@@ -169,7 +172,7 @@ public sealed class PlannerDesktopViewportTests : PlannerUiTestBase
                     dayContent.scrollHeight > dayContent.clientHeight ? 1 : 0,
                     allEventsFitDay ? 1 : 0,
                     title.scrollWidth > title.clientWidth ? 1 : 0,
-                    description.scrollHeight > description.clientHeight ? 1 : 0,
+                    more.textContent.trim() === 'Vis mer...' ? 1 : 0,
                     mealsFit ? 1 : 0,
                     meals.bottom,
                     family.top
@@ -190,7 +193,7 @@ public sealed class PlannerDesktopViewportTests : PlannerUiTestBase
             Assert.That(layout[10], Is.EqualTo(1d), "Dense calendar days should use internal scrolling.");
             Assert.That(layout[11], Is.EqualTo(1d), "Calendar event cards should stay within their day column.");
             Assert.That(layout[12], Is.EqualTo(1d), "Long desktop event titles should ellipsize inside the card.");
-            Assert.That(layout[13], Is.EqualTo(1d), "Long desktop event descriptions should clamp inside the card.");
+            Assert.That(layout[13], Is.EqualTo(1d), "Desktop events with notes should show the summary hint instead of inline descriptions.");
             Assert.That(layout[14], Is.EqualTo(1d), "Meal cards should stay contained in the meal row.");
             Assert.That(layout[15], Is.LessThanOrEqualTo(layout[16] + 1d), "Meal row should stay above the family row.");
         });

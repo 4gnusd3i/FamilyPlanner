@@ -62,9 +62,23 @@ public sealed class RecurrenceApiTests
                 ["event_date"] = now.ToString("yyyy-MM-dd"),
                 ["start_time"] = now.AddMinutes(20).ToString("HH:mm"),
                 ["end_time"] = now.AddMinutes(50).ToString("HH:mm"),
-                ["recurrence_type"] = "weekly",
+                ["recurrence_type"] = "daily",
+                ["recurrence_until"] = now.Date.AddDays(2).ToString("yyyy-MM-dd"),
             }));
         recurringResponse.EnsureSuccessStatusCode();
+
+        using var advancedRecurringResponse = await client.PostAsync(
+            "/api/events",
+            new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["title"] = "Tidlig serie",
+                ["event_date"] = now.Date.AddDays(-1).ToString("yyyy-MM-dd"),
+                ["start_time"] = "00:00",
+                ["end_time"] = "00:01",
+                ["recurrence_type"] = "daily",
+                ["recurrence_until"] = now.Date.AddDays(2).ToString("yyyy-MM-dd"),
+            }));
+        advancedRecurringResponse.EnsureSuccessStatusCode();
 
         using var untimedResponse = await client.PostAsync(
             "/api/events",
@@ -89,6 +103,8 @@ public sealed class RecurrenceApiTests
         Assert.Multiple(() =>
         {
             Assert.That(upcoming.Any(x => x.Title == "Hent barn" && x.SourceType == "recurring"), Is.True);
+            Assert.That(upcoming.Count(x => x.Title == "Hent barn" && x.SourceType == "recurring"), Is.EqualTo(1));
+            Assert.That(upcoming.Single(x => x.Title == "Tidlig serie" && x.SourceType == "recurring").EventDate, Is.EqualTo(now.Date.AddDays(1).ToString("yyyy-MM-dd")));
             Assert.That(upcoming.Any(x => x.Title == "Same-day untimed"), Is.True);
             Assert.That(upcoming.Any(x => x.Title == "Outside upcoming window"), Is.False);
             Assert.That(upcoming.Any(x => x.SourceType == "birthday" && x.Title == "Anna har bursdag"), Is.True);

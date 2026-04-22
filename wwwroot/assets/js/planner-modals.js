@@ -5,7 +5,173 @@ function updateOwnerSelects() {
   ["eventOwner", "mealOwner", "noteOwner", "shoppingOwner", "expenseOwner"].forEach((id) => {
     const element = document.getElementById(id);
     if (element) element.innerHTML = options;
+    refreshCustomSelect(id);
   });
+}
+
+function initCustomSelects() {
+  CUSTOM_SELECT_IDS.forEach((id) => {
+    const select = document.getElementById(id);
+    if (!select || select.dataset.customSelectBound === "true") return;
+
+    select.dataset.customSelectBound = "true";
+    select.classList.add("custom-select-source");
+    select.setAttribute("aria-hidden", "true");
+    select.tabIndex = -1;
+
+    const root = document.createElement("div");
+    root.className = "custom-select";
+    root.dataset.selectId = id;
+    root.innerHTML = `
+      <button type="button" class="custom-select-trigger" aria-haspopup="listbox" aria-expanded="false"></button>
+      <div class="custom-select-menu" role="listbox" hidden></div>`;
+    select.insertAdjacentElement("afterend", root);
+
+    root.querySelector(".custom-select-trigger").addEventListener("click", () => toggleCustomSelect(id));
+    root.querySelector(".custom-select-trigger").addEventListener("keydown", (event) => handleCustomSelectTriggerKey(id, event));
+    select.addEventListener("change", () => syncCustomSelect(id));
+    refreshCustomSelect(id);
+  });
+
+  if (document.documentElement.dataset.customSelectDocumentBound === "true") return;
+  document.documentElement.dataset.customSelectDocumentBound = "true";
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest(".custom-select")) closeCustomSelects();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeCustomSelects();
+  });
+}
+
+function refreshCustomSelect(id) {
+  const select = document.getElementById(id);
+  const root = getCustomSelectRoot(id);
+  if (!select || !root) return;
+
+  const menu = root.querySelector(".custom-select-menu");
+  menu.innerHTML = Array.from(select.options).map((option) => `
+    <button
+      type="button"
+      class="custom-select-option"
+      role="option"
+      data-value="${escapeHtml(option.value)}"
+      aria-selected="${option.selected ? "true" : "false"}"
+    >${escapeHtml(option.textContent || "")}</button>`).join("");
+
+  menu.querySelectorAll(".custom-select-option").forEach((option) => {
+    option.addEventListener("click", () => selectCustomOption(id, option.dataset.value ?? ""));
+    option.addEventListener("keydown", (event) => handleCustomSelectOptionKey(id, event));
+  });
+  syncCustomSelect(id);
+}
+
+function syncCustomSelect(id) {
+  const select = document.getElementById(id);
+  const root = getCustomSelectRoot(id);
+  if (!select || !root) return;
+
+  const selected = select.options[select.selectedIndex];
+  const trigger = root.querySelector(".custom-select-trigger");
+  trigger.textContent = selected?.textContent || "";
+  root.querySelectorAll(".custom-select-option").forEach((option) => {
+    option.setAttribute("aria-selected", option.dataset.value === select.value ? "true" : "false");
+  });
+}
+
+function syncAllCustomSelects() {
+  CUSTOM_SELECT_IDS.forEach(syncCustomSelect);
+}
+
+function setSelectValue(id, value) {
+  const select = document.getElementById(id);
+  if (!select) return;
+  select.value = value ?? "";
+  select.dispatchEvent(new Event("change", { bubbles: true }));
+  syncCustomSelect(id);
+}
+
+function toggleCustomSelect(id) {
+  const root = getCustomSelectRoot(id);
+  if (!root) return;
+  const menu = root.querySelector(".custom-select-menu");
+  const willOpen = menu.hidden;
+  closeCustomSelects(id);
+  if (!willOpen) return;
+
+  menu.hidden = false;
+  root.classList.add("is-open");
+  positionCustomSelectMenu(root);
+  root.querySelector(".custom-select-trigger").setAttribute("aria-expanded", "true");
+  const selected = menu.querySelector('[aria-selected="true"]') || menu.querySelector(".custom-select-option");
+  selected?.focus();
+}
+
+function closeCustomSelects(exceptId = null) {
+  document.querySelectorAll(".custom-select").forEach((root) => {
+    if (exceptId && root.dataset.selectId === exceptId) return;
+    root.classList.remove("is-open");
+    root.classList.remove("open-up");
+    root.style.removeProperty("--custom-select-max-height");
+    root.querySelector(".custom-select-menu").hidden = true;
+    root.querySelector(".custom-select-trigger").setAttribute("aria-expanded", "false");
+  });
+}
+
+function positionCustomSelectMenu(root) {
+  const trigger = root.querySelector(".custom-select-trigger");
+  if (!trigger) return;
+
+  const rect = trigger.getBoundingClientRect();
+  const viewportPadding = 16;
+  const spaceBelow = window.innerHeight - rect.bottom - viewportPadding;
+  const spaceAbove = rect.top - viewportPadding;
+  const openUp = spaceBelow < 160 && spaceAbove > spaceBelow;
+  const available = Math.max(120, Math.min(224, (openUp ? spaceAbove : spaceBelow) - 8));
+
+  root.classList.toggle("open-up", openUp);
+  root.style.setProperty("--custom-select-max-height", `${available}px`);
+}
+
+function selectCustomOption(id, value) {
+  const select = document.getElementById(id);
+  const root = getCustomSelectRoot(id);
+  if (!select || !root) return;
+  select.value = value;
+  select.dispatchEvent(new Event("change", { bubbles: true }));
+  syncCustomSelect(id);
+  closeCustomSelects();
+  root.querySelector(".custom-select-trigger").focus();
+}
+
+function handleCustomSelectTriggerKey(id, event) {
+  if (event.key !== "ArrowDown" && event.key !== "Enter" && event.key !== " ") return;
+  event.preventDefault();
+  toggleCustomSelect(id);
+}
+
+function handleCustomSelectOptionKey(id, event) {
+  const options = Array.from(getCustomSelectRoot(id)?.querySelectorAll(".custom-select-option") || []);
+  const currentIndex = options.indexOf(event.currentTarget);
+  if (event.key === "ArrowDown") {
+    event.preventDefault();
+    options[Math.min(currentIndex + 1, options.length - 1)]?.focus();
+  } else if (event.key === "ArrowUp") {
+    event.preventDefault();
+    options[Math.max(currentIndex - 1, 0)]?.focus();
+  } else if (event.key === "Home") {
+    event.preventDefault();
+    options[0]?.focus();
+  } else if (event.key === "End") {
+    event.preventDefault();
+    options[options.length - 1]?.focus();
+  } else if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    selectCustomOption(id, event.currentTarget.dataset.value ?? "");
+  }
+}
+
+function getCustomSelectRoot(id) {
+  return document.querySelector(`.custom-select[data-select-id='${id}']`);
 }
 
 function initColorOptions() {
@@ -149,9 +315,9 @@ function openEventModal(event = null, date = null, ownerId = null) {
     setTimeInputValue(startInput, event.start_time || "");
     setTimeInputValue(endInput, event.end_time || "");
     applyEventTimeDefaults(startInput, endInput);
-    recurrenceType.value = event.recurrence_type || "";
+    setSelectValue("eventRecurrenceType", event.recurrence_type || "");
     recurrenceUntil.value = event.recurrence_until || "";
-    document.getElementById("eventOwner").value = event.owner_id || "";
+    setSelectValue("eventOwner", event.owner_id || "");
     document.getElementById("eventNote").value = event.note || "";
   } else {
     document.getElementById("eventModalTitle").textContent = "Ny avtale";
@@ -161,12 +327,13 @@ function openEventModal(event = null, date = null, ownerId = null) {
     setTimeInputValue(startInput, "");
     setTimeInputValue(endInput, "");
     applyEventTimeDefaults(startInput, endInput);
-    recurrenceType.value = "";
+    setSelectValue("eventRecurrenceType", "");
     recurrenceUntil.value = "";
-    document.getElementById("eventOwner").value = ownerId || "";
+    setSelectValue("eventOwner", ownerId || "");
   }
   recurrenceUntil.disabled = recurrenceType.value === "";
   recurrenceUntil.hidden = recurrenceType.value === "";
+  syncAllCustomSelects();
   openModal("eventModal");
   requestAnimationFrame(() => applyEventTimeDefaults(startInput, endInput));
 }
@@ -174,26 +341,27 @@ function openEventModal(event = null, date = null, ownerId = null) {
 function openMealModal(day = null, mealId = null) {
   document.getElementById("mealForm").reset();
   document.getElementById("deleteMealBtn").style.display = "none";
-  document.getElementById("mealDay").value = day ?? normalizeWeekday(new Date());
-  document.getElementById("mealType").value = "dinner";
+  setSelectValue("mealDay", day ?? normalizeWeekday(new Date()));
+  setSelectValue("mealType", "dinner");
   if (mealId) {
     const meal = mealsCache.find((item) => item.id === mealId);
     if (meal) {
       document.getElementById("mealId").value = meal.id;
-      document.getElementById("mealDay").value = meal.day_of_week;
-      document.getElementById("mealType").value = meal.meal_type || "dinner";
+      setSelectValue("mealDay", meal.day_of_week);
+      setSelectValue("mealType", meal.meal_type || "dinner");
       document.getElementById("mealName").value = meal.meal || "";
-      document.getElementById("mealOwner").value = meal.owner_id || "";
+      setSelectValue("mealOwner", meal.owner_id || "");
       document.getElementById("mealNote").value = meal.note || "";
       document.getElementById("deleteMealBtn").style.display = "block";
     }
   }
+  syncAllCustomSelects();
   openModal("mealModal");
 }
 
 function openMealModalForType(day, mealType) {
   openMealModal(day, null);
-  document.getElementById("mealType").value = mealType;
+  setSelectValue("mealType", mealType);
 }
 
 function openBudgetModal() {
@@ -201,7 +369,10 @@ function openBudgetModal() {
     button.classList.toggle("active", button.dataset.tab === "expense");
   });
   showBudgetTab("expense");
+  document.getElementById("expenseForm").reset();
   document.getElementById("expenseDate").value = formatDate(new Date());
+  setSelectValue("expenseOwner", "");
+  syncAllCustomSelects();
   openModal("budgetModal");
 }
 
@@ -211,41 +382,16 @@ function openNoteModal(note = null) {
   if (note) {
     document.getElementById("noteId").value = note.id || "";
     document.getElementById("noteTitle").value = note.title || "";
-    document.getElementById("noteOwner").value = note.owner_id || "";
+    setSelectValue("noteOwner", note.owner_id || "");
     document.getElementById("noteContent").value = note.content || "";
     document.getElementById("deleteNoteBtn").style.display = "block";
   }
+  syncAllCustomSelects();
   openModal("noteModal");
 }
 
 function viewNote(note) {
-  if (!note) return;
-  currentViewNote = note;
-  const owner = familyMembers.find((member) => member.id === note.owner_id);
-  const ownerAvatar = owner ? getMemberAvatar(owner, "small") : "";
-  const ownerName = owner ? owner.name : "Ingen";
-  document.getElementById("noteViewTitle").textContent = note.title;
-  document.getElementById("noteViewContent").innerHTML = `
-    <div class="view-field"><div class="view-label">Ansvarlig</div>${ownerAvatar} ${escapeHtml(ownerName)}</div>
-    <div class="view-field view-content-text"><div class="view-label">Innhold</div><div style="white-space:pre-wrap">${note.content ? escapeHtml(note.content) : "-"}</div></div>`;
-  openModal("noteViewModal");
-}
-
-function editNoteFromView() {
-  if (!currentViewNote) return;
-  closeModal("noteViewModal");
-  openNoteModal(currentViewNote);
-}
-
-async function deleteNoteFromView() {
-  if (!currentViewNote) return;
-  await apiFetch("/api/notes", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ delete: true, id: currentViewNote.id }),
-  });
-  closeModal("noteViewModal");
-  await loadNotes();
+  openEntryView("note", note);
 }
 
 function openShoppingModal(item = null) {
@@ -256,8 +402,9 @@ function openShoppingModal(item = null) {
     document.getElementById("shoppingId").value = item.id || "";
     document.getElementById("shoppingItem").value = item.item || "";
     document.getElementById("shoppingQty").value = item.quantity || 1;
-    document.getElementById("shoppingOwner").value = item.owner_id || "";
+    setSelectValue("shoppingOwner", item.owner_id || "");
   }
+  syncAllCustomSelects();
   openModal("shoppingModal");
 }
 
@@ -309,10 +456,12 @@ function editProfileFromModal() {
 }
 
 function openModal(id) {
+  syncAllCustomSelects();
   document.getElementById(id).classList.add("active");
 }
 
 function closeModal(id) {
+  closeCustomSelects();
   document.getElementById(id).classList.remove("active");
 }
 
@@ -325,4 +474,146 @@ function showBudgetTab(tab, event) {
   document.getElementById("budgetForm").style.display = tab === "limit" ? "block" : "none";
   document.getElementById("expenseHistory").style.display = tab === "history" ? "block" : "none";
   if (tab === "history") loadExpenseHistory().catch(handleError);
+}
+
+function openEntryView(type, item) {
+  if (!item) return;
+  currentViewEntry = { type, item };
+  const title = getEntryViewTitle(type, item);
+  document.getElementById("entryViewTitle").textContent = title;
+  document.getElementById("entryViewContent").innerHTML = renderEntryViewFields(type, item);
+  openModal("entryViewModal");
+}
+
+function getEntryViewTitle(type, item) {
+  if (type === "event") return item.title || "Avtale";
+  if (type === "meal") return item.meal || "M\u00e5ltid";
+  if (type === "shopping") return item.item || "Vare";
+  return item.title || "Notat";
+}
+
+function renderEntryViewFields(type, item) {
+  if (type === "event") {
+    return renderViewFields([
+      { label: "Ansvarlig", html: renderOwnerInline(item.owner_id) },
+      { label: "Dato", value: formatShortDateText(item.event_date) },
+      { label: "Start", value: item.start_time?.slice(0, 5) },
+      { label: "Slutt", value: item.end_time?.slice(0, 5) },
+      { label: "Gjentas", value: formatRecurrenceText(item) },
+      { label: "Notat", value: item.note, wide: true },
+    ]);
+  }
+
+  if (type === "meal") {
+    return renderViewFields([
+      { label: "Dag", value: weekdayNames[item.day_of_week] },
+      { label: "Type", value: mealTypes.find((entry) => entry.key === item.meal_type)?.name },
+      { label: "Ansvarlig", html: renderOwnerInline(item.owner_id) },
+      { label: "Notat", value: item.note, wide: true },
+    ]);
+  }
+
+  if (type === "shopping") {
+    return renderViewFields([
+      { label: "Antall", value: String(item.quantity || 1) },
+      { label: "Ansvarlig", html: renderOwnerInline(item.owner_id) },
+      { label: "Status", value: item.done ? "Handlet" : "Ikke handlet" },
+    ]);
+  }
+
+  return renderViewFields([
+    { label: "Ansvarlig", html: renderOwnerInline(item.owner_id) },
+    { label: "Innhold", value: item.content, wide: true },
+  ]);
+}
+
+function renderViewFields(fields) {
+  return fields
+    .filter((field) => field.html || !isBlank(field.value))
+    .map((field) => {
+      const body = field.html || `<div class="view-value">${escapeHtml(field.value)}</div>`;
+      return `<div class="view-field ${field.wide ? "view-content-text" : ""}">
+        <div class="view-label">${escapeHtml(field.label)}</div>
+        ${body}
+      </div>`;
+    })
+    .join("");
+}
+
+function renderOwnerInline(ownerId) {
+  const owner = familyMembers.find((member) => member.id === ownerId);
+  if (!owner) return '<div class="view-value">Ingen</div>';
+  return `<div class="view-owner">${getMemberAvatar(owner, "small")}<span>${escapeHtml(owner.name)}</span></div>`;
+}
+
+function formatShortDateText(value) {
+  return value ? parseDate(value).toLocaleDateString("no-NO", { day: "numeric", month: "short", year: "numeric" }) : "";
+}
+
+function formatRecurrenceText(item) {
+  if (item.recurrence_type === "daily") return item.recurrence_until ? `Daglig til ${formatShortDateText(item.recurrence_until)}` : "Daglig";
+  if (item.recurrence_type === "weekly") return item.recurrence_until ? `Ukentlig til ${formatShortDateText(item.recurrence_until)}` : "Ukentlig";
+  return "";
+}
+
+function isBlank(value) {
+  return value === null || value === undefined || String(value).trim() === "";
+}
+
+function editEntryFromView() {
+  if (!currentViewEntry) return;
+  const { type, item } = currentViewEntry;
+  closeModal("entryViewModal");
+  if (type === "event") openEventModal(item);
+  else if (type === "meal") openMealModal(item.day_of_week, item.id);
+  else if (type === "shopping") openShoppingModal(item);
+  else openNoteModal(item);
+}
+
+async function deleteEntryFromView() {
+  if (!currentViewEntry) return;
+  const { type, item } = currentViewEntry;
+
+  if (type === "event") {
+    if (item.recurrence_type && !confirm("Slette hele den gjentakende serien?")) return;
+    await apiFetch("/api/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ delete: true, id: item.id }),
+    });
+    closeModal("entryViewModal");
+    await Promise.all([loadEvents(), loadUpcoming()]);
+    return;
+  }
+
+  if (type === "meal") {
+    await apiFetch("/api/meals", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ delete: true, id: item.id }),
+    });
+    closeModal("entryViewModal");
+    await loadMeals();
+    return;
+  }
+
+  if (type === "shopping") {
+    clearShoppingDeletion(item.id);
+    await apiFetch("/api/shopping", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ delete: true, id: item.id }),
+    });
+    closeModal("entryViewModal");
+    await loadShopping();
+    return;
+  }
+
+  await apiFetch("/api/notes", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ delete: true, id: item.id }),
+  });
+  closeModal("entryViewModal");
+  await loadNotes();
 }

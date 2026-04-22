@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using System.Text.RegularExpressions;
 using static Microsoft.Playwright.Assertions;
 
 namespace FamilyPlanner.UiTests;
@@ -41,6 +42,14 @@ public sealed class BudgetWorkflowTests : DesktopPlannerUiTestBase
         await Page.Locator("#expenseHistory").WaitForAsync();
         var expenseDelete = Page.Locator("#expenseList .shop-item", new() { HasTextString = "Movie night" }).Locator("button", new() { HasTextString = "Slett" });
         await Expect(expenseDelete).ToBeVisibleAsync();
+        await Expect(expenseDelete).ToHaveClassAsync(new Regex("btn-danger"));
+        var deleteStyle = await expenseDelete.EvaluateAsync<string[]>(
+            "button => [getComputedStyle(button).backgroundImage, getComputedStyle(button).color]");
+        Assert.Multiple(() =>
+        {
+            Assert.That(deleteStyle[0], Does.Contain("gradient"), "Budget history delete should use the global danger gradient.");
+            Assert.That(deleteStyle[1], Is.EqualTo("rgb(255, 255, 255)"), "Budget history delete text should be legible.");
+        });
         await expenseDelete.ClickAsync();
         await Page.Locator("#expenseList .shop-item", new() { HasTextString = "Movie night" }).WaitForAsync(new() { State = Microsoft.Playwright.WaitForSelectorState.Detached });
 

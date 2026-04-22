@@ -38,6 +38,10 @@ body.planner-page {
   --shadow: 0 22px 50px rgba(34, 49, 77, 0.1);
   --primary-rgb: var(--baby-pink-rgb);
   --secondary-rgb: var(--sky-blue-rgb);
+  --control-height: 44px;
+  --scroll-gutter: 0.55rem;
+  --kiosk-base-width: 1180px;
+  --kiosk-base-height: 820px;
   font-family: "Aptos", "Segoe UI", sans-serif;
   background:
     radial-gradient(circle at 4% 0%, rgba(var(--pastel-petal-rgb), 0.56), transparent 28rem),
@@ -106,6 +110,30 @@ body.planner-page {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgba(34, 49, 77, 0.62);
+}
+
+.planner-page .quick-action-title,
+.planner-page .family-name,
+.planner-page .event-owner-name,
+.planner-page .event-title,
+.planner-page .event-time,
+.planner-page .event-more,
+.planner-page .meal-text,
+.planner-page .meal-empty-text,
+.planner-page .upcoming-owner-name,
+.planner-page .upcoming-title,
+.planner-page .upcoming-time,
+.planner-page .item-name,
+.planner-page .shop-qty,
+.planner-page .expense-meta,
+.planner-page .expense-amount,
+.planner-page .budget-income span,
+.planner-page .budget-nums span,
+.planner-page .budget-remaining {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .planner-page .section-copy p,
@@ -177,6 +205,13 @@ body.planner-page {
   background: rgba(255, 255, 255, 0.65);
   color: var(--text);
   border: 1px solid rgba(var(--sky-blue-rgb), 0.28);
+}
+
+.planner-page .btn-danger {
+  background: linear-gradient(135deg, #7f2b34, var(--danger));
+  color: #fff;
+  border: 0;
+  box-shadow: 0 10px 22px rgba(127, 43, 52, 0.22);
 }
 
 .planner-page .status-banner {
@@ -255,6 +290,12 @@ body.planner-page {
   box-shadow: none;
   background: transparent;
   cursor: grab;
+  touch-action: none;
+}
+
+.planner-page.is-dragging-family,
+.planner-page.is-dragging-family * {
+  cursor: grabbing;
 }
 
 .planner-page .family-avatar-shell {
@@ -345,6 +386,11 @@ body.planner-page {
 .planner-page .card-content {
   max-height: none;
   gap: 0.55rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  padding-inline-end: var(--scroll-gutter);
+  box-sizing: border-box;
 }
 
 .planner-page .planner-surface {
@@ -482,6 +528,10 @@ body.planner-page {
 .planner-page .event-time {
   background: rgba(var(--icy-blue-rgb), 0.42);
   color: var(--rose-ink);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .planner-page .event-title {
@@ -489,9 +539,9 @@ body.planner-page {
   max-width: 100%;
 }
 
-.planner-page .event-description {
+.planner-page .event-more {
   color: var(--text-light);
-  line-height: 1.3;
+  line-height: 1.1;
 }
 
 .planner-page .meals-wrapper {
@@ -520,18 +570,14 @@ body.planner-page {
 .planner-page .expense-meta {
   color: var(--text-light);
   font-size: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .planner-page .expense-amount {
   font-weight: 700;
-}
-
-.planner-page .expense-delete-btn {
-  min-height: 36px;
-  min-width: 58px;
-  padding: 0.35rem 0.75rem;
-  color: white;
-  letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
 .planner-page .empty-inline {
@@ -572,11 +618,16 @@ body.planner-page {
 
 .planner-page .modal input,
 .planner-page .modal select,
-.planner-page .modal textarea {
+.planner-page .modal textarea,
+.planner-page .custom-select-trigger {
   margin-bottom: 0;
   border-radius: 16px;
   padding: 0.82rem 0.9rem;
   background: rgba(255, 255, 255, 0.82);
+}
+
+.planner-page .custom-select-trigger {
+  min-height: var(--control-height);
 }
 
 .planner-page .modal-btns {
@@ -594,14 +645,19 @@ body.planner-page {
 }
 
 /* Kiosk layout */
-@media (min-width: 900px) {
+@media (min-width: 1000px) {
   body.planner-page {
     overflow: hidden;
   }
 
   .planner-page .app-shell {
-    width: 100%;
-    height: 100svh;
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    width: var(--kiosk-base-width);
+    height: var(--kiosk-base-height);
+    max-width: none;
+    margin: 0;
     min-height: 0;
     display: grid;
     grid-template-areas:
@@ -611,6 +667,16 @@ body.planner-page {
     grid-template-rows: auto minmax(0, 1fr) auto;
     gap: 0.55rem;
     padding: 0.65rem;
+    overflow: hidden;
+    transform: translate(-50%, -50%) scale(var(--kiosk-scale, 1));
+    transform-origin: center center;
+  }
+
+  .planner-page .status-banner {
+    position: absolute;
+    inset: 0.65rem 0.65rem auto;
+    z-index: 20;
+    margin: 0;
   }
 
   .planner-page .quick-actions {
@@ -630,7 +696,7 @@ body.planner-page {
   }
 
   .planner-page .quick-action {
-    min-height: 44px;
+    min-height: 52px;
     padding: 0.48rem;
     border-radius: 16px;
   }
@@ -759,10 +825,11 @@ body.planner-page {
   }
 
   .planner-page .shopping-card .card-content,
-  .planner-page .notes-card:not(.is-empty) .card-content {
+  .planner-page .notes-card:not(.is-empty) .card-content,
+  .planner-page .upcoming-card .card-content {
     min-height: 72px;
-    scrollbar-gutter: stable both-edges;
-    padding-inline-end: 0.4rem;
+    scrollbar-gutter: stable;
+    padding-inline-end: var(--scroll-gutter);
     box-sizing: border-box;
   }
 
@@ -806,7 +873,7 @@ body.planner-page {
   .planner-page .week-nav-btn,
   .planner-page .btn,
   .planner-page .inline-action {
-    min-height: 44px;
+    min-height: 52px;
     padding: 0.52rem 0.8rem;
   }
 
@@ -881,10 +948,10 @@ body.planner-page {
   }
 
   .planner-page .family-avatar-shell {
-    width: 38px;
-    height: 38px;
-    min-width: 38px;
-    min-height: 38px;
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+    min-height: 52px;
     border-radius: 13px;
   }
 
@@ -894,7 +961,7 @@ body.planner-page {
 }
 
 /* Stacked layout */
-@media (max-width: 899px) {
+@media (max-width: 999px) {
   .planner-page .app-shell {
     padding: 0.8rem 0.8rem 1.2rem;
   }

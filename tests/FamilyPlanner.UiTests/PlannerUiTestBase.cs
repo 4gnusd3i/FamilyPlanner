@@ -21,6 +21,7 @@ public abstract class PlannerUiTestBase : PageTest
             BaseURL = UiTestHost.BaseUrl,
             ColorScheme = ColorScheme.Light,
             Locale = "nb-NO",
+            HasTouch = true,
             ViewportSize = new ViewportSize
             {
                 Width = ViewportWidth,
@@ -222,6 +223,93 @@ public abstract class PlannerUiTestBase : PageTest
                 source.dispatchEvent(new DragEvent('dragend', { bubbles: true, cancelable: true, dataTransfer }));
             }",
             new object[] { memberName, dayIndex });
+    }
+
+    protected async Task LongPressFamilyMemberToDayAsync(string memberName, int dayIndex)
+    {
+        var diagnostic = await Page.EvaluateAsync<string>(
+            @"async ([name, day]) => {
+                const source = Array.from(document.querySelectorAll('.family-avatar'))
+                    .find((element) => element.textContent && element.textContent.includes(name));
+                const target = document.querySelector(`.day-box[data-day='${day}']`);
+                if (!source || !target) {
+                    throw new Error('Could not locate touch drag source or target.');
+                }
+
+                const sourceRect = source.getBoundingClientRect();
+                const targetRect = target.getBoundingClientRect();
+                const touchId = 701;
+                const startX = sourceRect.left + (sourceRect.width / 2);
+                const startY = sourceRect.top + (sourceRect.height / 2);
+                const endX = targetRect.left + (targetRect.width / 2);
+                const endY = targetRect.top + Math.min(targetRect.height - 10, 80);
+                const createTouch = (targetElement, x, y) => new Touch({
+                    identifier: touchId,
+                    target: targetElement,
+                    clientX: x,
+                    clientY: y,
+                    screenX: x,
+                    screenY: y,
+                    radiusX: 4,
+                    radiusY: 4,
+                    force: 1
+                });
+
+                const startTouch = createTouch(source, startX, startY);
+                source.dispatchEvent(new TouchEvent('touchstart', {
+                    bubbles: true,
+                    cancelable: true,
+                    touches: [startTouch],
+                    targetTouches: [startTouch],
+                    changedTouches: [startTouch]
+                }));
+
+                await new Promise((resolve) => setTimeout(resolve, 430));
+
+                const moveTouch = createTouch(target, endX, endY);
+                document.dispatchEvent(new TouchEvent('touchmove', {
+                    bubbles: true,
+                    cancelable: true,
+                    touches: [moveTouch],
+                    targetTouches: [moveTouch],
+                    changedTouches: [moveTouch]
+                }));
+                document.dispatchEvent(new TouchEvent('touchend', {
+                    bubbles: true,
+                    cancelable: true,
+                    touches: [],
+                    targetTouches: [],
+                    changedTouches: [moveTouch]
+                }));
+
+                return JSON.stringify({
+                    modalOpen: document.getElementById('eventModal')?.classList.contains('active') === true,
+                    dragBound: source.dataset.dragBound || '',
+                    longPressActive: source.dataset.longPressActive || '',
+                    bodyDragging: document.body.classList.contains('is-dragging-family'),
+                    endpointClass: document.elementFromPoint(endX, endY)?.className || '',
+                    endpointDay: document.elementFromPoint(endX, endY)?.closest('.day-box')?.dataset.date || '',
+                    touchEventType: typeof TouchEvent,
+                    touchType: typeof Touch
+                });
+            }",
+            new object[] { memberName, dayIndex });
+
+        if (!diagnostic.Contains("\"modalOpen\":true", StringComparison.Ordinal))
+        {
+            throw new AssertionException($"Long-press touch drag did not open the event modal. Diagnostic: {diagnostic}");
+        }
+    }
+
+    protected async Task SelectCustomOptionAsync(string selectId, string value)
+    {
+        var root = Page.Locator($".custom-select[data-select-id='{selectId}']");
+        await Expect(root).ToBeVisibleAsync();
+        await root.Locator(".custom-select-trigger").ClickAsync();
+        var option = root.Locator($".custom-select-option[data-value='{value}']");
+        await Expect(option).ToBeVisibleAsync();
+        await option.ClickAsync();
+        await Expect(Page.Locator($"#{selectId}")).ToHaveValueAsync(value);
     }
 
     protected async Task AssertModalFitsViewportAsync(string modalId)

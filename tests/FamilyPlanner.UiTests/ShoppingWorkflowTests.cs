@@ -55,7 +55,10 @@ public sealed class ShoppingWorkflowTests : DesktopPlannerUiTestBase
         Assert.That(canceledItem.Done, Is.False);
         Assert.That(canceledItem.DoneAt, Is.Null);
 
-        await shoppingRow.Locator(".shop-name").ClickAsync();
+        await shoppingRow.ClickAsync();
+        await WaitForModalStateAsync("entryViewModal", open: true);
+        await Expect(Page.Locator("#entryViewContent")).ToContainTextAsync("Antall");
+        await Page.Locator("#entryViewModal .btn-primary").ClickAsync();
         await WaitForModalStateAsync("shoppingModal", open: true);
         await Expect(Page.Locator("#deleteShoppingBtn")).ToHaveCountAsync(0);
         await Page.Locator("#shoppingItem").FillAsync("Night diapers");
@@ -80,9 +83,11 @@ public sealed class ShoppingWorkflowTests : DesktopPlannerUiTestBase
         Assert.That(withExtraItem.Count, Is.EqualTo(3), "Adding a new shopping item should increase total list size.");
 
         var nightDiapersRow = Page.Locator(".shop-item", new() { HasTextString = "Night diapers" });
-        await nightDiapersRow.Locator(".shop-check").ClickAsync();
-        await Expect(nightDiapersRow).ToHaveClassAsync(new Regex("is-delete-pending"));
-        await Expect(nightDiapersRow).ToHaveCountAsync(0, new() { Timeout = 18_000 });
+        await nightDiapersRow.ClickAsync();
+        await WaitForModalStateAsync("entryViewModal", open: true);
+        await Page.Locator("#entryViewModal .btn-danger").ClickAsync();
+        await WaitForModalStateAsync("entryViewModal", open: false);
+        await Expect(nightDiapersRow).ToHaveCountAsync(0);
 
         var finalItems = await GetApiAsync<List<ShoppingItemDto>>("/api/shopping") ?? [];
         Assert.That(finalItems.Any(x => x.Id == createdItem.Id), Is.False);

@@ -40,8 +40,18 @@ public sealed partial class PlannerStore
             .Where(x => IsUpcomingEvent(x, now, windowEnd))
             .ToList();
 
+        var recurringEvents = ExpandRecurringEvents(fromDate, windowEnd)
+            .Where(x => IsUpcomingEvent(x, now, windowEnd))
+            .GroupBy(x => x.Id)
+            .Select(group => group
+                .OrderBy(x => x.EventDate)
+                .ThenBy(GetEventSortTime)
+                .ThenBy(x => x.Title)
+                .First())
+            .ToList();
+
         return directEvents
-            .Concat(ExpandRecurringEvents(fromDate, windowEnd).Where(x => IsUpcomingEvent(x, now, windowEnd)))
+            .Concat(recurringEvents)
             .Select(ApplyCurrentEventColor)
             .OrderBy(x => x.EventDate)
             .ThenBy(GetEventSortTime)

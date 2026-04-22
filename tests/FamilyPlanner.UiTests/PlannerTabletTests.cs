@@ -148,23 +148,26 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
                 const dayContent = day.querySelector('.day-content');
                 const owner = item.querySelector('.event-owner-line');
                 const title = item.querySelector('.event-title');
-                const time = item.querySelector('.event-time');
-                const description = item.querySelector('.event-description');
+                const start = item.querySelector('.event-start');
+                const more = item.querySelector('.event-more');
+                const end = item.querySelector('.event-end');
                 const itemRect = item.getBoundingClientRect();
                 const dayRect = day.getBoundingClientRect();
                 const titleRect = title.getBoundingClientRect();
-                const timeRect = time.getBoundingClientRect();
-                const descriptionRect = description.getBoundingClientRect();
+                const startRect = start.getBoundingClientRect();
+                const moreRect = more.getBoundingClientRect();
+                const endRect = end.getBoundingClientRect();
                 return [
                     itemRect.left - dayRect.left,
                     dayRect.right - itemRect.right,
                     owner.getBoundingClientRect().top,
                     titleRect.top,
-                    timeRect.top,
-                    descriptionRect.top,
+                    startRect.top,
+                    moreRect.top,
+                    endRect.top,
                     title.scrollWidth > title.clientWidth ? 1 : 0,
-                    description.scrollHeight > description.clientHeight ? 1 : 0,
-                    descriptionRect.right - itemRect.right,
+                    more.textContent.trim() === 'Vis mer...' ? 1 : 0,
+                    itemRect.right - moreRect.right,
                     dayContent.scrollHeight > dayContent.clientHeight ? 1 : 0
                 ];
             }");
@@ -174,12 +177,13 @@ public sealed class PlannerTabletTests : PlannerUiTestBase
             Assert.That(layout[0], Is.GreaterThanOrEqualTo(-1d), "Event item should not extend past the left edge of its day.");
             Assert.That(layout[1], Is.GreaterThanOrEqualTo(-1d), "Event item should not extend past the right edge of its day.");
             Assert.That(layout[2], Is.LessThan(layout[3]), "Owner line should render above the title line.");
-            Assert.That(layout[3], Is.LessThan(layout[4]), "Title line should render above the time line.");
-            Assert.That(layout[4], Is.LessThan(layout[5]), "Time line should render above the description line.");
-            Assert.That(layout[6], Is.EqualTo(1d), "Long event titles should ellipsize inside the event item.");
-            Assert.That(layout[7], Is.EqualTo(1d), "Long descriptions should clamp inside the event item.");
-            Assert.That(layout[8], Is.LessThanOrEqualTo(1d), "Event description should stay inside the event item.");
-            Assert.That(layout[9], Is.EqualTo(1d), "Dense calendar days should scroll internally instead of cutting entries.");
+            Assert.That(layout[3], Is.LessThan(layout[4]), "Title line should render above the start time line.");
+            Assert.That(layout[4], Is.LessThan(layout[5]), "Start time should render above the description hint.");
+            Assert.That(layout[5], Is.LessThan(layout[6]), "Description hint should render above the end time.");
+            Assert.That(layout[7], Is.EqualTo(1d), "Long event titles should ellipsize inside the event item.");
+            Assert.That(layout[8], Is.EqualTo(1d), "Events with notes should show the summary hint.");
+            Assert.That(layout[9], Is.GreaterThanOrEqualTo(-1d), "The summary hint should stay inside the event item.");
+            Assert.That(layout[10], Is.EqualTo(1d), "Dense calendar days should scroll internally instead of cutting entries.");
         });
     }
 

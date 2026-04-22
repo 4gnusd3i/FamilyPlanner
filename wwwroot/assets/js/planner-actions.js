@@ -264,14 +264,30 @@ function toNullableNumber(value) {
   return Number.isFinite(parsed) && value !== "" ? parsed : null;
 }
 
-function openEventModalFromJson(payload) {
-  openEventModal(decodePayload(payload));
+function viewEvent(event) {
+  openEntryView("event", event);
+}
+
+function viewEventFromJson(payload) {
+  viewEvent(decodePayload(payload));
+}
+
+function viewMeal(meal) {
+  openEntryView("meal", meal);
+}
+
+function viewMealFromJson(payload) {
+  viewMeal(decodePayload(payload));
 }
 
 function viewNoteFromJson(payload) {
   viewNote(decodePayload(payload));
 }
 
-function openShoppingModalFromJson(payload) {
-  openShoppingModal(decodePayload(payload));
+function viewShopping(item) {
+  openEntryView("shopping", item);
+}
+
+function viewShoppingFromJson(payload) {
+  viewShopping(decodePayload(payload));
 }

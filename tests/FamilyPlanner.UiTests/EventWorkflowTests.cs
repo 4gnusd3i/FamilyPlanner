@@ -66,7 +66,7 @@ public sealed class EventWorkflowTests : DesktopPlannerUiTestBase
         await Page.Locator("#eventDate").FillAsync(DateTime.Today.ToString("yyyy-MM-dd"));
         await Page.Locator("#eventStartTime").FillAsync("19:00");
         await Page.Locator("#eventEndTime").FillAsync("20:00");
-        await Page.Locator("#eventOwner").SelectOptionAsync(anna.Id.ToString());
+        await SelectCustomOptionAsync("eventOwner", anna.Id.ToString());
         await Page.Locator("#eventNote").FillAsync("Bring the schedule.");
         await Page.Locator("#eventModal .btn-primary").ClickAsync();
         await WaitForModalStateAsync("eventModal", open: false);
@@ -78,6 +78,9 @@ public sealed class EventWorkflowTests : DesktopPlannerUiTestBase
         Assert.That(createdEvent.Color, Is.EqualTo(anna.Color));
 
         await Page.Locator(".event-item", new() { HasTextString = "Parent meeting" }).ClickAsync();
+        await WaitForModalStateAsync("entryViewModal", open: true);
+        await Expect(Page.Locator("#entryViewContent")).ToContainTextAsync("Bring the schedule.");
+        await Page.Locator("#entryViewModal .btn-primary").ClickAsync();
         await WaitForModalStateAsync("eventModal", open: true);
         await Page.Locator("#eventTitle").FillAsync("Updated parent meeting");
         await Page.Locator("#eventNote").FillAsync("Room 3B.");
@@ -90,9 +93,9 @@ public sealed class EventWorkflowTests : DesktopPlannerUiTestBase
         Assert.That(updatedEvent.Note, Is.EqualTo("Room 3B."));
 
         await Page.Locator(".event-item", new() { HasTextString = "Updated parent meeting" }).ClickAsync();
-        await WaitForModalStateAsync("eventModal", open: true);
-        await Page.Locator("#deleteEventBtn").ClickAsync();
-        await WaitForModalStateAsync("eventModal", open: false);
+        await WaitForModalStateAsync("entryViewModal", open: true);
+        await Page.Locator("#entryViewModal .btn-danger").ClickAsync();
+        await WaitForModalStateAsync("entryViewModal", open: false);
 
         await Expect(Page.Locator(".event-item", new() { HasTextString = "Updated parent meeting" })).ToHaveCountAsync(0);
 
@@ -112,7 +115,7 @@ public sealed class EventWorkflowTests : DesktopPlannerUiTestBase
         await Page.Locator("#eventDate").FillAsync(DateTime.Today.ToString("yyyy-MM-dd"));
         await Page.Locator("#eventStartTime").FillAsync("18:00");
         await Page.Locator("#eventEndTime").FillAsync("18:45");
-        await Page.Locator("#eventRecurrenceType").SelectOptionAsync("daily");
+        await SelectCustomOptionAsync("eventRecurrenceType", "daily");
         await Page.Locator("#eventRecurrenceUntil").FillAsync(recurrenceEnd);
         await Page.Locator("#eventNote").FillAsync("Stuebordet.");
         await Page.Locator("#eventModal .btn-primary").ClickAsync();
@@ -128,6 +131,8 @@ public sealed class EventWorkflowTests : DesktopPlannerUiTestBase
         });
 
         await Page.Locator(".event-item", new() { HasTextString = "Lekser" }).Nth(1).ClickAsync();
+        await WaitForModalStateAsync("entryViewModal", open: true);
+        await Page.Locator("#entryViewModal .btn-primary").ClickAsync();
         await WaitForModalStateAsync("eventModal", open: true);
         await Expect(Page.Locator("#eventDate")).ToHaveValueAsync(DateTime.Today.ToString("yyyy-MM-dd"));
         await Page.Locator("#eventNote").FillAsync("Oppdatert serie.");
@@ -138,11 +143,11 @@ public sealed class EventWorkflowTests : DesktopPlannerUiTestBase
         Assert.That(updatedEvents.Where(x => x.Title == "Lekser").All(x => x.Note == "Oppdatert serie."), Is.True);
 
         await Page.Locator(".event-item", new() { HasTextString = "Lekser" }).First.ClickAsync();
-        await WaitForModalStateAsync("eventModal", open: true);
+        await WaitForModalStateAsync("entryViewModal", open: true);
         await AcceptDialogAsync(
-            () => Page.Locator("#deleteEventBtn").ClickAsync(),
+            () => Page.Locator("#entryViewModal .btn-danger").ClickAsync(),
             "gjentakende serien");
-        await WaitForModalStateAsync("eventModal", open: false);
+        await WaitForModalStateAsync("entryViewModal", open: false);
 
         var finalEvents = await GetApiAsync<List<PlannerEventDto>>($"/api/events?start={start}&end={end}") ?? [];
         Assert.That(finalEvents.Any(x => x.Title == "Lekser"), Is.False);
@@ -201,7 +206,8 @@ public sealed class EventWorkflowTests : DesktopPlannerUiTestBase
             ["event_date"] = now.Date.ToString("yyyy-MM-dd"),
             ["start_time"] = now.AddMinutes(20).ToString("HH:mm"),
             ["end_time"] = now.AddMinutes(40).ToString("HH:mm"),
-            ["recurrence_type"] = "weekly",
+            ["recurrence_type"] = "daily",
+            ["recurrence_until"] = now.Date.AddDays(2).ToString("yyyy-MM-dd"),
         });
 
         var upcomingEvents = await GetApiAsync<List<PlannerEventDto>>("/api/events?upcoming=1") ?? [];
@@ -213,6 +219,7 @@ public sealed class EventWorkflowTests : DesktopPlannerUiTestBase
             Assert.That(upcomingEvents.Any(x => x.Title == "Day after appointment"), Is.True);
             Assert.That(upcomingEvents.Any(x => x.Title == "Outside three day window"), Is.False);
             Assert.That(upcomingEvents.Any(x => x.Title == "Training pickup" && x.SourceType == "recurring"), Is.True);
+            Assert.That(upcomingEvents.Count(x => x.Title == "Training pickup" && x.SourceType == "recurring"), Is.EqualTo(1));
             Assert.That(
                 upcomingEvents.Any(x =>
                     x.SourceType == "birthday" &&

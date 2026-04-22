@@ -60,7 +60,7 @@ Run the suite:
 
 Current verified baseline:
 
-- `23 passed, 0 failed`
+- `37 passed, 0 failed`
 
 ## Project Layout
 

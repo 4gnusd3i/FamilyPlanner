@@ -366,25 +366,25 @@
       </div>
     </div>
 
-    <div class="modal-overlay" id="noteViewModal">
+    <div class="modal-overlay" id="entryViewModal">
       <div class="modal">
-        <h3 id="noteViewTitle">Notat</h3>
-        <div class="view-content" id="noteViewContent"></div>
+        <h3 id="entryViewTitle">Detaljer</h3>
+        <div class="view-content" id="entryViewContent"></div>
         <div class="modal-btns">
           <button
             type="button"
             class="btn-danger"
-            onclick="deleteNoteFromView()"
+            onclick="deleteEntryFromView()"
           >
             Slett
           </button>
-          <button type="button" onclick="closeModal('noteViewModal')">
+          <button type="button" onclick="closeModal('entryViewModal')">
             Lukk
           </button>
           <button
             type="button"
             class="btn-primary"
-            onclick="editNoteFromView()"
+            onclick="editEntryFromView()"
           >
             Rediger
           </button>
