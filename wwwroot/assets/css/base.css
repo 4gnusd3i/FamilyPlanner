@@ -43,8 +43,8 @@
   --kiosk-base-width: 1180px;
   --kiosk-base-height: 820px;
   --kiosk-scale: 1;
-  --kiosk-scale-x: 1;
-  --kiosk-scale-y: 1;
+  --kiosk-canvas-width: var(--kiosk-base-width);
+  --kiosk-canvas-height: var(--kiosk-base-height);
 }
 
 * {

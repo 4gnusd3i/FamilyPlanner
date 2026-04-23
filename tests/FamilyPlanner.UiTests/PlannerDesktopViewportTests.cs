@@ -65,8 +65,9 @@ public sealed class PlannerDesktopViewportTests : PlannerUiTestBase
                 const familyShellHeights = Array.from(document.querySelectorAll('.family-avatar-shell'))
                     .map((item) => item.getBoundingClientRect().height);
                 const rootStyles = getComputedStyle(document.documentElement);
-                const kioskScaleX = Number.parseFloat(rootStyles.getPropertyValue('--kiosk-scale-x'));
-                const kioskScaleY = Number.parseFloat(rootStyles.getPropertyValue('--kiosk-scale-y'));
+                const kioskScale = Number.parseFloat(rootStyles.getPropertyValue('--kiosk-scale'));
+                const canvasWidth = Number.parseFloat(rootStyles.getPropertyValue('--kiosk-canvas-width'));
+                const canvasHeight = Number.parseFloat(rootStyles.getPropertyValue('--kiosk-canvas-height'));
                 return [
                     document.documentElement.scrollWidth,
                     window.innerWidth,
@@ -87,8 +88,9 @@ public sealed class PlannerDesktopViewportTests : PlannerUiTestBase
                     familyStyles.backgroundColor === 'rgba(0, 0, 0, 0)' ? 1 : 0,
                     Math.max(...actionHeights),
                     Math.max(...familyShellHeights),
-                    kioskScaleX,
-                    kioskScaleY,
+                    kioskScale,
+                    canvasWidth,
+                    canvasHeight,
                     shell.left,
                     shell.top,
                     shell.width,
@@ -110,14 +112,15 @@ public sealed class PlannerDesktopViewportTests : PlannerUiTestBase
             Assert.That(layout[14], Is.EqualTo(1d), "Quick actions should stay visually lightweight in kiosk mode.");
             Assert.That(layout[15], Is.EqualTo(1d), "Family row should not regain a card shadow in kiosk mode.");
             Assert.That(layout[16], Is.EqualTo(1d), "Family row should stay transparent in kiosk mode.");
-            Assert.That(layout[17], Is.InRange((52d * layout[20]) - 4d, (52d * layout[20]) + 4d), "Quick actions should scale vertically from the kiosk baseline.");
-            Assert.That(layout[18], Is.InRange((52d * layout[20]) - 4d, (52d * layout[20]) + 4d), "Avatar row should scale vertically from the kiosk baseline.");
-            Assert.That(layout[19], Is.EqualTo((double)ViewportWidth / 1180d).Within(0.01d), "Kiosk width scale should be derived from the 1180px baseline.");
-            Assert.That(layout[20], Is.EqualTo((double)ViewportHeight / 820d).Within(0.01d), "Kiosk height scale should be derived from the 820px baseline.");
-            Assert.That(layout[21], Is.EqualTo(0d).Within(1.5d), "Kiosk shell should fill from the left viewport edge.");
-            Assert.That(layout[22], Is.EqualTo(0d).Within(1.5d), "Kiosk shell should fill from the top viewport edge.");
-            Assert.That(layout[23], Is.EqualTo(ViewportWidth).Within(2d), "Kiosk shell should fill the viewport width.");
-            Assert.That(layout[24], Is.EqualTo(ViewportHeight).Within(2d), "Kiosk shell should fill the viewport height.");
+            Assert.That(layout[17], Is.InRange((52d * layout[19]) - 4d, (52d * layout[19]) + 4d), "Quick actions should scale uniformly from the kiosk baseline.");
+            Assert.That(layout[18], Is.InRange((52d * layout[19]) - 4d, (52d * layout[19]) + 4d), "Avatar row should scale uniformly from the kiosk baseline.");
+            Assert.That(layout[19], Is.EqualTo(Math.Min((double)ViewportWidth / 1180d, (double)ViewportHeight / 820d)).Within(0.01d), "Kiosk scale should be uniform and derived from the limiting baseline axis.");
+            Assert.That(layout[20], Is.EqualTo(ViewportWidth / layout[19]).Within(1d), "Logical kiosk canvas width should expand to fill the viewport after uniform scaling.");
+            Assert.That(layout[21], Is.EqualTo(ViewportHeight / layout[19]).Within(1d), "Logical kiosk canvas height should expand to fill the viewport after uniform scaling.");
+            Assert.That(layout[22], Is.EqualTo(0d).Within(1.5d), "Kiosk shell should fill from the left viewport edge.");
+            Assert.That(layout[23], Is.EqualTo(0d).Within(1.5d), "Kiosk shell should fill from the top viewport edge.");
+            Assert.That(layout[24], Is.EqualTo(ViewportWidth).Within(2d), "Kiosk shell should fill the viewport width.");
+            Assert.That(layout[25], Is.EqualTo(ViewportHeight).Within(2d), "Kiosk shell should fill the viewport height.");
         });
     }
 

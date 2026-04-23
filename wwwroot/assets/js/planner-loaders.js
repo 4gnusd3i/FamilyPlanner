@@ -533,11 +533,15 @@ function scheduleKioskColumnSizing() {
 
 function syncKioskScale() {
   const isKiosk = window.innerWidth >= KIOSK_BREAKPOINT;
-  const scaleX = isKiosk ? window.innerWidth / KIOSK_BASE_WIDTH : 1;
-  const scaleY = isKiosk ? window.innerHeight / KIOSK_BASE_HEIGHT : 1;
-  document.documentElement.style.setProperty("--kiosk-scale", Math.min(scaleX, scaleY).toFixed(4));
-  document.documentElement.style.setProperty("--kiosk-scale-x", scaleX.toFixed(4));
-  document.documentElement.style.setProperty("--kiosk-scale-y", scaleY.toFixed(4));
+  const scale = isKiosk
+    ? Math.min(window.innerWidth / KIOSK_BASE_WIDTH, window.innerHeight / KIOSK_BASE_HEIGHT)
+    : 1;
+  const canvasWidth = isKiosk ? window.innerWidth / scale : KIOSK_BASE_WIDTH;
+  const canvasHeight = isKiosk ? window.innerHeight / scale : KIOSK_BASE_HEIGHT;
+
+  document.documentElement.style.setProperty("--kiosk-scale", scale.toFixed(4));
+  document.documentElement.style.setProperty("--kiosk-canvas-width", `${canvasWidth.toFixed(2)}px`);
+  document.documentElement.style.setProperty("--kiosk-canvas-height", `${canvasHeight.toFixed(2)}px`);
 }
 
 function syncKioskLeftColumnSizing() {
@@ -558,8 +562,9 @@ function syncKioskLeftColumnSizing() {
   const budgetHeight = budgetCard.offsetHeight;
   const panelStyles = getComputedStyle(leftPanel);
   const gap = Number.parseFloat(panelStyles.rowGap || panelStyles.gap || "0") || 0;
+  const shoppingMinimum = Number.parseFloat(panelStyles.getPropertyValue("--left-shopping-min")) || 0;
   const remainingAfterBudget = Math.max(0, panelHeight - budgetHeight - (gap * 2));
-  const notesMax = Math.max(0, remainingAfterBudget / 2);
+  const notesMax = Math.max(0, Math.min(remainingAfterBudget / 2, shoppingMinimum || remainingAfterBudget));
 
   const hasNoteItems = notesList.querySelector(".note-item") !== null;
   notesCard.classList.toggle("is-empty", !hasNoteItems);
