@@ -229,6 +229,68 @@ button {
   resize: vertical;
 }
 
+.file-input-native {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.file-input-shell {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  min-width: 0;
+  padding: 0.65rem 0.75rem;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.78);
+  transition: all 0.2s;
+}
+
+.file-input-shell:focus-within {
+  border-color: var(--sky-blue);
+  background: white;
+  box-shadow: 0 0 0 4px rgba(var(--sky-blue-rgb), 0.28);
+}
+
+.file-input-button {
+  flex-shrink: 0;
+  padding: 0.7rem 0.95rem;
+  border-radius: 10px;
+  border: 1px solid rgba(var(--sky-blue-rgb), 0.22);
+  background: linear-gradient(135deg, rgba(var(--thistle-rgb), 0.26), rgba(var(--sky-blue-rgb), 0.16));
+  color: var(--blue-ink);
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.file-input-button:hover {
+  transform: translateY(-1px);
+}
+
+.file-input-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.file-input-name.is-placeholder {
+  color: var(--text-light);
+}
+
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus,
@@ -1333,6 +1395,23 @@ header h1 {
   margin-bottom: 0.75rem;
 }
 
+.avatar-file-field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.file-input-caption {
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 .avatar-preview {
   width: 70px;
   height: 70px;
@@ -1526,6 +1605,11 @@ header h1 {
   .form-row,
   .modal-btns {
     flex-direction: column;
+  }
+
+  .file-input-shell {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .auth-card {

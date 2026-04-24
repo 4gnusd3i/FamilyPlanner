@@ -225,7 +225,7 @@ public sealed class PlannerDesktopViewportTests : PlannerUiTestBase
 
         await PostFormAsync("/api/events", new Dictionary<string, string>
         {
-            ["title"] = "Ekstra lang avtaletittel som skal kuttes rent uten aa stikke ut av kalenderdagen",
+            ["title"] = "Ekstra lang avtaletittel som skal kuttes rent uten å stikke ut av kalenderdagen",
             ["event_date"] = today,
             ["start_time"] = "17:10",
             ["end_time"] = "18:40",

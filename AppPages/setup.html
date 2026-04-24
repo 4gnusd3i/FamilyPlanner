@@ -1,57 +1,77 @@
 <!DOCTYPE html>
-<html lang="no">
+<html lang="{{meta.html_lang}}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oppsett - FamilyPlanner</title>
+    <title>{{meta.setup_title}}</title>
     <link rel="stylesheet" href="/assets/css/base.css">
 </head>
 <body class="auth-page" data-auth-page="setup">
     <div class="auth-shell">
         <div class="auth-card auth-card-wide">
             <div class="auth-logo">🏠</div>
-            <h1>Sett opp FamilyPlanner</h1>
-            <p class="auth-subtitle">Engangsoppsett for familienavn og første medlem.</p>
+            <h1>{{setup.heading}}</h1>
+            <p class="auth-subtitle">{{setup.subtitle}}</p>
             <div class="auth-error" id="setupMessage" hidden></div>
 
             <form method="post" action="/setup" class="auth-form setup-form" enctype="multipart/form-data">
                 <div class="form-group">
-                    <label for="family_name">Familienavn</label>
-                    <input id="family_name" name="family_name" type="text" required placeholder="Familien Hansen" autocomplete="off">
+                    <label for="family_name">{{setup.family_name_label}}</label>
+                    <input id="family_name" name="family_name" type="text" required placeholder="{{setup.family_name_placeholder}}" autocomplete="off">
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="first_member_name">Første medlem</label>
-                        <input id="first_member_name" name="first_member_name" type="text" required placeholder="Navn" autocomplete="off">
+                        <label for="first_member_name">{{setup.first_member_name_label}}</label>
+                        <input id="first_member_name" name="first_member_name" type="text" required placeholder="{{setup.first_member_name_placeholder}}" autocomplete="off">
                     </div>
                     <div class="form-group">
-                        <label for="first_member_birthday">Fødselsdato</label>
+                        <label for="first_member_birthday">{{setup.first_member_birthday_label}}</label>
                         <input id="first_member_birthday" name="first_member_birthday" type="date">
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="first_member_bio">Kort info</label>
-                    <input id="first_member_bio" name="first_member_bio" type="text" placeholder="Valgfritt">
+                    <label for="first_member_bio">{{setup.short_info_label}}</label>
+                    <input id="first_member_bio" name="first_member_bio" type="text" placeholder="{{setup.optional_placeholder}}">
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="first_member_color">Farge</label>
+                        <label for="first_member_color">{{setup.color_label}}</label>
                         <input id="first_member_color" name="first_member_color" type="color" value="#ffafcc">
                     </div>
                     <div class="form-group">
-                        <label for="first_member_avatar">Avatar</label>
-                        <input id="first_member_avatar" name="first_member_avatar" type="file" accept="image/*">
+                        <label for="first_member_avatar">{{setup.profile_image_label}}</label>
+                        <div class="file-input-shell">
+                            <input
+                                id="first_member_avatar"
+                                name="first_member_avatar"
+                                type="file"
+                                accept="image/*"
+                                class="file-input-native"
+                                data-file-name="firstMemberAvatarName"
+                                data-empty-text="{{file_input.no_file_selected}}"
+                                aria-describedby="firstMemberAvatarName">
+                            <button
+                                type="button"
+                                class="file-input-button"
+                                onclick="document.getElementById('first_member_avatar').click()">
+                                {{file_input.choose_image}}
+                            </button>
+                            <span class="file-input-name is-placeholder" id="firstMemberAvatarName" aria-live="polite">{{file_input.no_file_selected}}</span>
+                        </div>
                     </div>
                 </div>
 
-                <button type="submit" class="login-btn">Opprett lokal løsning</button>
+                <button type="submit" class="login-btn">{{setup.submit}}</button>
             </form>
         </div>
     </div>
 
+    <!--APP_LANGUAGE_BOOTSTRAP-->
+    <script src="/assets/js/app-i18n.js"></script>
+    <script src="/assets/js/file-inputs.js"></script>
     <script src="/assets/js/auth-feedback.js"></script>
 </body>
 </html>

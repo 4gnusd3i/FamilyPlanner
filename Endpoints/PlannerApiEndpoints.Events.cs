@@ -2,29 +2,37 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.Options;
 using FamilyPlanner.Models;
+using FamilyPlanner.Services.Localization;
 using FamilyPlanner.Services.Storage;
 
 namespace FamilyPlanner.Endpoints;
 
 public static partial class PlannerApiEndpoints
 {
-    private static IResult GetEvents(HttpRequest request, PlannerStore store)
+    private static IResult GetEvents(HttpRequest request, PlannerStore store, AppLocalizationService localization)
     {
+        var pack = localization.ResolveLanguage(request.HttpContext);
         if (request.Query.TryGetValue("upcoming", out var upcomingValue) && upcomingValue == "1")
         {
-            return Results.Ok(store.GetUpcomingEvents(DateOnly.FromDateTime(DateTime.Now)));
+            return Results.Ok(store
+                .GetUpcomingEvents(DateOnly.FromDateTime(DateTime.Now))
+                .Select(plannerEvent => localization.LocalizeGeneratedEvent(pack, plannerEvent, store))
+                .ToList());
         }
 
         if (!DateOnly.TryParse(request.Query["start"], out var start) ||
             !DateOnly.TryParse(request.Query["end"], out var end))
         {
-            return Results.BadRequest(new { error = "Ugyldig datointervall." });
+            return BadRequest(request.HttpContext, localization, "errors.events.invalid_date_range");
         }
 
-        return Results.Ok(store.GetEvents(start, end));
+        return Results.Ok(store
+            .GetEvents(start, end)
+            .Select(plannerEvent => localization.LocalizeGeneratedEvent(pack, plannerEvent, store))
+            .ToList());
     }
 
-    private static async Task<IResult> PostEventAsync(HttpRequest request, PlannerStore store, IOptions<JsonOptions> jsonOptions)
+    private static async Task<IResult> PostEventAsync(HttpRequest request, PlannerStore store, IOptions<JsonOptions> jsonOptions, AppLocalizationService localization)
     {
         if (HasJsonContentType(request))
         {
@@ -33,7 +41,7 @@ public static partial class PlannerApiEndpoints
             {
                 if (command.Id <= 0)
                 {
-                    return BadRequest("Ugyldig avtale.");
+                    return BadRequest(request.HttpContext, localization, "errors.events.invalid_event");
                 }
 
                 store.DeleteEvent(command.Id);
@@ -43,18 +51,28 @@ public static partial class PlannerApiEndpoints
         }
 
         var form = await request.ReadFormAsync();
-        var title = Required(form["title"], "Tittel mangler.");
-        var eventDate = Required(form["event_date"], "Dato mangler.");
+        var title = Required(form["title"]);
+        if (title is null)
+        {
+            return BadRequest(request.HttpContext, localization, "errors.events.title_required");
+        }
+
+        var eventDate = Required(form["event_date"]);
+        if (eventDate is null)
+        {
+            return BadRequest(request.HttpContext, localization, "errors.events.date_required");
+        }
+
         if (!DateOnly.TryParse(eventDate, out var eventDateValue))
         {
-            return BadRequest("Ugyldig dato.");
+            return BadRequest(request.HttpContext, localization, "errors.events.invalid_date");
         }
 
         var rawRecurrenceType = form["recurrence_type"].ToString();
         var recurrenceType = NormalizeRecurrenceType(rawRecurrenceType);
         if (!string.IsNullOrWhiteSpace(rawRecurrenceType) && recurrenceType is null)
         {
-            return BadRequest("Ugyldig gjentakelse.");
+            return BadRequest(request.HttpContext, localization, "errors.events.invalid_recurrence");
         }
 
         var recurrenceUntil = string.IsNullOrWhiteSpace(form["recurrence_until"])
@@ -62,19 +80,19 @@ public static partial class PlannerApiEndpoints
             : form["recurrence_until"].ToString().Trim();
         if (recurrenceType is null && recurrenceUntil is not null)
         {
-            return BadRequest("Sluttdato krever gjentakelse.");
+            return BadRequest(request.HttpContext, localization, "errors.events.recurrence_until_requires_recurrence");
         }
 
         if (recurrenceUntil is not null)
         {
             if (!DateOnly.TryParse(recurrenceUntil, out var recurrenceUntilDate))
             {
-                return BadRequest("Ugyldig sluttdato.");
+                return BadRequest(request.HttpContext, localization, "errors.events.invalid_recurrence_until");
             }
 
             if (recurrenceUntilDate < eventDateValue)
             {
-                return BadRequest("Sluttdato kan ikke være før startdato.");
+                return BadRequest(request.HttpContext, localization, "errors.events.recurrence_until_before_start");
             }
         }
 

@@ -45,7 +45,7 @@ public sealed partial class PlannerStore : IDisposable
     {
         if (HasHouseholdProfile())
         {
-            throw new InvalidOperationException("Household profile already exists.");
+            throw new InvalidOperationException("Husholdningsprofil finnes allerede.");
         }
 
         var profile = new HouseholdProfile

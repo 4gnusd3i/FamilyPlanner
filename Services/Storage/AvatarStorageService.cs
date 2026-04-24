@@ -67,7 +67,7 @@ public sealed class AvatarStorageService(StoragePaths storagePaths)
 
         if (!AllowedExtensions.Contains(normalized))
         {
-            throw new BadHttpRequestException("Ugyldig avatarformat.");
+            throw new InvalidAvatarFormatException();
         }
 
         return normalized;

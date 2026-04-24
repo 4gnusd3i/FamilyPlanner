@@ -4,7 +4,8 @@
     setup: {
       targetId: "setupMessage",
       errors: {
-        missing: "Fyll inn familienavn og første medlem.",
+        missing: t("setup.error_missing"),
+        invalid_avatar_format: t("errors.invalid_avatar_format"),
       },
     },
   };

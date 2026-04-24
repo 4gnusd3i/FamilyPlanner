@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
     [switch]$NoBrowser,
-    [switch]$Portable
+    [switch]$Portable,
+    [string]$Language
 )
 
 $ErrorActionPreference = "Stop"
@@ -12,6 +13,23 @@ $launcherHome = Join-Path $repoRoot ".dotnet"
 $portableDataRoot = Join-Path $repoRoot ".localdata"
 $appUrl = "http://localhost:5080/"
 $healthUrl = "${appUrl}health"
+
+function Resolve-AppLanguage {
+    param([string]$Value)
+
+    if ([string]::IsNullOrWhiteSpace($Value)) {
+        return $null
+    }
+
+    $normalized = $Value.Trim().Replace('_', '-').ToLowerInvariant()
+    switch ($normalized) {
+        { $_ -in @("no-nb", "nb-no", "nb", "no") } { return "no-NB" }
+        { $_ -in @("en-us", "en") } { return "en-US" }
+        default {
+            throw "Ugyldig språk '$Value'. Bruk no-NB, nb-NO, nb, no, en-US eller en."
+        }
+    }
+}
 
 function Test-AppHealthy {
     param([string]$Url)
@@ -50,8 +68,13 @@ if (-not (Test-Path $projectFile)) {
     throw "Fant ikke prosjektfilen: $projectFile"
 }
 
+$resolvedLanguage = Resolve-AppLanguage -Value $Language
+
 if (Test-AppHealthy -Url $healthUrl) {
     Write-Host "FamilyPlanner kjører allerede på $appUrl"
+    if ($resolvedLanguage) {
+        Write-Warning "Språk kan ikke endres for en eksisterende prosess. Lukk FamilyPlanner og start på nytt for å bruke $resolvedLanguage."
+    }
     if (-not $NoBrowser) {
         Start-Process $appUrl | Out-Null
     }
@@ -68,6 +91,10 @@ if ($Portable) {
     $runCommand += "`$env:FAMILYPLANNER_DATA_ROOT='$portableDataRoot'"
 }
 
+if ($resolvedLanguage) {
+    $runCommand += "`$env:App__Language='$resolvedLanguage'"
+}
+
 $runCommand += "dotnet run --launch-profile http"
 
 $commandText = ($runCommand -join "; ")
@@ -78,6 +105,9 @@ if ($Portable) {
 }
 else {
     Write-Host "Datamappe: %LocalAppData%\FamilyPlanner"
+}
+if ($resolvedLanguage) {
+    Write-Host "Språk: $resolvedLanguage"
 }
 
 Start-Process powershell.exe `

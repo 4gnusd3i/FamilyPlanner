@@ -2,13 +2,14 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.Options;
 using FamilyPlanner.Models;
+using FamilyPlanner.Services.Localization;
 using FamilyPlanner.Services.Storage;
 
 namespace FamilyPlanner.Endpoints;
 
 public static partial class PlannerApiEndpoints
 {
-    private static async Task<IResult> PostMealAsync(HttpRequest request, PlannerStore store, IOptions<JsonOptions> jsonOptions)
+    private static async Task<IResult> PostMealAsync(HttpRequest request, PlannerStore store, IOptions<JsonOptions> jsonOptions, AppLocalizationService localization)
     {
         if (HasJsonContentType(request))
         {
@@ -17,7 +18,7 @@ public static partial class PlannerApiEndpoints
             {
                 if (command.Id <= 0)
                 {
-                    return BadRequest("Ugyldig måltid.");
+                    return BadRequest(request.HttpContext, localization, "errors.meals.invalid_meal");
                 }
 
                 store.DeleteMeal(command.Id);
@@ -29,10 +30,15 @@ public static partial class PlannerApiEndpoints
         var form = await request.ReadFormAsync();
         if (!int.TryParse(form["day_of_week"], out var dayOfWeek))
         {
-            return Results.BadRequest(new { error = "Ugyldig ukedag." });
+            return BadRequest(request.HttpContext, localization, "errors.meals.invalid_day_of_week");
         }
 
-        var meal = Required(form["meal"], "Måltid mangler.");
+        var meal = Required(form["meal"]);
+        if (meal is null)
+        {
+            return BadRequest(request.HttpContext, localization, "errors.meals.meal_required");
+        }
+
         var mealType = string.IsNullOrWhiteSpace(form["meal_type"]) ? "dinner" : form["meal_type"].ToString();
         store.UpsertMeal(
             ParseNullableInt(form["id"]),
@@ -45,19 +51,19 @@ public static partial class PlannerApiEndpoints
         return Results.Ok(new { ok = true });
     }
 
-    private static async Task<IResult> PostBudgetAsync(HttpRequest request, PlannerStore store, IOptions<JsonOptions> jsonOptions)
+    private static async Task<IResult> PostBudgetAsync(HttpRequest request, PlannerStore store, IOptions<JsonOptions> jsonOptions, AppLocalizationService localization)
     {
         var body = await ReadJsonObjectAsync(request, jsonOptions.Value);
         if (body is null)
         {
-            return BadRequest("Ugyldig budsjettforespørsel.");
+            return BadRequest(request.HttpContext, localization, "errors.budget.invalid_request");
         }
 
         if (HasTrueProperty(body.Value, "delete_expense"))
         {
             if (!TryGetRequiredInt(body.Value, "id", out var id))
             {
-                return BadRequest("Ugyldig utgift.");
+                return BadRequest(request.HttpContext, localization, "errors.budget.invalid_expense");
             }
 
             store.DeleteExpense(id);

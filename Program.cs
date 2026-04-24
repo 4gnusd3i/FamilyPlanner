@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.FileProviders;
 using FamilyPlanner.Endpoints;
+using FamilyPlanner.Services.Localization;
 using FamilyPlanner.Services.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,6 +18,8 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.SnakeCaseLower;
     options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
 });
+builder.Services.AddSingleton<AppLocalizationService>();
+builder.Services.AddSingleton<LocalizedPageRenderer>();
 builder.Services.AddSingleton<StoragePaths>();
 builder.Services.AddSingleton<AvatarStorageService>();
 builder.Services.AddSingleton<PlannerStore>();

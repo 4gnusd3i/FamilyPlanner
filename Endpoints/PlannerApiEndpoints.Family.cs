@@ -1,4 +1,5 @@
 using FamilyPlanner.Services.Storage;
+using FamilyPlanner.Services.Localization;
 
 namespace FamilyPlanner.Endpoints;
 
@@ -9,7 +10,7 @@ public static partial class PlannerApiEndpoints
         return Results.Ok(store.GetFamilyMembers());
     }
 
-    private static async Task<IResult> PostFamilyAsync(HttpRequest request, PlannerStore store, AvatarStorageService avatarStorage)
+    private static async Task<IResult> PostFamilyAsync(HttpRequest request, PlannerStore store, AvatarStorageService avatarStorage, AppLocalizationService localization)
     {
         var form = await request.ReadFormAsync();
         if (form.TryGetValue("delete", out var deleteValue) && deleteValue == "1")
@@ -25,7 +26,12 @@ public static partial class PlannerApiEndpoints
             return Results.Ok(new { ok = true });
         }
 
-        var name = Required(form["name"], "Navn mangler.");
+        var name = Required(form["name"]);
+        if (name is null)
+        {
+            return BadRequest(request.HttpContext, localization, "errors.family.name_required");
+        }
+
         var memberId = ParseNullableInt(form["id"]);
         var existingMember = memberId is > 0 ? store.GetFamilyMemberById(memberId.Value) : null;
         var avatarUrl = existingMember?.AvatarUrl;
@@ -33,7 +39,14 @@ public static partial class PlannerApiEndpoints
         var uploadedAvatar = form.Files["avatar"];
         if (uploadedAvatar is not null && uploadedAvatar.Length > 0)
         {
-            avatarUrl = await avatarStorage.SaveUploadedAsync(uploadedAvatar, existingMember?.AvatarUrl, request.HttpContext.RequestAborted);
+            try
+            {
+                avatarUrl = await avatarStorage.SaveUploadedAsync(uploadedAvatar, existingMember?.AvatarUrl, request.HttpContext.RequestAborted);
+            }
+            catch (InvalidAvatarFormatException)
+            {
+                return BadRequest(request.HttpContext, localization, "errors.invalid_avatar_format");
+            }
         }
 
         store.UpsertFamilyMember(

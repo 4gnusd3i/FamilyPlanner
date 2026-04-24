@@ -5,13 +5,9 @@ const colors = [
   "#c026d3", "#0284c7", "#ca8a04", "#16a34a", "#e11d48",
 ];
 const memberEmojis = ["\ud83d\udc68", "\ud83d\udc69", "\ud83d\udc66", "\ud83d\udc67", "\ud83e\uddd2", "\ud83d\udc74", "\ud83d\udc75", "\ud83e\uddd1"];
-const weekdayNames = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "L\u00f8rdag", "S\u00f8ndag"];
-const weekdayShort = ["Man", "Tir", "Ons", "Tor", "Fre", "L\u00f8r", "S\u00f8n"];
-const mealTypes = [
-  { key: "breakfast", label: "\ud83c\udf04", name: "Frokost" },
-  { key: "lunch", label: "\u2600\ufe0f", name: "Lunsj" },
-  { key: "dinner", label: "\ud83c\udf7d\ufe0f", name: "Middag" },
-];
+const weekdayNames = getWeekdayNames();
+const weekdayShort = getWeekdayShort();
+const mealTypes = getLocalizedMealTypes();
 let selectedColor = "#3b82f6";
 let currentWeekStart = "";
 let currentWeekEnd = "";
@@ -58,11 +54,11 @@ async function apiFetch(url, options = {}) {
   const response = await fetch(url, { credentials: "same-origin", ...options });
   if (response.status === 409) {
     location.href = "/setup";
-    throw new Error("Oppsett mangler.");
+    throw new Error(t("errors.setup_required"));
   }
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || "Foresp\u00f8rselen feilet.");
+    throw new Error(extractApiErrorMessage(text) || t("errors.request_failed"));
   }
   return response;
 }
@@ -93,7 +89,7 @@ function renderWeekShell() {
     const date = addDays(weekStart, index);
     const dateText = formatDate(date);
     const isToday = dateText === todayText;
-    const dayLabel = `${weekdayNames[index]} ${date.getDate()}.${isToday ? " i dag" : ""}`;
+    const dayLabel = `${weekdayNames[index]} ${date.getDate()}.${isToday ? ` ${t("calendar.today_suffix")}` : ""}`;
 
     return `<div class="day-box ${isToday ? "today" : ""}" data-day="${index}" data-date="${dateText}" aria-label="${dayLabel}">
       <div class="day-header">
@@ -146,7 +142,7 @@ function bindAvatarPreview() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      document.getElementById("avatarPreview").innerHTML = `<img src="${reader.result}" alt="Avatar">`;
+      document.getElementById("avatarPreview").innerHTML = `<img src="${reader.result}" alt="${escapeHtml(t("file_input.selected_profile_image_alt"))}">`;
     };
     reader.readAsDataURL(file);
   });

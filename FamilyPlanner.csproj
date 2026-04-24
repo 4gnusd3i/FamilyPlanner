@@ -19,7 +19,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="AppPages\**\*">
+    <Content Update="AppPages\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="Localization\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

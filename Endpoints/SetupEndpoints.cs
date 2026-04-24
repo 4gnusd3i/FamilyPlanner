@@ -39,7 +39,14 @@ public static class SetupEndpoints
         var uploadedAvatar = form.Files["first_member_avatar"];
         if (uploadedAvatar is not null && uploadedAvatar.Length > 0)
         {
-            avatarUrl = await avatarStorage.SaveUploadedAsync(uploadedAvatar, currentAvatarUrl: null, context.RequestAborted);
+            try
+            {
+                avatarUrl = await avatarStorage.SaveUploadedAsync(uploadedAvatar, currentAvatarUrl: null, context.RequestAborted);
+            }
+            catch (InvalidAvatarFormatException)
+            {
+                return Results.Redirect("/setup?error=invalid_avatar_format");
+            }
         }
 
         store.InitializeHousehold(familyName);

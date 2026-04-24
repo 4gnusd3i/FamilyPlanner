@@ -103,7 +103,7 @@ public sealed class StorageMaintenanceTests
             using var stream = new MemoryStream([1, 2, 3]);
             var file = new FormFile(stream, 0, stream.Length, "avatar", "avatar.svg");
 
-            Assert.ThrowsAsync<BadHttpRequestException>(() => avatarStorage.SaveUploadedAsync(file, null));
+            Assert.ThrowsAsync<InvalidAvatarFormatException>(() => avatarStorage.SaveUploadedAsync(file, null));
         }
         finally
         {

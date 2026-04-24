@@ -1,0 +1,22 @@
+* text=auto
+
+*.cs text eol=crlf
+*.csproj text eol=crlf
+*.html text eol=crlf
+*.js text eol=crlf
+*.css text eol=crlf
+*.json text eol=crlf
+*.md text eol=crlf
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.yml text eol=crlf
+*.yaml text eol=crlf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.zip binary

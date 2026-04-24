@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="no">
+<html lang="{{meta.html_lang}}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FamilyPlanner</title>
-    <link rel="manifest" href="/pwa/manifest.json" />
+    <title>{{meta.page_title}}</title>
+    <link rel="manifest" href="{{meta.manifest_href}}" />
     <link rel="stylesheet" href="/assets/css/base.css" />
     <link rel="stylesheet" href="/assets/css/planner.css" />
   </head>
@@ -15,47 +15,47 @@
     <div class="app-shell">
       <div class="status-banner" id="statusBanner" hidden></div>
 
-      <section class="quick-actions surface" aria-label="Hurtighandlinger">
+      <section class="quick-actions surface" aria-label="{{ui.quick_actions_label}}">
         <div class="quick-action-grid">
           <button
             type="button"
             class="quick-action"
             onclick="openEventModal()"
-            aria-label="Legg til avtale"
+            aria-label="{{ui.quick_action_event_aria}}"
           >
-            <span class="quick-action-title">+ Avtale</span>
+            <span class="quick-action-title">{{ui.quick_action_event_title}}</span>
           </button>
           <button
             type="button"
             class="quick-action"
             onclick="openMealModal()"
-            aria-label="Legg til måltid"
+            aria-label="{{ui.quick_action_meal_aria}}"
           >
-            <span class="quick-action-title">+ Måltid</span>
+            <span class="quick-action-title">{{ui.quick_action_meal_title}}</span>
           </button>
           <button
             type="button"
             class="quick-action"
             onclick="openBudgetModal()"
-            aria-label="Registrer utgift"
+            aria-label="{{ui.quick_action_budget_aria}}"
           >
-            <span class="quick-action-title">+ Utgift</span>
+            <span class="quick-action-title">{{ui.quick_action_budget_title}}</span>
           </button>
           <button
             type="button"
             class="quick-action"
             onclick="openNoteModal()"
-            aria-label="Legg til notat"
+            aria-label="{{ui.quick_action_note_aria}}"
           >
-            <span class="quick-action-title">+ Notat</span>
+            <span class="quick-action-title">{{ui.quick_action_note_title}}</span>
           </button>
           <button
             type="button"
             class="quick-action"
             onclick="openShoppingModal()"
-            aria-label="Legg til vare"
+            aria-label="{{ui.quick_action_shopping_aria}}"
           >
-            <span class="quick-action-title">+ Vare</span>
+            <span class="quick-action-title">{{ui.quick_action_shopping_title}}</span>
           </button>
         </div>
       </section>
@@ -69,23 +69,23 @@
           <section class="surface budget-card">
             <div class="section-header">
               <div>
-                <h2>Budsjett</h2>
+                <h2>{{budget.title}}</h2>
               </div>
             </div>
             <div class="budget-display">
               <div class="budget-income">
-                <span>Inntekt</span>
+                <span>{{budget.income}}</span>
                 <span><span id="budgetIncomeDisplay">0</span> kr</span>
               </div>
               <div class="budget-bar">
                 <div class="budget-fill" id="budgetFill"></div>
               </div>
               <div class="budget-nums">
-                <span>Brukt: <span id="budgetSpent">0</span> kr</span>
-                <span>Ramme: <span id="budgetLimit">0</span> kr</span>
+                <span>{{budget.spent}}: <span id="budgetSpent">0</span> kr</span>
+                <span>{{budget.limit}}: <span id="budgetLimit">0</span> kr</span>
               </div>
               <div class="budget-remaining" id="budgetRemaining">
-                0 kr gjenstår
+                {{budget.remaining_zero}}
               </div>
             </div>
           </section>
@@ -93,7 +93,7 @@
           <section class="surface shopping-card">
             <div class="section-header">
               <div>
-                <h2>Handleliste</h2>
+                <h2>{{shopping.title}}</h2>
               </div>
             </div>
             <div class="card-content" id="shoppingList"></div>
@@ -102,7 +102,7 @@
           <section class="surface notes-card">
             <div class="section-header">
               <div>
-                <h2>Notater</h2>
+                <h2>{{notes.title}}</h2>
               </div>
             </div>
             <div class="card-content" id="notesList"></div>
@@ -116,7 +116,7 @@
                 <div class="calendar-title-row">
                   <span class="week-number" id="weekNumber">0</span>
                   <div class="calendar-meta">
-                    <h2>Ukeplan</h2>
+                    <h2>{{calendar.title}}</h2>
                     <div class="week-range" id="weekRange"></div>
                   </div>
                 </div>
@@ -129,21 +129,21 @@
                     class="week-nav-btn"
                     onclick="shiftWeek(-1)"
                   >
-                    Forrige
+                    {{calendar.previous}}
                   </button>
                   <button
                     type="button"
                     class="week-nav-btn"
                     onclick="goToCurrentWeek()"
                   >
-                    Denne uken
+                    {{calendar.current}}
                   </button>
                   <button
                     type="button"
                     class="week-nav-btn"
                     onclick="shiftWeek(1)"
                   >
-                    Neste
+                    {{calendar.next}}
                   </button>
                 </div>
               </div>
@@ -154,7 +154,7 @@
           <section class="surface meals-wrapper meals-surface">
             <div class="section-header">
               <div>
-                <h2>Måltider</h2>
+                <h2>{{meals.title}}</h2>
               </div>
             </div>
             <div class="meals-grid" id="mealsWeekGrid"></div>
@@ -165,7 +165,7 @@
           <section class="surface upcoming-card">
             <div class="section-header">
               <div>
-                <h2>Kommende</h2>
+                <h2>{{upcoming.title}}</h2>
               </div>
             </div>
             <div class="card-content" id="upcomingList"></div>
@@ -176,31 +176,31 @@
 
     <div class="modal-overlay" id="eventModal">
       <div class="modal">
-        <h3 id="eventModalTitle">Ny avtale</h3>
+        <h3 id="eventModalTitle">{{event.modal_new_title}}</h3>
         <form id="eventForm">
           <input type="hidden" id="eventId" />
-          <input type="text" id="eventTitle" placeholder="Tittel" required />
+          <input type="text" id="eventTitle" placeholder="{{event.title_placeholder}}" required />
           <input type="date" id="eventDate" required />
           <div class="form-row">
-            <input type="time" id="eventStartTime" placeholder="Start" />
-            <input type="time" id="eventEndTime" placeholder="Slutt" />
+            <input type="time" id="eventStartTime" placeholder="{{event.start_placeholder}}" />
+            <input type="time" id="eventEndTime" placeholder="{{event.end_placeholder}}" />
           </div>
           <div class="form-row">
             <select id="eventRecurrenceType">
-              <option value="">Ingen gjentakelse</option>
-              <option value="daily">Daglig</option>
-              <option value="weekly">Ukentlig</option>
+              <option value="">{{recurrence.none}}</option>
+              <option value="daily">{{recurrence.daily}}</option>
+              <option value="weekly">{{recurrence.weekly}}</option>
             </select>
             <input
               type="date"
               id="eventRecurrenceUntil"
-              placeholder="Gjentas til"
+              placeholder="{{recurrence.until_placeholder}}"
             />
           </div>
           <select id="eventOwner">
-            <option value="">Ansvarlig...</option>
+            <option value="">{{common.owner_placeholder}}</option>
           </select>
-          <textarea id="eventNote" placeholder="Notat"></textarea>
+          <textarea id="eventNote" placeholder="{{common.note_placeholder}}"></textarea>
           <div class="modal-btns">
             <button
               type="button"
@@ -209,12 +209,12 @@
               class="btn-danger"
               style="display: none"
             >
-              Slett
+              {{common.delete}}
             </button>
             <button type="button" onclick="closeModal('eventModal')">
-              Avbryt
+              {{common.cancel}}
             </button>
-            <button type="submit" class="btn-primary">Lagre</button>
+            <button type="submit" class="btn-primary">{{common.save}}</button>
           </div>
         </form>
       </div>
@@ -222,25 +222,25 @@
 
     <div class="modal-overlay" id="mealModal">
       <div class="modal">
-        <h3>Måltid</h3>
+        <h3>{{meal.modal_title}}</h3>
         <form id="mealForm">
           <input type="hidden" id="mealId" />
           <select id="mealDay"></select>
           <select id="mealType">
-            <option value="breakfast">🌄 Frokost</option>
-            <option value="lunch">☀️ Lunsj</option>
-            <option value="dinner" selected>🍽️ Middag</option>
+            <option value="breakfast">{{meal.breakfast_option}}</option>
+            <option value="lunch">{{meal.lunch_option}}</option>
+            <option value="dinner" selected>{{meal.dinner_option}}</option>
           </select>
           <input
             type="text"
             id="mealName"
-            placeholder="Hva skal vi spise?"
+            placeholder="{{meal.name_placeholder}}"
             required
           />
           <select id="mealOwner">
-            <option value="">Ansvarlig...</option>
+            <option value="">{{common.owner_placeholder}}</option>
           </select>
-          <input type="text" id="mealNote" placeholder="Notat" />
+          <input type="text" id="mealNote" placeholder="{{common.note_placeholder}}" />
           <div class="modal-btns">
             <button
               type="button"
@@ -249,12 +249,12 @@
               class="btn-danger"
               style="display: none"
             >
-              Slett
+              {{common.delete}}
             </button>
             <button type="button" onclick="closeModal('mealModal')">
-              Avbryt
+              {{common.cancel}}
             </button>
-            <button type="submit" class="btn-primary">Lagre</button>
+            <button type="submit" class="btn-primary">{{common.save}}</button>
           </div>
         </form>
       </div>
@@ -262,7 +262,7 @@
 
     <div class="modal-overlay" id="budgetModal">
       <div class="modal">
-        <h3>Budsjett</h3>
+        <h3>{{budget.modal_title}}</h3>
         <div class="tabs">
           <button
             type="button"
@@ -270,67 +270,67 @@
             data-tab="expense"
             onclick="showBudgetTab('expense', event)"
           >
-            Utgift
+            {{budget.tab_expense}}
           </button>
           <button
             type="button"
             data-tab="limit"
             onclick="showBudgetTab('limit', event)"
           >
-            Sett budsjett
+            {{budget.tab_limit}}
           </button>
           <button
             type="button"
             data-tab="history"
             onclick="showBudgetTab('history', event)"
           >
-            Historikk
+            {{budget.tab_history}}
           </button>
         </div>
         <form id="expenseForm">
           <input
             type="number"
             id="expenseAmount"
-            placeholder="Beløp"
+            placeholder="{{budget.amount_placeholder}}"
             required
           />
-          <input type="text" id="expenseCategory" placeholder="Kategori" />
+          <input type="text" id="expenseCategory" placeholder="{{budget.category_placeholder}}" />
           <input type="date" id="expenseDate" />
           <select id="expenseOwner">
-            <option value="">Ansvarlig...</option>
+            <option value="">{{common.owner_placeholder}}</option>
           </select>
-          <input type="text" id="expenseDesc" placeholder="Beskrivelse" />
+          <input type="text" id="expenseDesc" placeholder="{{budget.description_placeholder}}" />
           <div class="modal-btns">
             <button type="button" onclick="closeModal('budgetModal')">
-              Avbryt
+              {{common.cancel}}
             </button>
-            <button type="submit" class="btn-primary">Registrer</button>
+            <button type="submit" class="btn-primary">{{budget.register}}</button>
           </div>
         </form>
         <form id="budgetForm" style="display: none">
           <input
             type="number"
             id="budgetIncomeInput"
-            placeholder="Månedlig inntekt"
+            placeholder="{{budget.income_placeholder}}"
           />
           <input
             type="number"
             id="budgetLimitInput"
-            placeholder="Månedlig budsjett"
+            placeholder="{{budget.limit_placeholder}}"
             required
           />
           <div class="modal-btns">
             <button type="button" onclick="closeModal('budgetModal')">
-              Avbryt
+              {{common.cancel}}
             </button>
-            <button type="submit" class="btn-primary">Lagre</button>
+            <button type="submit" class="btn-primary">{{common.save}}</button>
           </div>
         </form>
         <div id="expenseHistory" style="display: none">
           <div class="card-content" id="expenseList"></div>
           <div class="modal-btns">
             <button type="button" onclick="closeModal('budgetModal')">
-              Lukk
+              {{common.close}}
             </button>
           </div>
         </div>
@@ -339,14 +339,14 @@
 
     <div class="modal-overlay" id="noteModal">
       <div class="modal">
-        <h3>Notat</h3>
+        <h3>{{note.modal_title}}</h3>
         <form id="noteForm">
           <input type="hidden" id="noteId" />
-          <input type="text" id="noteTitle" placeholder="Tittel" required />
+          <input type="text" id="noteTitle" placeholder="{{note.title_placeholder}}" required />
           <select id="noteOwner">
-            <option value="">Ansvarlig...</option>
+            <option value="">{{common.owner_placeholder}}</option>
           </select>
-          <textarea id="noteContent" placeholder="Innhold"></textarea>
+          <textarea id="noteContent" placeholder="{{note.content_placeholder}}"></textarea>
           <div class="modal-btns">
             <button
               type="button"
@@ -355,12 +355,12 @@
               class="btn-danger"
               style="display: none"
             >
-              Slett
+              {{common.delete}}
             </button>
             <button type="button" onclick="closeModal('noteModal')">
-              Avbryt
+              {{common.cancel}}
             </button>
-            <button type="submit" class="btn-primary">Lagre</button>
+            <button type="submit" class="btn-primary">{{common.save}}</button>
           </div>
         </form>
       </div>
@@ -368,7 +368,7 @@
 
     <div class="modal-overlay" id="entryViewModal">
       <div class="modal">
-        <h3 id="entryViewTitle">Detaljer</h3>
+        <h3 id="entryViewTitle">{{view.title}}</h3>
         <div class="view-content" id="entryViewContent"></div>
         <div class="modal-btns">
           <button
@@ -376,17 +376,17 @@
             class="btn-danger"
             onclick="deleteEntryFromView()"
           >
-            Slett
+            {{common.delete}}
           </button>
           <button type="button" onclick="closeModal('entryViewModal')">
-            Lukk
+            {{common.close}}
           </button>
           <button
             type="button"
             class="btn-primary"
             onclick="editEntryFromView()"
           >
-            Rediger
+            {{common.edit}}
           </button>
         </div>
       </div>
@@ -394,19 +394,19 @@
 
     <div class="modal-overlay" id="shoppingModal">
       <div class="modal">
-        <h3>Handleliste</h3>
+        <h3>{{shopping.modal_title}}</h3>
         <form id="shoppingForm">
           <input type="hidden" id="shoppingId" />
-          <input type="text" id="shoppingItem" placeholder="Produkt" required />
+          <input type="text" id="shoppingItem" placeholder="{{shopping.product_placeholder}}" required />
           <input type="number" id="shoppingQty" value="1" min="1" />
           <select id="shoppingOwner">
-            <option value="">Ansvarlig...</option>
+            <option value="">{{common.owner_placeholder}}</option>
           </select>
           <div class="modal-btns">
             <button type="button" onclick="closeModal('shoppingModal')">
-              Avbryt
+              {{common.cancel}}
             </button>
-            <button type="submit" class="btn-primary">Legg til</button>
+            <button type="submit" class="btn-primary">{{common.add}}</button>
           </div>
         </form>
       </div>
@@ -414,20 +414,42 @@
 
     <div class="modal-overlay" id="memberModal">
       <div class="modal">
-        <h3>Familiemedlem</h3>
+        <h3>{{member.modal_title}}</h3>
         <form id="memberForm" enctype="multipart/form-data">
           <input type="hidden" id="memberId" />
           <div class="avatar-row">
             <div class="avatar-preview" id="avatarPreview">👤</div>
-            <div>
-              <input type="file" id="memberAvatar" accept="image/*" />
+            <div class="avatar-file-field">
+              <span class="file-input-caption">{{member.image_caption}}</span>
+              <div class="file-input-shell">
+                <input
+                  type="file"
+                  id="memberAvatar"
+                  accept="image/*"
+                  class="file-input-native"
+                  data-file-name="memberAvatarName"
+                  data-empty-text="{{file_input.no_file_selected}}"
+                  aria-label="{{member.image_caption}}"
+                  aria-describedby="memberAvatarName"
+                />
+                <button
+                  type="button"
+                  class="file-input-button"
+                  onclick="document.getElementById('memberAvatar').click()"
+                >
+                  {{file_input.choose_image}}
+                </button>
+                <span class="file-input-name is-placeholder" id="memberAvatarName" aria-live="polite">
+                  {{file_input.no_file_selected}}
+                </span>
+              </div>
             </div>
           </div>
-          <input type="text" id="memberName" placeholder="Navn" required />
-          <input type="date" id="memberBirthday" placeholder="Fødselsdato" />
+          <input type="text" id="memberName" placeholder="{{member.name_placeholder}}" required />
+          <input type="date" id="memberBirthday" placeholder="{{member.birthday_placeholder}}" />
           <textarea
             id="memberBio"
-            placeholder="Bio / om meg"
+            placeholder="{{member.bio_placeholder}}"
             rows="2"
           ></textarea>
           <div class="color-picker" id="memberColorOptions"></div>
@@ -439,12 +461,12 @@
               class="btn-danger"
               style="display: none"
             >
-              Slett
+              {{common.delete}}
             </button>
             <button type="button" onclick="closeModal('memberModal')">
-              Avbryt
+              {{common.cancel}}
             </button>
-            <button type="submit" class="btn-primary">Lagre</button>
+            <button type="submit" class="btn-primary">{{common.save}}</button>
           </div>
         </form>
       </div>
@@ -458,7 +480,7 @@
             <h3 id="profileName"></h3>
             <div class="profile-age" id="profileAge"></div>
           </div>
-          <button class="profile-close" onclick="closeModal('profileModal')">
+          <button class="profile-close" onclick="closeModal('profileModal')" aria-label="{{profile.close_aria}}">
             ×
           </button>
         </div>
@@ -468,12 +490,15 @@
         </div>
         <div class="profile-footer">
           <button class="btn-primary" onclick="editProfileFromModal()">
-            Rediger
+            {{profile.edit_button}}
           </button>
         </div>
       </div>
     </div>
 
+    <!--APP_LANGUAGE_BOOTSTRAP-->
+    <script src="/assets/js/app-i18n.js"></script>
+    <script src="/assets/js/file-inputs.js"></script>
     <script src="/assets/js/planner-bootstrap.js"></script>
     <script src="/assets/js/planner-loaders.js"></script>
     <script src="/assets/js/planner-modals.js"></script>

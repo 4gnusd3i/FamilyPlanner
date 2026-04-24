@@ -40,10 +40,13 @@ public sealed class FamilyWorkflowTests : DesktopPlannerUiTestBase
 
         await Page.Locator(".add-family-btn").ClickAsync();
         await WaitForModalStateAsync("memberModal", open: true);
+        await Expect(Page.Locator("#memberModal .file-input-button")).ToHaveTextAsync("Velg bilde");
+        await Expect(Page.Locator("#memberAvatarName")).ToHaveTextAsync("Ingen fil valgt");
         await Page.Locator("#memberAvatar").SetInputFilesAsync(avatarPath);
+        await Expect(Page.Locator("#memberAvatarName")).ToContainTextAsync("icon-72.png");
         await Page.Locator("#memberName").FillAsync("Emma");
         await Page.Locator("#memberBirthday").FillAsync("2018-06-14");
-        await Page.Locator("#memberBio").FillAsync("Loves dance.");
+        await Page.Locator("#memberBio").FillAsync("Liker dans.");
         await Expect(Page.Locator("#memberModal .color-opt")).ToHaveCountAsync(20);
         await Page.Locator("#memberModal .color-opt").Nth(2).ClickAsync();
         await Page.Locator("#memberModal .btn-primary").ClickAsync();
@@ -58,16 +61,16 @@ public sealed class FamilyWorkflowTests : DesktopPlannerUiTestBase
         var emmaAvatar = Page.Locator(".family-avatar", new() { HasTextString = "Emma" });
         await emmaAvatar.ClickAsync();
         await WaitForModalStateAsync("profileModal", open: true);
-        await Expect(Page.Locator("#profileBio")).ToContainTextAsync("Loves dance.");
+        await Expect(Page.Locator("#profileBio")).ToContainTextAsync("Liker dans.");
         await Page.Locator("#profileModal .btn-primary").ClickAsync();
         await WaitForModalStateAsync("memberModal", open: true);
-        await Page.Locator("#memberBio").FillAsync("Loves dance and books.");
+        await Page.Locator("#memberBio").FillAsync("Liker dans og bøker.");
         await Page.Locator("#memberModal .btn-primary").ClickAsync();
         await WaitForModalStateAsync("memberModal", open: false);
 
         var updatedFamily = await GetApiAsync<List<FamilyMemberDto>>("/api/family") ?? [];
         emma = updatedFamily.Single(x => x.Id == emma.Id);
-        Assert.That(emma.Bio, Is.EqualTo("Loves dance and books."));
+        Assert.That(emma.Bio, Is.EqualTo("Liker dans og bøker."));
 
         var targetDate = await Page.Locator(".day-box[data-day='2']").GetAttributeAsync("data-date")
             ?? throw new AssertionException("Target day date was missing.");
@@ -75,18 +78,18 @@ public sealed class FamilyWorkflowTests : DesktopPlannerUiTestBase
         await WaitForModalStateAsync("eventModal", open: true);
         await Expect(Page.Locator("#eventDate")).ToHaveValueAsync(targetDate);
         await Expect(Page.Locator("#eventOwner")).ToHaveValueAsync(emma.Id.ToString());
-        await Page.Locator("#eventTitle").FillAsync("Dental check");
-        await Page.Locator("#eventNote").FillAsync("Remember insurance card.");
+        await Page.Locator("#eventTitle").FillAsync("Tannlegesjekk");
+        await Page.Locator("#eventNote").FillAsync("Husk forsikringskort.");
         await Page.Locator("#eventModal .btn-primary").ClickAsync();
         await WaitForModalStateAsync("eventModal", open: false);
 
         var draggedEvents = await GetApiAsync<List<PlannerEventDto>>($"/api/events?start={targetDate}&end={targetDate}") ?? [];
-        var draggedEvent = draggedEvents.Single(x => x.Title == "Dental check");
+        var draggedEvent = draggedEvents.Single(x => x.Title == "Tannlegesjekk");
         Assert.Multiple(() =>
         {
             Assert.That(draggedEvent.OwnerId, Is.EqualTo(emma.Id));
             Assert.That(draggedEvent.Color, Is.EqualTo(emma.Color));
-            Assert.That(draggedEvent.Note, Is.EqualTo("Remember insurance card."));
+            Assert.That(draggedEvent.Note, Is.EqualTo("Husk forsikringskort."));
         });
 
         await Page.Locator(".family-avatar", new() { HasTextString = "Emma" }).ClickAsync();

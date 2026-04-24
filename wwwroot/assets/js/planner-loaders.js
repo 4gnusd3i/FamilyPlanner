@@ -15,9 +15,9 @@ async function loadFamily() {
   updateOwnerSelects();
   const board = document.getElementById("familyBoard");
   const addMemberButton = `
-    <button type="button" class="family-tile add-family-btn" onclick="openMemberModal()" aria-label="Nytt familiemedlem">
+    <button type="button" class="family-tile add-family-btn" onclick="openMemberModal()" aria-label="${escapeHtml(t("family.new_member_aria"))}">
       <span class="family-avatar-shell family-avatar-add" aria-hidden="true">+</span>
-      <span class="family-name">Legg til</span>
+      <span class="family-name">${escapeHtml(t("family.add_member"))}</span>
     </button>`;
 
   if (!familyMembers.length) {
@@ -28,7 +28,7 @@ async function loadFamily() {
         ? `<img src="${member.avatar_url}" alt="${escapeHtml(member.name)}" class="member-avatar family-member-avatar">`
         : `<span class="avatar-emoji">${memberEmojis[index % memberEmojis.length]}</span>`;
 
-      return `<div class="family-tile family-avatar" role="button" tabindex="0" aria-label="Vis profil for ${escapeHtml(member.name)}" title="${escapeHtml(member.name)}" style="--member-color:${member.color || "#fefce8"}" draggable="true" data-id="${member.id}" data-name="${escapeHtml(member.name)}" onclick="showProfile(${member.id})">
+      return `<div class="family-tile family-avatar" role="button" tabindex="0" aria-label="${escapeHtml(t("family.view_profile_for", { name: member.name }))}" title="${escapeHtml(member.name)}" style="--member-color:${member.color || "#fefce8"}" draggable="true" data-id="${member.id}" data-name="${escapeHtml(member.name)}" onclick="showProfile(${member.id})">
         <span class="family-avatar-shell">
           ${avatar}
         </span>
@@ -283,7 +283,7 @@ async function loadEvents() {
       ${ownerLine}
       <span class="event-title">${escapeHtml(entry.title)}</span>
       ${startDisplay ? `<span class="event-time event-start">${escapeHtml(startDisplay)}</span>` : ""}
-      ${entry.note ? `<span class="event-more">Vis mer...</span>` : ""}
+      ${entry.note ? `<span class="event-more">${escapeHtml(t("events.more_hint"))}</span>` : ""}
       ${endDisplay ? `<span class="event-time event-end">${escapeHtml(endDisplay)}</span>` : ""}
     </div>`);
   });
@@ -294,7 +294,7 @@ async function loadUpcoming() {
   const events = await response.json();
   const container = document.getElementById("upcomingList");
   if (!events.length) {
-    container.innerHTML = '<div class="empty-state">Ingen kommende avtaler</div>';
+    container.innerHTML = `<div class="empty-state">${escapeHtml(t("events.no_upcoming"))}</div>`;
     return;
   }
 
@@ -315,7 +315,7 @@ async function loadUpcoming() {
       <div class="upcoming-date">
         <span class="upcoming-dayname">${weekdayShort[normalizeWeekday(date)]}</span>
         <span class="upcoming-daynum">${date.getDate()}</span>
-        <span class="upcoming-month">${date.toLocaleDateString("no-NO", { month: "short" })}</span>
+        <span class="upcoming-month">${date.toLocaleDateString(getCurrentLocale(), { month: "short" })}</span>
       </div>
       <div class="upcoming-content">
         ${ownerLine}
@@ -363,9 +363,10 @@ async function loadBudget() {
   const response = await apiFetch("/api/budget");
   const data = await response.json();
   const incomeContainer = document.getElementById("budgetIncomeDisplay").parentElement;
-  document.getElementById("budgetIncomeDisplay").textContent = Number(data.income || 0).toLocaleString("no-NO");
-  document.getElementById("budgetSpent").textContent = Number(data.spent || 0).toLocaleString("no-NO");
-  document.getElementById("budgetLimit").textContent = Number(data.limit || 0).toLocaleString("no-NO");
+  const locale = getCurrentLocale();
+  document.getElementById("budgetIncomeDisplay").textContent = Number(data.income || 0).toLocaleString(locale);
+  document.getElementById("budgetSpent").textContent = Number(data.spent || 0).toLocaleString(locale);
+  document.getElementById("budgetLimit").textContent = Number(data.limit || 0).toLocaleString(locale);
 
   const percent = data.limit > 0 ? (data.spent / data.limit) * 100 : 0;
   const fill = document.getElementById("budgetFill");
@@ -377,7 +378,7 @@ async function loadBudget() {
 
   const remaining = Number(data.remaining || 0);
   const remainingEl = document.getElementById("budgetRemaining");
-  remainingEl.textContent = `${remaining.toLocaleString("no-NO")} kr gjenstar`;
+  remainingEl.textContent = t("budget.remaining_format", { amount: remaining.toLocaleString(locale) });
   remainingEl.className = remaining >= 0 ? "budget-remaining positive" : "budget-remaining negative";
   scheduleKioskLayout();
 }
@@ -387,21 +388,22 @@ async function loadExpenseHistory() {
   const data = await response.json();
   const container = document.getElementById("expenseList");
   if (!data.expenses || data.expenses.length === 0) {
-    container.innerHTML = '<div class="empty-state">Ingen utgifter</div>';
+    container.innerHTML = `<div class="empty-state">${escapeHtml(t("budget.no_expenses"))}</div>`;
     return;
   }
 
   container.innerHTML = data.expenses.map((expense) => {
     const owner = familyMembers.find((member) => member.id === expense.owner_id);
     const ownerAvatar = owner ? getMemberAvatar(owner, "small") : "";
-    const date = expense.expense_date ? parseDate(expense.expense_date).toLocaleDateString("no-NO", { day: "numeric", month: "short" }) : "";
-    const label = expense.description || expense.category || "Utgift";
+    const locale = getCurrentLocale();
+    const date = expense.expense_date ? parseDate(expense.expense_date).toLocaleDateString(locale, { day: "numeric", month: "short" }) : "";
+    const label = expense.description || expense.category || t("budget.expense_default_label");
     return `<div class="shop-item expense-history-item">
       <span class="item-name">${escapeHtml(label)}</span>
       ${ownerAvatar}
       <span class="expense-meta">${escapeHtml(date)}</span>
-      <span class="expense-amount">${Number(expense.amount).toLocaleString("no-NO")} kr</span>
-      <button type="button" class="btn-small btn-danger" aria-label="Slett utgift ${escapeHtml(label)}" onclick="deleteExpense(${expense.id})">Slett</button>
+      <span class="expense-amount">${Number(expense.amount).toLocaleString(locale)} kr</span>
+      <button type="button" class="btn-small btn-danger" aria-label="${escapeHtml(t("budget.delete_expense_aria", { label }))}" onclick="deleteExpense(${expense.id})">${escapeHtml(t("common.delete"))}</button>
     </div>`;
   }).join("");
 }
@@ -422,7 +424,7 @@ async function loadNotes() {
   const container = document.getElementById("notesList");
   const notesCard = container?.closest(".notes-card");
   if (!notesCache.length) {
-    container.innerHTML = '<div class="empty-state empty-state-collapsible">Ingen notater</div>';
+    container.innerHTML = `<div class="empty-state empty-state-collapsible">${escapeHtml(t("notes.no_notes"))}</div>`;
     notesCard?.classList.add("is-empty");
     scheduleKioskLayout();
     return;
@@ -447,7 +449,7 @@ async function loadShopping() {
   syncShoppingDeletionTimers(shoppingCache);
   const container = document.getElementById("shoppingList");
   if (!shoppingCache.length) {
-    container.innerHTML = '<div class="empty-state">Vi har det vi trenger!</div>';
+    container.innerHTML = `<div class="empty-state">${escapeHtml(t("shopping.no_items"))}</div>`;
     scheduleKioskLayout();
     return;
   }
@@ -462,7 +464,7 @@ async function loadShopping() {
       ? ` style="--delete-duration:${SHOPPING_DELETE_DELAY_MS}ms;--delete-delay-offset:-${progress.elapsed}ms"`
       : "";
     return `<div class="shop-item${pendingClass}"${progressStyle} onclick="viewShoppingFromJson('${payload}')">
-      <button type="button" class="shop-check ${item.done ? "checked" : ""}" aria-label="${item.done ? "Behold vare" : "Marker vare som handlet"}" aria-pressed="${item.done ? "true" : "false"}" onclick="event.stopPropagation(); toggleShop(${item.id})">${item.done ? "&#10003;" : ""}</button>
+      <button type="button" class="shop-check ${item.done ? "checked" : ""}" aria-label="${escapeHtml(item.done ? t("shopping.keep_item") : t("shopping.mark_purchased"))}" aria-pressed="${item.done ? "true" : "false"}" onclick="event.stopPropagation(); toggleShop(${item.id})">${item.done ? "&#10003;" : ""}</button>
       ${ownerAvatar}
       <span class="item-name shop-name ${item.done ? "done" : ""}">${escapeHtml(item.item)}</span>
       <span class="shop-qty">${item.quantity}</span>
@@ -578,13 +580,13 @@ function formatEventTimeRange(entry, allDayFallback = true) {
   if (entry.start_time) {
     return entry.start_time.slice(0, 5);
   }
-  return allDayFallback ? "Hele dagen" : "";
+  return allDayFallback ? t("events.all_day") : "";
 }
 
 function formatEventStart(entry) {
-  return entry.start_time ? `Start ${entry.start_time.slice(0, 5)}` : "";
+  return entry.start_time ? entry.start_time.slice(0, 5) : "";
 }
 
 function formatEventEnd(entry) {
-  return entry.end_time ? `Slutt ${entry.end_time.slice(0, 5)}` : "";
+  return entry.end_time ? entry.end_time.slice(0, 5) : "";
 }

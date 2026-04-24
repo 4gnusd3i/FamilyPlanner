@@ -18,7 +18,7 @@ async function submitEventForm(event) {
 
 async function deleteEvent() {
   const recurrenceType = document.getElementById("eventRecurrenceType").value;
-  if (recurrenceType && !confirm("Slette hele den gjentakende serien?")) return;
+  if (recurrenceType && !confirm(t("events.delete_series_confirm"))) return;
   await apiFetch("/api/events", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -60,7 +60,7 @@ async function submitExpenseForm(event) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       amount: Number(document.getElementById("expenseAmount").value || 0),
-      category: document.getElementById("expenseCategory").value || "Annet",
+      category: document.getElementById("expenseCategory").value || t("budget.category_other"),
       expense_date: document.getElementById("expenseDate").value,
       owner_id: toNullableNumber(document.getElementById("expenseOwner").value),
       description: document.getElementById("expenseDesc").value,
@@ -149,7 +149,7 @@ async function submitMemberForm(event) {
 }
 
 async function deleteMember() {
-  if (!confirm("Slette familiemedlem?")) return;
+  if (!confirm(t("family.delete_confirm"))) return;
   await apiFetch("/api/family", {
     method: "POST",
     body: new URLSearchParams({
@@ -183,7 +183,7 @@ function showStatus(message, kind = "info") {
 
 function handleError(error) {
   console.error(error);
-  showStatus(error.message || "Noe gikk galt.", "error");
+  showStatus(error.message || t("errors.generic"), "error");
 }
 
 function calculateAge(birthday) {
@@ -196,7 +196,7 @@ function calculateAge(birthday) {
 }
 
 function formatBirthday(birthday) {
-  return parseDate(birthday).toLocaleDateString("no-NO", { day: "numeric", month: "short" });
+  return parseDate(birthday).toLocaleDateString(getCurrentLocale(), { day: "numeric", month: "short" });
 }
 
 function isBirthdayWithinDays(birthday, days) {
@@ -237,7 +237,7 @@ function parseDate(value) {
 }
 
 function formatShortDisplayDate(date) {
-  return `${date.getDate()}. ${date.toLocaleDateString("no-NO", { month: "short" })}`;
+  return `${date.getDate()}. ${date.toLocaleDateString(getCurrentLocale(), { month: "short" })}`;
 }
 
 function normalizeWeekday(date) {

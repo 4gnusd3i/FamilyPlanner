@@ -9,9 +9,10 @@ This file is intended to let another workstation pick up work quickly without re
 ## Current State
 
 - Primary working branch: `feature/frontend-redesign`
-- Current expected regression result: `39 passed, 0 failed`
+- Current expected regression result: `46 passed, 0 failed`
 - Legacy live-import functionality has been removed from setup, UI, API, and storage code
 - Frontend assets and backend planner/storage code are now split into smaller feature files for safer maintenance
+- Static language packs now ship in-repo for `no-NB` and `en-US`; the app resolves language from `App:Language`, then system UI culture, then `Accept-Language`
 
 ## Tech Stack
 
@@ -101,8 +102,11 @@ Preferred local launcher:
 Useful launcher options:
 
 ```powershell
+.\Launch-FamilyPlanner.cmd nb
+.\Launch-FamilyPlanner.cmd /en -Portable
 .\Launch-FamilyPlanner.ps1 -Portable
 .\Launch-FamilyPlanner.ps1 -NoBrowser
+.\Launch-FamilyPlanner.ps1 -Language en-US
 ```
 
 Manual run:
@@ -188,6 +192,7 @@ What it currently covers:
 - avatar-to-calendar drag/drop opening the event form with date and owner prefilled
 - API bad-request validation for malformed JSON mutation commands
 - storage maintenance for obsolete collections, expired lifecycle items, setup reset cleanup, and avatar extension validation
+- localization and encoding conformance for language resolution, localized page rendering, localized generated events, template/client translation keys, and UTF-8-without-BOM text files
 
 Artifacts are written to:
 

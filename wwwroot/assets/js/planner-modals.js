@@ -1,5 +1,5 @@
 function updateOwnerSelects() {
-  const options = ['<option value="">Ansvarlig...</option>']
+  const options = [`<option value="">${escapeHtml(t("common.owner_placeholder"))}</option>`]
     .concat(familyMembers.map((member) => `<option value="${member.id}">${escapeHtml(member.name)}</option>`))
     .join("");
   ["eventOwner", "mealOwner", "noteOwner", "shoppingOwner", "expenseOwner"].forEach((id) => {
@@ -307,7 +307,7 @@ function openEventModal(event = null, date = null, ownerId = null) {
   const recurrenceType = document.getElementById("eventRecurrenceType");
   const recurrenceUntil = document.getElementById("eventRecurrenceUntil");
   if (event) {
-    document.getElementById("eventModalTitle").textContent = "Rediger avtale";
+    document.getElementById("eventModalTitle").textContent = t("events.edit_title");
     document.getElementById("deleteEventBtn").style.display = "block";
     document.getElementById("eventId").value = event.id || "";
     document.getElementById("eventTitle").value = event.title || "";
@@ -320,7 +320,7 @@ function openEventModal(event = null, date = null, ownerId = null) {
     setSelectValue("eventOwner", event.owner_id || "");
     document.getElementById("eventNote").value = event.note || "";
   } else {
-    document.getElementById("eventModalTitle").textContent = "Ny avtale";
+    document.getElementById("eventModalTitle").textContent = t("events.new_title");
     document.getElementById("deleteEventBtn").style.display = "none";
     document.getElementById("eventForm").reset();
     document.getElementById("eventDate").value = date || formatDate(new Date());
@@ -411,6 +411,9 @@ function openShoppingModal(item = null) {
 function openMemberModal(member = null) {
   document.getElementById("memberForm").reset();
   document.getElementById("avatarPreview").innerHTML = "👤";
+  if (typeof syncLocalizedFileInput === "function") {
+    syncLocalizedFileInput("memberAvatar");
+  }
   document.getElementById("deleteMemberBtn").style.display = "none";
   if (member) {
     document.getElementById("memberId").value = member.id || "";
@@ -437,12 +440,12 @@ function showProfile(memberId) {
     ? `<img src="${member.avatar_url}" alt="${escapeHtml(member.name)}">`
     : memberEmojis[member.id % memberEmojis.length];
   document.getElementById("profileName").textContent = member.name;
-  document.getElementById("profileAge").textContent = member.birthday ? `${calculateAge(member.birthday)} \u00e5r` : "";
+  document.getElementById("profileAge").textContent = member.birthday ? t("profile.age_years", { age: String(calculateAge(member.birthday)) }) : "";
   document.getElementById("profileBirthday").innerHTML = member.birthday
-    ? `<div class="profile-section-label">F\u00f8dselsdag</div><div class="profile-section-content">${formatBirthday(member.birthday)}${isBirthdayWithinDays(member.birthday, 14) ? " \ud83c\udf89" : ""}</div>`
+    ? `<div class="profile-section-label">${escapeHtml(t("profile.birthday_label"))}</div><div class="profile-section-content">${formatBirthday(member.birthday)}${isBirthdayWithinDays(member.birthday, 14) ? " \ud83c\udf89" : ""}</div>`
     : "";
   document.getElementById("profileBio").innerHTML = member.bio
-    ? `<div class="profile-section-label">Om meg</div><div class="profile-section-content">${escapeHtml(member.bio)}</div>`
+    ? `<div class="profile-section-label">${escapeHtml(t("profile.about_label"))}</div><div class="profile-section-content">${escapeHtml(member.bio)}</div>`
     : "";
   openModal("profileModal");
 }
@@ -486,44 +489,44 @@ function openEntryView(type, item) {
 }
 
 function getEntryViewTitle(type, item) {
-  if (type === "event") return item.title || "Avtale";
-  if (type === "meal") return item.meal || "M\u00e5ltid";
-  if (type === "shopping") return item.item || "Vare";
-  return item.title || "Notat";
+  if (type === "event") return item.title || t("events.default_title");
+  if (type === "meal") return item.meal || t("entry.meal_default_title");
+  if (type === "shopping") return item.item || t("entry.shopping_default_title");
+  return item.title || t("entry.note_default_title");
 }
 
 function renderEntryViewFields(type, item) {
   if (type === "event") {
     return renderViewFields([
-      { label: "Ansvarlig", html: renderOwnerInline(item.owner_id) },
-      { label: "Dato", value: formatShortDateText(item.event_date) },
-      { label: "Start", value: item.start_time?.slice(0, 5) },
-      { label: "Slutt", value: item.end_time?.slice(0, 5) },
-      { label: "Gjentas", value: formatRecurrenceText(item) },
-      { label: "Notat", value: item.note, wide: true },
+      { label: t("view.field_owner"), html: renderOwnerInline(item.owner_id) },
+      { label: t("view.field_date"), value: formatShortDateText(item.event_date) },
+      { label: t("view.field_start"), value: item.start_time?.slice(0, 5) },
+      { label: t("view.field_end"), value: item.end_time?.slice(0, 5) },
+      { label: t("view.field_recurrence"), value: formatRecurrenceText(item) },
+      { label: t("view.field_note"), value: item.note, wide: true },
     ]);
   }
 
   if (type === "meal") {
     return renderViewFields([
-      { label: "Dag", value: weekdayNames[item.day_of_week] },
-      { label: "Type", value: mealTypes.find((entry) => entry.key === item.meal_type)?.name },
-      { label: "Ansvarlig", html: renderOwnerInline(item.owner_id) },
-      { label: "Notat", value: item.note, wide: true },
+      { label: t("view.field_day"), value: weekdayNames[item.day_of_week] },
+      { label: t("view.field_type"), value: mealTypes.find((entry) => entry.key === item.meal_type)?.name },
+      { label: t("view.field_owner"), html: renderOwnerInline(item.owner_id) },
+      { label: t("view.field_note"), value: item.note, wide: true },
     ]);
   }
 
   if (type === "shopping") {
     return renderViewFields([
-      { label: "Antall", value: String(item.quantity || 1) },
-      { label: "Ansvarlig", html: renderOwnerInline(item.owner_id) },
-      { label: "Status", value: item.done ? "Handlet" : "Ikke handlet" },
+      { label: t("view.field_quantity"), value: String(item.quantity || 1) },
+      { label: t("view.field_owner"), html: renderOwnerInline(item.owner_id) },
+      { label: t("view.field_status"), value: item.done ? t("shopping.status_purchased") : t("shopping.status_not_purchased") },
     ]);
   }
 
   return renderViewFields([
-    { label: "Ansvarlig", html: renderOwnerInline(item.owner_id) },
-    { label: "Innhold", value: item.content, wide: true },
+    { label: t("view.field_owner"), html: renderOwnerInline(item.owner_id) },
+    { label: t("view.field_content"), value: item.content, wide: true },
   ]);
 }
 
@@ -542,17 +545,17 @@ function renderViewFields(fields) {
 
 function renderOwnerInline(ownerId) {
   const owner = familyMembers.find((member) => member.id === ownerId);
-  if (!owner) return '<div class="view-value">Ingen</div>';
+  if (!owner) return `<div class="view-value">${escapeHtml(t("view.none"))}</div>`;
   return `<div class="view-owner">${getMemberAvatar(owner, "small")}<span>${escapeHtml(owner.name)}</span></div>`;
 }
 
 function formatShortDateText(value) {
-  return value ? parseDate(value).toLocaleDateString("no-NO", { day: "numeric", month: "short", year: "numeric" }) : "";
+  return value ? parseDate(value).toLocaleDateString(getCurrentLocale(), { day: "numeric", month: "short", year: "numeric" }) : "";
 }
 
 function formatRecurrenceText(item) {
-  if (item.recurrence_type === "daily") return item.recurrence_until ? `Daglig til ${formatShortDateText(item.recurrence_until)}` : "Daglig";
-  if (item.recurrence_type === "weekly") return item.recurrence_until ? `Ukentlig til ${formatShortDateText(item.recurrence_until)}` : "Ukentlig";
+  if (item.recurrence_type === "daily") return item.recurrence_until ? t("events.recurrence_daily_until", { date: formatShortDateText(item.recurrence_until) }) : t("events.recurrence_daily");
+  if (item.recurrence_type === "weekly") return item.recurrence_until ? t("events.recurrence_weekly_until", { date: formatShortDateText(item.recurrence_until) }) : t("events.recurrence_weekly");
   return "";
 }
 
@@ -575,7 +578,7 @@ async function deleteEntryFromView() {
   const { type, item } = currentViewEntry;
 
   if (type === "event") {
-    if (item.recurrence_type && !confirm("Slette hele den gjentakende serien?")) return;
+    if (item.recurrence_type && !confirm(t("events.delete_series_confirm"))) return;
     await apiFetch("/api/events", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.Options;
 using FamilyPlanner.Models;
+using FamilyPlanner.Services.Localization;
 using FamilyPlanner.Services.Storage;
 
 namespace FamilyPlanner.Endpoints;
@@ -40,7 +41,8 @@ public static partial class PlannerApiEndpoints
         return body.ValueKind == JsonValueKind.Object ? body : null;
     }
 
-    private static IResult BadRequest(string message) => Results.BadRequest(new { error = message });
+    private static IResult BadRequest(HttpContext context, AppLocalizationService localization, string key, IReadOnlyDictionary<string, string?>? placeholders = null) =>
+        Results.BadRequest(new { error = localization.Format(context, key, placeholders) });
 
     private static bool HasTrueProperty(JsonElement element, string propertyName) =>
         element.TryGetProperty(propertyName, out var property) &&
@@ -85,13 +87,6 @@ public static partial class PlannerApiEndpoints
             : null;
     }
 
-    private static string Required(string? value, string message)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            throw new BadHttpRequestException(message);
-        }
-
-        return value.Trim();
-    }
+    private static string? Required(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }
