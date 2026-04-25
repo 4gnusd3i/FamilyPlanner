@@ -164,10 +164,10 @@ async function deleteMember() {
 function getMemberAvatar(member, size = "small") {
   const dimension = size === "small" ? 18 : 24;
   if (member.avatar_url) {
-    return `<img src="${member.avatar_url}" class="member-avatar" style="width:${dimension}px;height:${dimension}px;" alt="${escapeHtml(member.name)}">`;
+    return `<img src="${escapeHtml(member.avatar_url)}" class="member-avatar" style="width:${dimension}px;height:${dimension}px;" alt="${escapeHtml(member.name)}">`;
   }
   const emoji = memberEmojis[member.id % memberEmojis.length] || "👤";
-  return `<span class="member-avatar" style="background:${member.color};width:${dimension}px;height:${dimension}px;font-size:${size === "small" ? "0.7rem" : "0.85rem"}">${emoji}</span>`;
+  return `<span class="member-avatar" style="background:${safeColor(member.color)};width:${dimension}px;height:${dimension}px;font-size:${size === "small" ? "0.7rem" : "0.85rem"}">${emoji}</span>`;
 }
 
 function showStatus(message, kind = "info") {
@@ -257,6 +257,11 @@ function escapeHtml(value) {
   const div = document.createElement("div");
   div.textContent = value;
   return div.innerHTML;
+}
+
+function safeColor(value, fallback = "#3b82f6") {
+  const text = typeof value === "string" ? value.trim() : "";
+  return /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(text) ? text : fallback;
 }
 
 function toNullableNumber(value) {

@@ -420,10 +420,10 @@ function openMemberModal(member = null) {
     document.getElementById("memberName").value = member.name || "";
     document.getElementById("memberBirthday").value = member.birthday || "";
     document.getElementById("memberBio").value = member.bio || "";
-    selectedColor = member.color || "#3b82f6";
+    selectedColor = safeColor(member.color);
     document.getElementById("deleteMemberBtn").style.display = "block";
     if (member.avatar_url) {
-      document.getElementById("avatarPreview").innerHTML = `<img src="${member.avatar_url}" alt="${escapeHtml(member.name)}">`;
+      document.getElementById("avatarPreview").innerHTML = `<img src="${escapeHtml(member.avatar_url)}" alt="${escapeHtml(member.name)}">`;
     }
   } else {
     selectedColor = colors[Math.floor(Math.random() * colors.length)];
@@ -437,7 +437,7 @@ function showProfile(memberId) {
   if (!member) return;
   currentProfileMemberId = memberId;
   document.getElementById("profileAvatar").innerHTML = member.avatar_url
-    ? `<img src="${member.avatar_url}" alt="${escapeHtml(member.name)}">`
+    ? `<img src="${escapeHtml(member.avatar_url)}" alt="${escapeHtml(member.name)}">`
     : memberEmojis[member.id % memberEmojis.length];
   document.getElementById("profileName").textContent = member.name;
   document.getElementById("profileAge").textContent = member.birthday ? t("profile.age_years", { age: String(calculateAge(member.birthday)) }) : "";

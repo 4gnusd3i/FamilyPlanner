@@ -217,6 +217,31 @@ public sealed class StorageMaintenanceTests
     }
 
     [Test]
+    public void UpsertFamilyMember_NormalizesColorInputAtStorageBoundary()
+    {
+        var dataRoot = CreateTempDataRoot();
+
+        try
+        {
+            using var store = CreateStore(dataRoot);
+            store.InitializeHousehold("Testfamilien");
+
+            var normalized = store.UpsertFamilyMember(null, "Anna", null, null, "#ABCDEF", null);
+            var fallback = store.UpsertFamilyMember(null, "Oskar", null, null, "red; background:url(test)", null);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(normalized.Color, Is.EqualTo("#abcdef"));
+                Assert.That(fallback.Color, Is.EqualTo("#3b82f6"));
+            });
+        }
+        finally
+        {
+            DeleteDirectory(dataRoot);
+        }
+    }
+
+    [Test]
     public void AvatarStorage_RejectsUnsupportedFileExtensions()
     {
         var dataRoot = CreateTempDataRoot();

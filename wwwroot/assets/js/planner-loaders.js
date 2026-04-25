@@ -25,10 +25,10 @@ async function loadFamily() {
   } else {
     board.innerHTML = familyMembers.map((member, index) => {
       const avatar = member.avatar_url
-        ? `<img src="${member.avatar_url}" alt="${escapeHtml(member.name)}" class="member-avatar family-member-avatar">`
+        ? `<img src="${escapeHtml(member.avatar_url)}" alt="${escapeHtml(member.name)}" class="member-avatar family-member-avatar">`
         : `<span class="avatar-emoji">${memberEmojis[index % memberEmojis.length]}</span>`;
 
-      return `<div class="family-tile family-avatar" role="button" tabindex="0" aria-label="${escapeHtml(t("family.view_profile_for", { name: member.name }))}" title="${escapeHtml(member.name)}" style="--member-color:${member.color || "#fefce8"}" draggable="true" data-id="${member.id}" data-name="${escapeHtml(member.name)}" onclick="showProfile(${member.id})">
+      return `<div class="family-tile family-avatar" role="button" tabindex="0" aria-label="${escapeHtml(t("family.view_profile_for", { name: member.name }))}" title="${escapeHtml(member.name)}" style="--member-color:${safeColor(member.color, "#fefce8")}" draggable="true" data-id="${member.id}" data-name="${escapeHtml(member.name)}" onclick="showProfile(${member.id})">
         <span class="family-avatar-shell">
           ${avatar}
         </span>
@@ -274,7 +274,7 @@ async function loadEvents() {
     const endDisplay = formatEventEnd(entry);
     const generatedClass = entry.source_type ? ` source-${entry.source_type}` : "";
     const timeClass = startDisplay || endDisplay ? " has-time" : "";
-    const eventAccent = owner?.color || entry.color || "#eaf4ff";
+    const eventAccent = safeColor(owner?.color, safeColor(entry.color, "#eaf4ff"));
     const interaction = entry.source_type === "birthday"
       ? `aria-label="${escapeHtml(entry.title)}"`
       : `onclick="viewEventFromJson('${payload}')"`;
@@ -344,7 +344,7 @@ async function loadMeals() {
       }
 
       const owner = familyMembers.find((member) => member.id === meal.owner_id);
-      const ownerBadge = owner ? `<span class="meal-owner" style="background:${owner.color}">${escapeHtml(owner.name.charAt(0))}</span>` : "";
+      const ownerBadge = owner ? `<span class="meal-owner" style="background:${safeColor(owner.color)}">${escapeHtml(owner.name.charAt(0))}</span>` : "";
       const payload = encodePayload(meal);
       return `<div class="meal-entry meal-${mealType.key}" onclick="viewMealFromJson('${payload}')">
         <span class="meal-type-label">${mealType.label}</span>

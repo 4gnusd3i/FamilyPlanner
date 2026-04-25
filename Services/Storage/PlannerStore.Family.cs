@@ -34,7 +34,7 @@ public sealed partial class PlannerStore
         member.Name = name.Trim();
         member.Birthday = NormalizeOptional(birthday);
         member.Bio = NormalizeOptional(bio);
-        member.Color = string.IsNullOrWhiteSpace(color) ? "#3b82f6" : color.Trim();
+        member.Color = NormalizeColor(color);
         member.AvatarUrl = NormalizeOptional(avatarUrl);
 
         if (member.Id == 0)
@@ -85,6 +85,24 @@ public sealed partial class PlannerStore
         }
 
         _familyMembers.Delete(id);
+    }
+
+    private static string NormalizeColor(string? color)
+    {
+        var trimmed = NormalizeOptional(color);
+        if (trimmed is null)
+        {
+            return "#3b82f6";
+        }
+
+        if (trimmed is { Length: 4 or 7 } &&
+            trimmed[0] == '#' &&
+            trimmed.Skip(1).All(Uri.IsHexDigit))
+        {
+            return trimmed.ToLowerInvariant();
+        }
+
+        return "#3b82f6";
     }
 
 }
