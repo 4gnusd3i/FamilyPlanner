@@ -108,11 +108,12 @@ public sealed class EventWorkflowTests : DesktopPlannerUiTestBase
     public async Task RecurringEventCrud_UsesWholeSeriesScope()
     {
         var (start, end) = GetCurrentWeekRange();
-        var recurrenceEnd = DateTime.Today.AddDays(2).ToString("yyyy-MM-dd");
+        var recurrenceStart = DateOnly.Parse(start);
+        var recurrenceEnd = recurrenceStart.AddDays(2).ToString("yyyy-MM-dd");
 
         await OpenModalBySelectorAsync(".quick-action:has-text('Avtale')", "eventModal");
         await Page.Locator("#eventTitle").FillAsync("Lekser");
-        await Page.Locator("#eventDate").FillAsync(DateTime.Today.ToString("yyyy-MM-dd"));
+        await Page.Locator("#eventDate").FillAsync(recurrenceStart.ToString("yyyy-MM-dd"));
         await Page.Locator("#eventStartTime").FillAsync("18:00");
         await Page.Locator("#eventEndTime").FillAsync("18:45");
         await SelectCustomOptionAsync("eventRecurrenceType", "daily");
@@ -134,7 +135,7 @@ public sealed class EventWorkflowTests : DesktopPlannerUiTestBase
         await WaitForModalStateAsync("entryViewModal", open: true);
         await Page.Locator("#entryViewModal .btn-primary").ClickAsync();
         await WaitForModalStateAsync("eventModal", open: true);
-        await Expect(Page.Locator("#eventDate")).ToHaveValueAsync(DateTime.Today.ToString("yyyy-MM-dd"));
+        await Expect(Page.Locator("#eventDate")).ToHaveValueAsync(recurrenceStart.ToString("yyyy-MM-dd"));
         await Page.Locator("#eventNote").FillAsync("Oppdatert serie.");
         await Page.Locator("#eventModal .btn-primary").ClickAsync();
         await WaitForModalStateAsync("eventModal", open: false);
