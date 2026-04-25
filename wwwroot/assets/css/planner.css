@@ -397,6 +397,16 @@ body.planner-page {
   padding: 1.15rem;
 }
 
+.planner-page .center-column,
+.planner-page .calendar-wrapper,
+.planner-page .week-days,
+.planner-page .day-box,
+.planner-page .day-body,
+.planner-page .day-content {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .planner-page .planner-toolbar {
   display: flex;
   justify-content: space-between;
@@ -436,9 +446,11 @@ body.planner-page {
   background: transparent;
   padding: 0;
   gap: 0.75rem;
+  width: 100%;
 }
 
 .planner-page .day-box {
+  width: 100%;
   min-height: 318px;
   padding: 0.7rem;
   border-radius: 20px;
