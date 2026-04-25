@@ -159,6 +159,7 @@
     "errors.events.title_required": "Tittel mangler.",
     "errors.events.date_required": "Dato mangler.",
     "errors.events.invalid_date": "Ugyldig dato.",
+    "errors.events.invalid_time": "Ugyldig tidspunkt.",
     "errors.events.invalid_recurrence": "Ugyldig gjentakelse.",
     "errors.events.recurrence_until_requires_recurrence": "Sluttdato krever gjentakelse.",
     "errors.events.invalid_recurrence_until": "Ugyldig sluttdato.",
@@ -168,11 +169,15 @@
     "errors.shopping.invalid_request": "Ugyldig handlelisteforespørsel.",
     "errors.shopping.invalid_item": "Ugyldig vare.",
     "errors.shopping.item_required": "Vare mangler.",
+    "errors.shopping.invalid_quantity": "Ugyldig antall.",
     "errors.family.name_required": "Navn mangler.",
     "errors.meals.invalid_meal": "Ugyldig måltid.",
     "errors.meals.invalid_day_of_week": "Ugyldig ukedag.",
     "errors.meals.meal_required": "Måltid mangler.",
     "errors.budget.invalid_request": "Ugyldig budsjettforespørsel.",
-    "errors.budget.invalid_expense": "Ugyldig utgift."
+    "errors.budget.invalid_expense": "Ugyldig utgift.",
+    "errors.budget.invalid_amount": "Ugyldig beløp.",
+    "errors.budget.invalid_month": "Ugyldig måned.",
+    "errors.budget.invalid_date": "Ugyldig dato."
   }
 }

@@ -105,6 +105,22 @@ public sealed class LocalizationConformanceTests
     }
 
     [Test]
+    public void StaticLegacyManifest_IsRemovedInFavorOfLocalizedDynamicManifest()
+    {
+        var legacyManifestPath = Path.Combine(UiTestHost.RepositoryRoot, "wwwroot", "pwa", "manifest.json");
+        var service = CreateLocalizationService("no-NB");
+        var renderer = CreateRenderer(service);
+        using var manifest = JsonDocument.Parse(renderer.RenderManifest(service.ResolveLanguage()));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(File.Exists(legacyManifestPath), Is.False, "The stale static manifest should not coexist with /manifest.webmanifest.");
+            Assert.That(manifest.RootElement.GetProperty("name").GetString(), Is.EqualTo("FamilyPlanner - Ukesplanlegger"));
+            Assert.That(manifest.RootElement.GetProperty("lang").GetString(), Is.EqualTo("nb"));
+        });
+    }
+
+    [Test]
     public void LanguagePacks_ShareTheSameKeys_AndCoverAllTemplateAndClientTranslations()
     {
         var service = CreateLocalizationService();

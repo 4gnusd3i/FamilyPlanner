@@ -50,7 +50,20 @@ internal static class UiTestHost
         await SyncLock.WaitAsync();
         try
         {
-            await StartOrRestartAsync(resetData: true);
+            await StartOrRestartAsync(resetData: true, seedData: true);
+        }
+        finally
+        {
+            SyncLock.Release();
+        }
+    }
+
+    public static async Task ResetToUnconfiguredStateAsync()
+    {
+        await SyncLock.WaitAsync();
+        try
+        {
+            await StartOrRestartAsync(resetData: true, seedData: false);
         }
         finally
         {
@@ -85,7 +98,7 @@ internal static class UiTestHost
 
     public static Task<HttpClient> CreateClientAsync() => Task.FromResult(CreateClient());
 
-    private static async Task StartOrRestartAsync(bool resetData)
+    private static async Task StartOrRestartAsync(bool resetData, bool seedData = true)
     {
         Directory.CreateDirectory(ArtifactsRoot);
         Directory.CreateDirectory(BrowserPath);
@@ -134,7 +147,10 @@ internal static class UiTestHost
         _ = PumpStreamAsync(_process.StandardError, Path.Combine(ArtifactsRoot, "app.stderr.log"));
 
         await WaitForHealthyAsync();
-        await SeedAsync();
+        if (seedData)
+        {
+            await SeedAsync();
+        }
     }
 
     private static async Task StopProcessUnlockedAsync()

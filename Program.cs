@@ -52,8 +52,9 @@ app.Use(async (context, next) =>
     {
         if (path.StartsWithSegments("/api"))
         {
+            var localization = context.RequestServices.GetRequiredService<AppLocalizationService>();
             context.Response.StatusCode = StatusCodes.Status409Conflict;
-            await context.Response.WriteAsJsonAsync(new { error = "setup_required" });
+            await context.Response.WriteAsJsonAsync(new { error = localization.GetString(context, "errors.setup_required") });
             return;
         }
 

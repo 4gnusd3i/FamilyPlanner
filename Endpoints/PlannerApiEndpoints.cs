@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.Options;
@@ -37,8 +38,27 @@ public static partial class PlannerApiEndpoints
 
     private static async Task<JsonElement?> ReadJsonObjectAsync(HttpRequest request, JsonOptions jsonOptions)
     {
-        var body = await request.ReadFromJsonAsync<JsonElement>(jsonOptions.SerializerOptions);
-        return body.ValueKind == JsonValueKind.Object ? body : null;
+        try
+        {
+            var body = await request.ReadFromJsonAsync<JsonElement>(jsonOptions.SerializerOptions);
+            return body.ValueKind == JsonValueKind.Object ? body : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static async Task<T?> ReadJsonAsync<T>(HttpRequest request, JsonOptions jsonOptions)
+    {
+        try
+        {
+            return await request.ReadFromJsonAsync<T>(jsonOptions.SerializerOptions);
+        }
+        catch (JsonException)
+        {
+            return default;
+        }
     }
 
     private static IResult BadRequest(HttpContext context, AppLocalizationService localization, string key, IReadOnlyDictionary<string, string?>? placeholders = null) =>
@@ -86,6 +106,116 @@ public static partial class PlannerApiEndpoints
             ? stringValue
             : null;
     }
+
+    private static bool TryGetOptionalString(JsonElement element, string propertyName, out string? value)
+    {
+        value = null;
+        if (!element.TryGetProperty(propertyName, out var property) || property.ValueKind == JsonValueKind.Null)
+        {
+            return true;
+        }
+
+        if (property.ValueKind == JsonValueKind.String)
+        {
+            value = property.GetString();
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryGetOptionalNullableInt(JsonElement element, string propertyName, out int? value)
+    {
+        value = null;
+        if (!element.TryGetProperty(propertyName, out var property) || property.ValueKind == JsonValueKind.Null)
+        {
+            return true;
+        }
+
+        if (property.ValueKind == JsonValueKind.String && string.IsNullOrWhiteSpace(property.GetString()))
+        {
+            return true;
+        }
+
+        if (property.ValueKind == JsonValueKind.Number && property.TryGetInt32(out var numberValue) && numberValue > 0)
+        {
+            value = numberValue;
+            return true;
+        }
+
+        if (property.ValueKind == JsonValueKind.String &&
+            int.TryParse(property.GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var stringValue) &&
+            stringValue > 0)
+        {
+            value = stringValue;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryGetOptionalDecimal(JsonElement element, string propertyName, out decimal value)
+    {
+        value = 0;
+        if (!element.TryGetProperty(propertyName, out var property) || property.ValueKind == JsonValueKind.Null)
+        {
+            return true;
+        }
+
+        if (property.ValueKind == JsonValueKind.Number)
+        {
+            return property.TryGetDecimal(out value);
+        }
+
+        if (property.ValueKind == JsonValueKind.String)
+        {
+            return decimal.TryParse(property.GetString(), NumberStyles.Number, CultureInfo.InvariantCulture, out value);
+        }
+
+        return false;
+    }
+
+    private static bool TryGetRequiredPositiveDecimal(JsonElement element, string propertyName, out decimal value) =>
+        TryGetOptionalDecimal(element, propertyName, out value) &&
+        element.TryGetProperty(propertyName, out var property) &&
+        property.ValueKind != JsonValueKind.Null &&
+        value > 0;
+
+    private static bool TryGetOptionalPositiveInt(JsonElement element, string propertyName, int defaultValue, out int value)
+    {
+        value = defaultValue;
+        if (!element.TryGetProperty(propertyName, out var property) || property.ValueKind == JsonValueKind.Null)
+        {
+            return true;
+        }
+
+        if (property.ValueKind == JsonValueKind.Number && property.TryGetInt32(out var numberValue))
+        {
+            value = numberValue;
+            return value > 0;
+        }
+
+        if (property.ValueKind == JsonValueKind.String &&
+            int.TryParse(property.GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var stringValue))
+        {
+            value = stringValue;
+            return value > 0;
+        }
+
+        return false;
+    }
+
+    private static bool IsValidIsoDate(string? value) =>
+        string.IsNullOrWhiteSpace(value) ||
+        DateOnly.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
+
+    private static bool IsValidIsoMonth(string value) =>
+        DateOnly.TryParseExact($"{value}-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
+
+    private static bool IsValidTime(string? value) =>
+        string.IsNullOrWhiteSpace(value) ||
+        TimeOnly.TryParseExact(value.Trim(), "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out _) ||
+        TimeOnly.TryParseExact(value.Trim(), "HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
 
     private static string? Required(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();

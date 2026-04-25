@@ -9,7 +9,7 @@ This file is intended to let another workstation pick up work quickly without re
 ## Current State
 
 - Primary working branch: `feature/frontend-redesign`
-- Current expected regression result: `46 passed, 0 failed`
+- Current expected regression result: `53 passed, 0 failed`
 - Legacy live-import functionality has been removed from setup, UI, API, and storage code
 - Frontend assets and backend planner/storage code are now split into smaller feature files for safer maintenance
 - Static language packs now ship in-repo for `no-NB` and `en-US`; the app resolves language from `App:Language`, then system UI culture, then `Accept-Language`
@@ -218,6 +218,17 @@ UI tests:
 ```powershell
 dotnet build .\tests\FamilyPlanner.UiTests\FamilyPlanner.UiTests.csproj -c Debug
 ```
+
+## Local Cleanup
+
+Use the cleanup script when generated local state needs to be removed deliberately:
+
+```powershell
+.\Clear-FamilyPlannerGeneratedState.ps1 -AllGenerated
+.\Clear-FamilyPlannerGeneratedState.ps1 -LocalAppData
+```
+
+The script has explicit switches for build output, regression artifacts, smoke/local data, and `%LocalAppData%\FamilyPlanner`. It intentionally preserves `.dotnet` and `.playwright-browsers` caches.
 
 ## Version Control Expectations
 

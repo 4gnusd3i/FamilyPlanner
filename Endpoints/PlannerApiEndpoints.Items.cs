@@ -13,7 +13,12 @@ public static partial class PlannerApiEndpoints
     {
         if (HasJsonContentType(request))
         {
-            var command = await request.ReadFromJsonAsync<DeleteRequest>(jsonOptions.Value.SerializerOptions);
+            var command = await ReadJsonAsync<DeleteRequest>(request, jsonOptions.Value);
+            if (command is null)
+            {
+                return BadRequest(request.HttpContext, localization, "errors.notes.invalid_note");
+            }
+
             if (command?.Delete == true)
             {
                 if (command.Id <= 0)
@@ -70,9 +75,21 @@ public static partial class PlannerApiEndpoints
                 return Results.Ok(new { ok = true });
             }
 
-            var item = body.Value.TryGetProperty("item", out var itemElement) ? itemElement.GetString() : null;
-            var quantity = body.Value.TryGetProperty("quantity", out var quantityElement) ? quantityElement.GetInt32() : 1;
-            var ownerId = TryGetNullableInt(body.Value, "owner_id");
+            if (!TryGetOptionalString(body.Value, "item", out var item))
+            {
+                return BadRequest(request.HttpContext, localization, "errors.shopping.item_required");
+            }
+
+            if (!TryGetOptionalPositiveInt(body.Value, "quantity", 1, out var quantity))
+            {
+                return BadRequest(request.HttpContext, localization, "errors.shopping.invalid_quantity");
+            }
+
+            if (!TryGetOptionalNullableInt(body.Value, "owner_id", out var ownerId))
+            {
+                return BadRequest(request.HttpContext, localization, "errors.shopping.invalid_item");
+            }
+
             var itemName = Required(item);
             if (itemName is null)
             {
@@ -90,7 +107,16 @@ public static partial class PlannerApiEndpoints
             return BadRequest(request.HttpContext, localization, "errors.shopping.item_required");
         }
 
-        var quantityValue = int.TryParse(form["quantity"], out var parsedQuantity) ? parsedQuantity : 1;
+        var quantityValue = string.IsNullOrWhiteSpace(form["quantity"])
+            ? 1
+            : int.TryParse(form["quantity"], out var parsedQuantity) && parsedQuantity > 0
+                ? parsedQuantity
+                : 0;
+        if (quantityValue <= 0)
+        {
+            return BadRequest(request.HttpContext, localization, "errors.shopping.invalid_quantity");
+        }
+
         store.UpsertShoppingItem(
             ParseNullableInt(form["id"]),
             itemValue,

@@ -20,8 +20,8 @@ public static partial class PlannerApiEndpoints
                 .ToList());
         }
 
-        if (!DateOnly.TryParse(request.Query["start"], out var start) ||
-            !DateOnly.TryParse(request.Query["end"], out var end))
+        if (!DateOnly.TryParseExact(request.Query["start"], "yyyy-MM-dd", out var start) ||
+            !DateOnly.TryParseExact(request.Query["end"], "yyyy-MM-dd", out var end))
         {
             return BadRequest(request.HttpContext, localization, "errors.events.invalid_date_range");
         }
@@ -36,7 +36,12 @@ public static partial class PlannerApiEndpoints
     {
         if (HasJsonContentType(request))
         {
-            var command = await request.ReadFromJsonAsync<DeleteRequest>(jsonOptions.Value.SerializerOptions);
+            var command = await ReadJsonAsync<DeleteRequest>(request, jsonOptions.Value);
+            if (command is null)
+            {
+                return BadRequest(request.HttpContext, localization, "errors.events.invalid_event");
+            }
+
             if (command?.Delete == true)
             {
                 if (command.Id <= 0)
@@ -63,9 +68,14 @@ public static partial class PlannerApiEndpoints
             return BadRequest(request.HttpContext, localization, "errors.events.date_required");
         }
 
-        if (!DateOnly.TryParse(eventDate, out var eventDateValue))
+        if (!DateOnly.TryParseExact(eventDate, "yyyy-MM-dd", out var eventDateValue))
         {
             return BadRequest(request.HttpContext, localization, "errors.events.invalid_date");
+        }
+
+        if (!IsValidTime(form["start_time"]) || !IsValidTime(form["end_time"]))
+        {
+            return BadRequest(request.HttpContext, localization, "errors.events.invalid_time");
         }
 
         var rawRecurrenceType = form["recurrence_type"].ToString();
@@ -85,7 +95,7 @@ public static partial class PlannerApiEndpoints
 
         if (recurrenceUntil is not null)
         {
-            if (!DateOnly.TryParse(recurrenceUntil, out var recurrenceUntilDate))
+            if (!DateOnly.TryParseExact(recurrenceUntil, "yyyy-MM-dd", out var recurrenceUntilDate))
             {
                 return BadRequest(request.HttpContext, localization, "errors.events.invalid_recurrence_until");
             }

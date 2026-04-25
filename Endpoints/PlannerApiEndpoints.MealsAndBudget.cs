@@ -13,7 +13,12 @@ public static partial class PlannerApiEndpoints
     {
         if (HasJsonContentType(request))
         {
-            var command = await request.ReadFromJsonAsync<DeleteRequest>(jsonOptions.Value.SerializerOptions);
+            var command = await ReadJsonAsync<DeleteRequest>(request, jsonOptions.Value);
+            if (command is null)
+            {
+                return BadRequest(request.HttpContext, localization, "errors.meals.invalid_meal");
+            }
+
             if (command?.Delete == true)
             {
                 if (command.Id <= 0)
@@ -28,7 +33,7 @@ public static partial class PlannerApiEndpoints
         }
 
         var form = await request.ReadFormAsync();
-        if (!int.TryParse(form["day_of_week"], out var dayOfWeek))
+        if (!int.TryParse(form["day_of_week"], out var dayOfWeek) || dayOfWeek is < 0 or > 6)
         {
             return BadRequest(request.HttpContext, localization, "errors.meals.invalid_day_of_week");
         }
@@ -72,20 +77,51 @@ public static partial class PlannerApiEndpoints
 
         if (HasTrueProperty(body.Value, "set_budget"))
         {
-            var month = body.Value.TryGetProperty("month", out var monthElement) && !string.IsNullOrWhiteSpace(monthElement.GetString())
-                ? monthElement.GetString()!
-                : DateOnly.FromDateTime(DateTime.Now).ToString("yyyy-MM");
-            var limit = body.Value.TryGetProperty("limit", out var limitElement) ? limitElement.GetDecimal() : 0;
-            var income = body.Value.TryGetProperty("income", out var incomeElement) ? incomeElement.GetDecimal() : 0;
+            if (!TryGetOptionalString(body.Value, "month", out var requestedMonth))
+            {
+                return BadRequest(request.HttpContext, localization, "errors.budget.invalid_month");
+            }
+
+            var month = string.IsNullOrWhiteSpace(requestedMonth)
+                ? DateOnly.FromDateTime(DateTime.Now).ToString("yyyy-MM")
+                : requestedMonth.Trim();
+            if (!IsValidIsoMonth(month))
+            {
+                return BadRequest(request.HttpContext, localization, "errors.budget.invalid_month");
+            }
+
+            if (!TryGetOptionalDecimal(body.Value, "limit", out var limit) ||
+                !TryGetOptionalDecimal(body.Value, "income", out var income) ||
+                limit < 0 ||
+                income < 0)
+            {
+                return BadRequest(request.HttpContext, localization, "errors.budget.invalid_request");
+            }
+
             store.SetBudget(month, limit, income);
             return Results.Ok(new { ok = true });
         }
 
-        var amount = body.Value.TryGetProperty("amount", out var amountElement) ? amountElement.GetDecimal() : 0;
-        var category = body.Value.TryGetProperty("category", out var categoryElement) ? categoryElement.GetString() : null;
-        var expenseDate = body.Value.TryGetProperty("expense_date", out var dateElement) ? dateElement.GetString() : null;
-        var ownerId = TryGetNullableInt(body.Value, "owner_id");
-        var description = body.Value.TryGetProperty("description", out var descriptionElement) ? descriptionElement.GetString() : null;
+        if (!TryGetRequiredPositiveDecimal(body.Value, "amount", out var amount))
+        {
+            return BadRequest(request.HttpContext, localization, "errors.budget.invalid_amount");
+        }
+
+        if (!TryGetOptionalString(body.Value, "category", out var category) ||
+            !TryGetOptionalString(body.Value, "description", out var description))
+        {
+            return BadRequest(request.HttpContext, localization, "errors.budget.invalid_request");
+        }
+
+        if (!TryGetOptionalString(body.Value, "expense_date", out var expenseDate) || !IsValidIsoDate(expenseDate))
+        {
+            return BadRequest(request.HttpContext, localization, "errors.budget.invalid_date");
+        }
+
+        if (!TryGetOptionalNullableInt(body.Value, "owner_id", out var ownerId))
+        {
+            return BadRequest(request.HttpContext, localization, "errors.budget.invalid_request");
+        }
 
         store.AddExpense(amount, category, expenseDate, ownerId, description);
         return Results.Ok(new { ok = true });

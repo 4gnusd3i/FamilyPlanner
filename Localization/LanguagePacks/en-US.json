@@ -159,6 +159,7 @@
     "errors.events.title_required": "Title is required.",
     "errors.events.date_required": "Date is required.",
     "errors.events.invalid_date": "Invalid date.",
+    "errors.events.invalid_time": "Invalid time.",
     "errors.events.invalid_recurrence": "Invalid recurrence.",
     "errors.events.recurrence_until_requires_recurrence": "An end date requires recurrence.",
     "errors.events.invalid_recurrence_until": "Invalid end date.",
@@ -168,11 +169,15 @@
     "errors.shopping.invalid_request": "Invalid shopping list request.",
     "errors.shopping.invalid_item": "Invalid item.",
     "errors.shopping.item_required": "Item is required.",
+    "errors.shopping.invalid_quantity": "Invalid quantity.",
     "errors.family.name_required": "Name is required.",
     "errors.meals.invalid_meal": "Invalid meal.",
     "errors.meals.invalid_day_of_week": "Invalid day of week.",
     "errors.meals.meal_required": "Meal is required.",
     "errors.budget.invalid_request": "Invalid budget request.",
-    "errors.budget.invalid_expense": "Invalid expense."
+    "errors.budget.invalid_expense": "Invalid expense.",
+    "errors.budget.invalid_amount": "Invalid amount.",
+    "errors.budget.invalid_month": "Invalid month.",
+    "errors.budget.invalid_date": "Invalid date."
   }
 }
