@@ -236,6 +236,7 @@ public sealed class LocalizationConformanceTests
             "Endpoints",
             "Localization",
             "Models",
+            "Packaging",
             "Services",
             "tests",
             "wwwroot"
@@ -270,6 +271,7 @@ public sealed class LocalizationConformanceTests
             ".gitignore",
             "Program.cs",
             "FamilyPlanner.csproj",
+            "Package-FamilyPlannerRelease.ps1",
             "Launch-FamilyPlanner.ps1",
             "Launch-FamilyPlanner.cmd",
             "Run-UiRegression.ps1",

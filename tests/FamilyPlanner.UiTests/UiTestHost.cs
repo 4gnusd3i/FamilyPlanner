@@ -141,6 +141,7 @@ internal static class UiTestHost
         startInfo.Environment["PLAYWRIGHT_BROWSERS_PATH"] = BrowserPath;
         startInfo.Environment["App__Urls"] = BaseUrl;
         startInfo.Environment["App__Language"] = "no-NB";
+        startInfo.Environment["App__NoBrowser"] = "true";
 
         _process = Process.Start(startInfo) ?? throw new InvalidOperationException("Failed to start local app process.");
         _ = PumpStreamAsync(_process.StandardOutput, Path.Combine(ArtifactsRoot, "app.stdout.log"));

@@ -2,14 +2,16 @@
 
 ## Purpose
 
-This repository is a local rebuild of the FamilyPlanner family week planner. It is an ASP.NET Core 10 web app with LiteDB storage, setup-only onboarding, a launcher for local use, and a Playwright-based functional regression suite.
+This repository is a family week planner. It is an ASP.NET Core 10 web app with LiteDB storage, setup-only onboarding, a launcher for local use, and a Playwright-based functional regression suite.
 
 This file is intended to let another workstation pick up work quickly without rediscovering the project structure or the current baseline.
 
 ## Current State
 
-- Primary working branch: `feature/frontend-redesign`
+- Primary working branch: `main`
 - Current expected regression result: `55 passed, 0 failed`
+- Public release branch pattern: `release/*`
+- Disposable validation branch pattern: `test/*`
 - Legacy live-import functionality has been removed from setup, UI, API, and storage code
 - Frontend assets and backend planner/storage code are now split into smaller feature files for safer maintenance
 - Static language packs now ship in-repo for `no-NB` and `en-US`; the app resolves language from `App:Language`, then system UI culture, then `Accept-Language`
@@ -28,28 +30,30 @@ This file is intended to let another workstation pick up work quickly without re
 ## Repository Layout
 
 - `Program.cs`
-  - host startup, setup redirect logic, static files, `/health`
+    - host startup, setup redirect logic, static files, `/health`
 - `Endpoints/`
-  - `PageEndpoints.cs`: `/`, `/setup`
-  - `SetupEndpoints.cs`: `POST /setup`
-  - `PlannerApiEndpoints*.cs`: `/api/*`, split by feature area
+    - `PageEndpoints.cs`: `/`, `/setup`
+    - `SetupEndpoints.cs`: `POST /setup`
+    - `PlannerApiEndpoints*.cs`: `/api/*`, split by feature area
 - `Services/Storage/`
-  - `PlannerStore*.cs`: LiteDB collections and CRUD logic, split by feature area
-  - `StoragePaths.cs`: local data-root resolution
-  - `AvatarStorageService.cs`: avatar upload/delete
+    - `PlannerStore*.cs`: LiteDB collections and CRUD logic, split by feature area
+    - `StoragePaths.cs`: local data-root resolution
+    - `AvatarStorageService.cs`: avatar upload/delete
 - `Models/`
-  - entity and command models
+    - entity and command models
 - `AppPages/`
-  - server-served HTML pages: `index.html`, `setup.html`
+    - server-served HTML pages: `index.html`, `setup.html`
 - `wwwroot/assets/`
-  - `css/base.css`
-  - `css/planner.css`
-  - `js/auth-feedback.js`
-  - `js/planner-*.js`
+    - `css/base.css`
+    - `css/planner.css`
+    - `js/auth-feedback.js`
+    - `js/planner-*.js`
 - `wwwroot/pwa/`
-  - manifest and icons
+    - manifest and icons
 - `tests/FamilyPlanner.UiTests/`
-  - Playwright functional regression suite
+    - Playwright functional regression suite
+- `Packaging/`
+    - package README template included in release zips
 
 ## Runtime and Data
 
@@ -145,11 +149,11 @@ Conventions:
 - forms are used for most create/update requests
 - JSON is used for toggles, deletes, and budget actions
 - field names intentionally mirror the current frontend contract, for example:
-  - `event_date`
-  - `day_of_week`
-  - `meal_type`
-  - `owner_id`
-  - `done`
+    - `event_date`
+    - `day_of_week`
+    - `meal_type`
+    - `owner_id`
+    - `done`
 
 ## Data Model Summary
 
@@ -219,6 +223,20 @@ UI tests:
 dotnet build .\tests\FamilyPlanner.UiTests\FamilyPlanner.UiTests.csproj -c Debug
 ```
 
+## Release Branches
+
+- `main` is public but developer-facing; it includes tests, local scripts, and contributor documentation.
+- `release/*` branches are user/release-facing and should be trimmed to source/package files for that specific release.
+- `test/*` branches are disposable validation branches. Run builds/regression/manual checks there, then clean generated state and delete the branch.
+- Do not push local archive refs, old feature branches, generated output, package work directories, local bundle backups, or ignored release artifacts as tracked files.
+- Packaged Windows releases are generated with:
+
+```powershell
+.\Package-FamilyPlannerRelease.ps1
+```
+
+The script must be run from the matching `release/v*` branch. It writes ignored files under `releases/`: a zip and `.sha256` checksum.
+
 ## Local Cleanup
 
 Use the cleanup script when generated local state needs to be removed deliberately:
@@ -236,15 +254,16 @@ The script has explicit switches for build output, regression artifacts, smoke/l
 - On the current machine, commit signing is configured globally and happens implicitly.
 - On a new workstation, verify signing is actually working before you assume it is.
 - Keep generated output out of Git. The current `.gitignore` already excludes:
-  - `.dotnet/`
-  - `.localdata/`
-  - `.smoketestdata/`
-  - `.smoketestdata-ui/`
-  - `.playwright-browsers/`
-  - `TestResults/`
-  - `tests/FamilyPlanner.UiTests/.artifacts/`
-  - `bin/`
-  - `obj/`
+    - `.dotnet/`
+    - `.localdata/`
+    - `.smoketestdata/`
+    - `.smoketestdata-ui/`
+    - `.playwright-browsers/`
+    - `TestResults/`
+    - `tests/FamilyPlanner.UiTests/.artifacts/`
+    - `bin/`
+    - `obj/`
+    - `releases/`
 - `todo.md` is currently untracked and should stay that way unless explicitly requested otherwise.
 
 ## Project-Specific Working Rules
@@ -259,20 +278,15 @@ The script has explicit switches for build output, regression artifacts, smoke/l
 
 Items already called out for future work in `todo.md`:
 
-- continue UI/UX cleanup and responsive polishing
-- refine color theme
-- trim superfluous text in the interface
-- general cleanup and optimization
-- prepare a Windows release branch
-- later evaluate backup/restore work
-- later evaluate an Android/native branch
+- evaluate backup/restore work
+- evaluate an Android/native branch
 
 ## Fast Resume Checklist
 
 On a fresh workstation, the fastest safe resume path is:
 
 1. Verify `.NET 10`, Git, and commit signing.
-2. Clone the repo and checkout `feature/frontend-redesign`.
+2. Clone the repo and checkout `main`.
 3. Run `.\Launch-FamilyPlanner.cmd` and confirm `http://localhost:5080/health`.
 4. Run `.\Install-UiRegressionBrowser.ps1` once if Playwright is not set up yet.
 5. Run `.\Run-UiRegression.ps1` and confirm the suite is green before changing behavior.

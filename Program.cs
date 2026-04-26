@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Diagnostics;
 using Microsoft.Extensions.FileProviders;
 using FamilyPlanner.Endpoints;
 using FamilyPlanner.Services.Localization;
@@ -7,7 +8,11 @@ using FamilyPlanner.Services.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.WebHost.UseUrls(builder.Configuration["App:Urls"] ?? "http://localhost:5080");
+var configuredUrls = builder.Configuration["App:Urls"] ?? "http://localhost:5080";
+var appUrl = GetPrimaryAppUrl(configuredUrls);
+var noBrowserRequested = IsNoBrowserRequested(builder.Configuration, Environment.GetCommandLineArgs());
+
+builder.WebHost.UseUrls(configuredUrls);
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
@@ -23,6 +28,12 @@ builder.Services.AddSingleton<LocalizedPageRenderer>();
 builder.Services.AddSingleton<StoragePaths>();
 builder.Services.AddSingleton<AvatarStorageService>();
 builder.Services.AddSingleton<PlannerStore>();
+
+if (!builder.Environment.IsDevelopment() && !noBrowserRequested && IsAppAlreadyRunning(appUrl))
+{
+    OpenBrowser(appUrl);
+    return;
+}
 
 var app = builder.Build();
 
@@ -84,4 +95,58 @@ app.MapPlannerApiEndpoints();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.MapFallback(() => Results.Redirect("/"));
 
+OpenBrowserWhenReady(app, appUrl, noBrowserRequested);
+
 app.Run();
+
+static string GetPrimaryAppUrl(string configuredUrls) =>
+    configuredUrls
+        .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .FirstOrDefault() ?? "http://localhost:5080";
+
+static bool IsNoBrowserRequested(IConfiguration configuration, string[] args) =>
+    args.Any(arg => string.Equals(arg, "--no-browser", StringComparison.OrdinalIgnoreCase)) ||
+    configuration.GetValue<bool>("App:NoBrowser");
+
+static bool IsAppAlreadyRunning(string appUrl)
+{
+    try
+    {
+        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
+        using var response = client.GetAsync(new Uri(new Uri(appUrl), "health")).GetAwaiter().GetResult();
+        return response.IsSuccessStatusCode;
+    }
+    catch
+    {
+        return false;
+    }
+}
+
+static void OpenBrowserWhenReady(WebApplication app, string appUrl, bool noBrowserRequested)
+{
+    if (app.Environment.IsDevelopment() || noBrowserRequested)
+    {
+        return;
+    }
+
+    app.Lifetime.ApplicationStarted.Register(() =>
+    {
+        try
+        {
+            OpenBrowser(appUrl);
+        }
+        catch (Exception ex)
+        {
+            app.Logger.LogWarning(ex, "Could not open browser for {AppUrl}", appUrl);
+        }
+    });
+}
+
+static void OpenBrowser(string appUrl)
+{
+    Process.Start(new ProcessStartInfo
+    {
+        FileName = appUrl,
+        UseShellExecute = true
+    });
+}

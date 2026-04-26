@@ -5,6 +5,13 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>FamilyPlanner</RootNamespace>
+    <AssemblyName>FamilyPlanner</AssemblyName>
+    <Product>FamilyPlanner</Product>
+    <Version>0.1.0</Version>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <FileVersion>0.1.0.0</FileVersion>
+    <InformationalVersion Condition="'$(SourceRevisionId)' == ''">0.1.0</InformationalVersion>
+    <InformationalVersion Condition="'$(SourceRevisionId)' != ''">0.1.0+$(SourceRevisionId)</InformationalVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,15 +22,22 @@
     <Compile Remove="tests\**\*.cs" />
     <Content Remove="tests\**\*" />
     <EmbeddedResource Remove="tests\**\*" />
+    <None Remove="AppPages\**\*" />
     <None Remove="tests\**\*" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Update="AppPages\**\*">
+    <Content Update="appsettings.Development.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </Content>
+    <Content Include="AppPages\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
     <Content Update="Localization\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
   </ItemGroup>
 
