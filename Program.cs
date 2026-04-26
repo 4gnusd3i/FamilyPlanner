@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Diagnostics;
 using Microsoft.Extensions.FileProviders;
 using FamilyPlanner.Endpoints;
 using FamilyPlanner.Services.Localization;
@@ -25,6 +26,7 @@ builder.Services.AddSingleton<AvatarStorageService>();
 builder.Services.AddSingleton<PlannerStore>();
 
 var app = builder.Build();
+var appUrl = builder.Configuration["App:Urls"] ?? "http://localhost:5080";
 
 var storagePaths = app.Services.GetRequiredService<StoragePaths>();
 Directory.CreateDirectory(storagePaths.RootPath);
@@ -84,4 +86,35 @@ app.MapPlannerApiEndpoints();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.MapFallback(() => Results.Redirect("/"));
 
+OpenBrowserWhenReady(app, appUrl);
+
 app.Run();
+
+static void OpenBrowserWhenReady(WebApplication app, string appUrl)
+{
+    var configuration = app.Configuration;
+    if (app.Environment.IsDevelopment() ||
+        argsContainNoBrowser(Environment.GetCommandLineArgs()) ||
+        configuration.GetValue<bool>("App:NoBrowser")) {
+        return;
+    }
+
+    app.Lifetime.ApplicationStarted.Register(() =>
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = appUrl,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            app.Logger.LogWarning(ex, "Could not open browser for {AppUrl}", appUrl);
+        }
+    });
+
+    static bool argsContainNoBrowser(string[] args) =>
+        args.Any(arg => string.Equals(arg, "--no-browser", StringComparison.OrdinalIgnoreCase));
+}

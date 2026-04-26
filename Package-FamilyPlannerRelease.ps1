@@ -96,8 +96,6 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Copy-Item -Path (Join-Path $publishDir "*") -Destination $packageDir -Recurse -Force
-Copy-Item -Path (Join-Path $repoRoot "Packaging\Start-FamilyPlanner.cmd") -Destination $packageDir -Force
-Copy-Item -Path (Join-Path $repoRoot "Packaging\Start-FamilyPlanner.ps1") -Destination $packageDir -Force
 Copy-Item -Path (Join-Path $repoRoot "Packaging\README.txt") -Destination $packageDir -Force
 
 $developmentSettings = Join-Path $packageDir "appsettings.Development.json"

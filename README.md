@@ -18,7 +18,7 @@ The first packaged release is planned as:
 To use the packaged app:
 
 1. Extract the zip file.
-2. Double-click `Start-FamilyPlanner.cmd`.
+2. Double-click `FamilyPlanner.exe`.
 3. Open `http://localhost:5080` if the browser does not open automatically.
 4. Complete the first-run setup.
 
@@ -37,14 +37,8 @@ That folder contains the LiteDB database and uploaded avatars. Keeping data in
 `%LocalAppData%` means upgrades can replace the app folder without deleting
 family data.
 
-Portable mode is available for advanced use:
-
-```powershell
-.\Start-FamilyPlanner.cmd -Portable
-```
-
-Portable mode stores data beside the extracted app. Back up that folder before
-deleting or replacing the extracted release.
+The packaged app stores data in `%LocalAppData%` by default so upgrades can
+replace the app folder without deleting family data.
 
 ## Language Options
 
@@ -52,17 +46,9 @@ FamilyPlanner ships static language packs for Norwegian Bokmål and English.
 The app uses the configured launch language first, then system/browser language
 fallbacks.
 
-Packaged app examples:
-
-```powershell
-.\Start-FamilyPlanner.cmd nb
-.\Start-FamilyPlanner.cmd en
-.\Start-FamilyPlanner.cmd -Language no-NB
-.\Start-FamilyPlanner.cmd -Language en-US
-```
-
-When running from source, set `App__Language` before `dotnet run` to force a
-language, for example `no-NB` or `en-US`.
+The packaged app follows system/browser language settings. When running from
+source, set `App__Language` before `dotnet run` to force a language, for example
+`no-NB` or `en-US`.
 
 ## Build From Source
 
