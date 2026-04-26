@@ -15,10 +15,6 @@ own computer and stores data locally with LiteDB.
 - `test/*`: disposable validation branches used for builds, regression runs, and manual checks.
 - Packaged builds are published through GitHub Releases, for example `v0.1.0`.
 
-Do not push generated output, local databases, browser caches, test artifacts, or
-old archive refs. The old local archive ref is intentionally not part of the
-public GitHub refs.
-
 ## Packaged Releases
 
 Users should download the latest package from GitHub Releases:
@@ -137,5 +133,5 @@ checksum file. The release branch must be clean before packaging.
 - `tests/FamilyPlanner.UiTests/`: Playwright/NUnit regression suite.
 - `Packaging/`: package README template used by release zips.
 
-For workstation handoff and repo-specific operating guidance, see
+For repo-specific operating guidance, see
 [AGENTS.md](AGENTS.md).
