@@ -259,13 +259,9 @@ The script has explicit switches for build output, regression artifacts, smoke/l
 
 Items already called out for future work in `todo.md`:
 
-- continue UI/UX cleanup and responsive polishing
-- refine color theme
-- trim superfluous text in the interface
-- general cleanup and optimization
 - prepare a Windows release branch
-- later evaluate backup/restore work
-- later evaluate an Android/native branch
+- evaluate backup/restore work
+- evaluate an Android/native branch
 
 ## Fast Resume Checklist
 
