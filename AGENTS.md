@@ -4,7 +4,7 @@
 
 This repository is a family week planner. It is an ASP.NET Core 10 web app with LiteDB storage, setup-only onboarding, a launcher for local use, and a Playwright-based functional regression suite.
 
-This file is intended to let another workstation pick up work quickly without rediscovering the project structure or the current baseline.
+This file is intended to let another workstation or dev pick up work quickly without rediscovering the project structure or the current baseline.
 
 ## Current State
 
