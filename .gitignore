@@ -23,9 +23,8 @@ coverage.cobertura.xml
 *.db-shm
 *.db-wal
 
-# Playwright and browser regression artifacts
+# Browser/test caches and regression artifacts
 .playwright-browsers/
-tests/FamilyPlanner.UiTests/.artifacts/
 
 # IDE and editor state
 .vs/

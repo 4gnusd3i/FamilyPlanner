@@ -4,8 +4,9 @@ FamilyPlanner is a local family week planner for schedules, meals, shopping,
 notes, budget items, and family members. It runs as a small ASP.NET Core app on
 your own computer and stores data locally with LiteDB.
 
-The app is currently prepared for Windows-first local use and packaged releases.
-It does not require an account or an external service.
+This release branch contains only the files needed to build and package the
+v0.1.0 Windows release from source. Developer-only tests, local workflow notes,
+and regression tooling live on `main`.
 
 ## Download And Run
 
@@ -60,13 +61,8 @@ Packaged app examples:
 .\Start-FamilyPlanner.cmd -Language en-US
 ```
 
-Source launcher examples:
-
-```powershell
-.\Launch-FamilyPlanner.cmd nb
-.\Launch-FamilyPlanner.cmd /en -Portable
-.\Launch-FamilyPlanner.ps1 -Language en-US -NoBrowser
-```
+When running from source, set `App__Language` before `dotnet run` to force a
+language, for example `no-NB` or `en-US`.
 
 ## Build From Source
 
@@ -76,13 +72,7 @@ Requirements:
 - Windows PowerShell
 - Git
 
-Preferred source launcher:
-
-```powershell
-.\Launch-FamilyPlanner.cmd
-```
-
-Manual source run:
+Run from source:
 
 ```powershell
 $env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE='1'
@@ -105,40 +95,22 @@ dotnet build .\FamilyPlanner.csproj -c Debug
 
 ## Testing
 
-Install Playwright Chromium once:
-
-```powershell
-.\Install-UiRegressionBrowser.ps1
-```
-
-Run the full UI regression suite:
-
-```powershell
-.\Run-UiRegression.ps1
-```
-
 Current verified baseline:
 
 ```text
 55 passed, 0 failed
 ```
 
-Regression artifacts are written to:
-
-```text
-tests\FamilyPlanner.UiTests\.artifacts\
-```
-
-See [tests/FamilyPlanner.UiTests/README.md](tests/FamilyPlanner.UiTests/README.md)
-for the detailed test coverage map.
+The regression suite is intentionally not included on this pure release branch.
+It remains on `main`, where development and validation work happen before a
+release branch is cut.
 
 ## Release And Branch Policy
 
 - `main` is the clean developer-facing baseline.
 - `release/*` branches are used for package preparation.
 - `test/*` branches are disposable validation branches.
-- Build outputs, package outputs, browser caches, databases, logs, and test
-  artifacts stay out of Git.
+- Build outputs, package outputs, caches, databases, and logs stay out of Git.
 
 Release packaging for v0.1.0 is run from `release/v0.1.0`:
 
@@ -158,7 +130,5 @@ SHA-256 checksum.
 - `AppPages/`: server-rendered HTML templates.
 - `wwwroot/assets/`: planner CSS and JavaScript.
 - `Packaging/`: launcher templates included in release zips.
-- `tests/FamilyPlanner.UiTests/`: Playwright/NUnit regression suite.
 
-For workstation handoff and repo-specific operating guidance, see
-[AGENTS.md](AGENTS.md).
+For developer workflow details, use the `main` branch.

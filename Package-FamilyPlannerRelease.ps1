@@ -53,8 +53,9 @@ if ($branch -ne $releaseBranch) {
     throw "Release packaging must run from $releaseBranch. Current branch: $branch"
 }
 
-$trackedStatus = Invoke-Git status --short --untracked-files=no
-if ($trackedStatus) {
+$trackedStatus = @(Invoke-Git status --short --untracked-files=no)
+$trackedStatus = @($trackedStatus | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+if ($trackedStatus.Count -gt 0) {
     throw "Tracked working tree changes are present. Commit or revert them before packaging."
 }
 
