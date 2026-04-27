@@ -1,9 +1,12 @@
 package io.github.fourgnusd3i.familyplanner.data.repository
 
 import io.github.fourgnusd3i.familyplanner.core.time.DateTimeProvider
+import io.github.fourgnusd3i.familyplanner.data.local.FamilyMemberEntity
+import io.github.fourgnusd3i.familyplanner.data.local.HouseholdProfileEntity
 import io.github.fourgnusd3i.familyplanner.data.local.PlannerDao
 import io.github.fourgnusd3i.familyplanner.data.local.toDomain
 import io.github.fourgnusd3i.familyplanner.domain.model.PlannerDashboard
+import io.github.fourgnusd3i.familyplanner.domain.setup.SetupValidator
 import io.github.fourgnusd3i.familyplanner.domain.planner.RecurrenceRules
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -33,4 +36,12 @@ class RoomPlannerRepository @Inject constructor(
                 notes = notes.map { it.toDomain() },
             )
         }
+
+    override suspend fun initializeHousehold(familyName: String, firstMemberName: String) {
+        val request = SetupValidator.validate(familyName, firstMemberName)
+        dao.initializeHousehold(
+            profile = HouseholdProfileEntity(familyName = request.familyName),
+            firstMember = FamilyMemberEntity(name = request.firstMemberName),
+        )
+    }
 }

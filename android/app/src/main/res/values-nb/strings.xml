@@ -20,4 +20,12 @@
     <string name="family_title">Familiemedlemmer</string>
     <string name="empty_state">Ingen data ennå</string>
     <string name="coming_next">Arbeidet med native funksjonsparitet fortsetter her.</string>
+    <string name="setup_title">Sett opp FamilyPlanner</string>
+    <string name="setup_subtitle">Opprett lokal husholdning og første familiemedlem.</string>
+    <string name="setup_family_name">Familienavn</string>
+    <string name="setup_first_member">Første medlem</string>
+    <string name="setup_submit">Opprett lokal planlegger</string>
+    <string name="count_upcoming">%1$d kommende avtaler</string>
+    <string name="count_shopping">%1$d varer</string>
+    <string name="count_notes">%1$d notater</string>
 </resources>

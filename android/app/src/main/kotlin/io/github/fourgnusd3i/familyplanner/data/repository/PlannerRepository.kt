@@ -5,4 +5,5 @@ import kotlinx.coroutines.flow.Flow
 
 interface PlannerRepository {
     fun observeDashboard(): Flow<PlannerDashboard>
+    suspend fun initializeHousehold(familyName: String, firstMemberName: String)
 }

@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Dining
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material3.Card
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
@@ -33,6 +34,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -52,7 +54,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.fourgnusd3i.familyplanner.R
+import io.github.fourgnusd3i.familyplanner.domain.model.FamilyMember
+import io.github.fourgnusd3i.familyplanner.domain.model.PlannerDashboard
 import io.github.fourgnusd3i.familyplanner.ui.theme.FamilyPlannerTheme
 
 private enum class PlannerDestination(
@@ -67,22 +72,112 @@ private enum class PlannerDestination(
 }
 
 @Composable
-fun FamilyPlannerApp() {
+fun FamilyPlannerApp(viewModel: FamilyPlannerViewModel) {
+    val dashboard by viewModel.dashboard.collectAsStateWithLifecycle()
+    val setupError by viewModel.setupError.collectAsStateWithLifecycle()
+
+    FamilyPlannerContent(
+        dashboard = dashboard,
+        setupError = setupError,
+        onSetupSubmit = viewModel::initializeHousehold,
+    )
+}
+
+@Composable
+private fun FamilyPlannerContent(
+    dashboard: PlannerDashboard,
+    setupError: String?,
+    onSetupSubmit: (familyName: String, firstMemberName: String) -> Unit,
+) {
+    if (!dashboard.isSetupComplete) {
+        SetupScreen(
+            setupError = setupError,
+            onSetupSubmit = onSetupSubmit,
+        )
+        return
+    }
+
     val windowInfo = LocalWindowInfo.current
     val density = LocalDensity.current
     val windowWidth = with(density) { windowInfo.containerSize.width.toDp() }
     val isTablet = windowWidth >= 840.dp
 
     if (isTablet) {
-        TabletDashboard()
+        TabletDashboard(dashboard)
     } else {
-        PhoneShell()
+        PhoneShell(dashboard)
+    }
+}
+
+@Composable
+private fun SetupScreen(
+    setupError: String?,
+    onSetupSubmit: (familyName: String, firstMemberName: String) -> Unit,
+) {
+    var familyName by rememberSaveable { mutableStateOf("") }
+    var firstMemberName by rememberSaveable { mutableStateOf("") }
+
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(28.dp),
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.setup_title),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = stringResource(R.string.setup_subtitle),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    OutlinedTextField(
+                        modifier = Modifier.fillMaxWidth(),
+                        value = familyName,
+                        onValueChange = { familyName = it },
+                        label = { Text(stringResource(R.string.setup_family_name)) },
+                        singleLine = true,
+                    )
+                    OutlinedTextField(
+                        modifier = Modifier.fillMaxWidth(),
+                        value = firstMemberName,
+                        onValueChange = { firstMemberName = it },
+                        label = { Text(stringResource(R.string.setup_first_member)) },
+                        singleLine = true,
+                    )
+                    if (!setupError.isNullOrBlank()) {
+                        Text(
+                            text = setupError,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { onSetupSubmit(familyName, firstMemberName) },
+                    ) {
+                        Text(stringResource(R.string.setup_submit))
+                    }
+                }
+            }
+        }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PhoneShell() {
+private fun PhoneShell(dashboard: PlannerDashboard) {
     var selected by rememberSaveable { mutableStateOf(PlannerDestination.Overview) }
 
     Scaffold(
@@ -109,6 +204,7 @@ private fun PhoneShell() {
     ) { padding ->
         DestinationContent(
             destination = selected,
+            dashboard = dashboard,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
@@ -118,7 +214,7 @@ private fun PhoneShell() {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun TabletDashboard() {
+private fun TabletDashboard(dashboard: PlannerDashboard) {
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
             modifier = Modifier
@@ -136,8 +232,16 @@ private fun TabletDashboard() {
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     PlannerPanel(R.string.budget_title, Modifier.weight(0.8f))
-                    PlannerPanel(R.string.shopping_title, Modifier.weight(1f))
-                    PlannerPanel(R.string.notes_title, Modifier.weight(1f))
+                    PlannerPanel(
+                        title = R.string.shopping_title,
+                        modifier = Modifier.weight(1f),
+                        body = stringResource(R.string.count_shopping, dashboard.shoppingItems.size),
+                    )
+                    PlannerPanel(
+                        title = R.string.notes_title,
+                        modifier = Modifier.weight(1f),
+                        body = stringResource(R.string.count_notes, dashboard.notes.size),
+                    )
                 }
                 Column(
                     modifier = Modifier.weight(1f),
@@ -146,7 +250,11 @@ private fun TabletDashboard() {
                     PlannerPanel(R.string.week_title, Modifier.weight(1.6f))
                     PlannerPanel(R.string.meals_title, Modifier.weight(0.7f))
                 }
-                PlannerPanel(R.string.overview_title, Modifier.width(280.dp))
+                PlannerPanel(
+                    title = R.string.overview_title,
+                    modifier = Modifier.width(280.dp),
+                    body = stringResource(R.string.count_upcoming, dashboard.upcomingEvents.size),
+                )
             }
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
@@ -158,8 +266,8 @@ private fun TabletDashboard() {
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
-                repeat(6) { index ->
-                    FamilyChip(name = "Member ${index + 1}")
+                dashboard.familyMembers.forEach { member ->
+                    FamilyChip(member)
                 }
             }
         }
@@ -167,7 +275,11 @@ private fun TabletDashboard() {
 }
 
 @Composable
-private fun DestinationContent(destination: PlannerDestination, modifier: Modifier = Modifier) {
+private fun DestinationContent(
+    destination: PlannerDestination,
+    dashboard: PlannerDashboard,
+    modifier: Modifier = Modifier,
+) {
     LazyColumn(
         modifier = modifier.padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -175,7 +287,13 @@ private fun DestinationContent(destination: PlannerDestination, modifier: Modifi
     ) {
         when (destination) {
             PlannerDestination.Overview -> {
-                item { PlannerPanel(R.string.overview_title, Modifier.fillMaxWidth().height(280.dp)) }
+                item {
+                    PlannerPanel(
+                        title = R.string.overview_title,
+                        modifier = Modifier.fillMaxWidth().height(280.dp),
+                        body = stringResource(R.string.count_upcoming, dashboard.upcomingEvents.size),
+                    )
+                }
             }
             PlannerDestination.Week -> {
                 item { PlannerPanel(R.string.week_title, Modifier.fillMaxWidth().height(520.dp)) }
@@ -184,8 +302,20 @@ private fun DestinationContent(destination: PlannerDestination, modifier: Modifi
                 item { PlannerPanel(R.string.meals_title, Modifier.fillMaxWidth().height(420.dp)) }
             }
             PlannerDestination.Lists -> {
-                item { PlannerPanel(R.string.shopping_title, Modifier.fillMaxWidth().height(260.dp)) }
-                item { PlannerPanel(R.string.notes_title, Modifier.fillMaxWidth().height(260.dp)) }
+                item {
+                    PlannerPanel(
+                        title = R.string.shopping_title,
+                        modifier = Modifier.fillMaxWidth().height(260.dp),
+                        body = stringResource(R.string.count_shopping, dashboard.shoppingItems.size),
+                    )
+                }
+                item {
+                    PlannerPanel(
+                        title = R.string.notes_title,
+                        modifier = Modifier.fillMaxWidth().height(260.dp),
+                        body = stringResource(R.string.count_notes, dashboard.notes.size),
+                    )
+                }
             }
             PlannerDestination.Budget -> {
                 item { PlannerPanel(R.string.budget_title, Modifier.fillMaxWidth().height(420.dp)) }
@@ -218,7 +348,11 @@ private fun QuickAction(@StringRes label: Int) {
 }
 
 @Composable
-private fun PlannerPanel(@StringRes title: Int, modifier: Modifier = Modifier) {
+private fun PlannerPanel(
+    @StringRes title: Int,
+    modifier: Modifier = Modifier,
+    body: String? = null,
+) {
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(28.dp),
@@ -241,7 +375,7 @@ private fun PlannerPanel(@StringRes title: Int, modifier: Modifier = Modifier) {
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = "${stringResource(R.string.empty_state)}. ${stringResource(R.string.coming_next)}",
+                    text = body ?: "${stringResource(R.string.empty_state)}. ${stringResource(R.string.coming_next)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -251,7 +385,7 @@ private fun PlannerPanel(@StringRes title: Int, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun FamilyChip(name: String) {
+private fun FamilyChip(member: FamilyMember) {
     Card(shape = RoundedCornerShape(22.dp)) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
@@ -263,16 +397,34 @@ private fun FamilyChip(name: String) {
                 shape = RoundedCornerShape(14.dp),
             ) {}
             Spacer(Modifier.width(10.dp))
-            Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(member.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
+
+private fun previewDashboard(): PlannerDashboard =
+    PlannerDashboard(
+        isSetupComplete = true,
+        familyMembers = listOf(
+            FamilyMember(
+                id = 1,
+                name = "Anna",
+                color = "#3b82f6",
+                avatarUri = null,
+                birthday = null,
+                bio = null,
+            ),
+        ),
+        upcomingEvents = emptyList(),
+        shoppingItems = emptyList(),
+        notes = emptyList(),
+    )
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun PhonePreview() {
     FamilyPlannerTheme {
-        PhoneShell()
+        PhoneShell(previewDashboard())
     }
 }
 
@@ -280,6 +432,6 @@ private fun PhonePreview() {
 @Composable
 private fun TabletPreview() {
     FamilyPlannerTheme {
-        TabletDashboard()
+        TabletDashboard(previewDashboard())
     }
 }

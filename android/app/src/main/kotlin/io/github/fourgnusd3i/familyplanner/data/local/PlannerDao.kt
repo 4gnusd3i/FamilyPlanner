@@ -22,6 +22,12 @@ interface PlannerDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertHouseholdProfile(profile: HouseholdProfileEntity)
 
+    @Transaction
+    suspend fun initializeHousehold(profile: HouseholdProfileEntity, firstMember: FamilyMemberEntity) {
+        upsertHouseholdProfile(profile)
+        upsertFamilyMember(firstMember)
+    }
+
     @Query("SELECT * FROM family_members ORDER BY createdAt")
     fun observeFamilyMembers(): Flow<List<FamilyMemberEntity>>
 

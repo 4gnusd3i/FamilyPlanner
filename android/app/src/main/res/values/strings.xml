@@ -20,4 +20,12 @@
     <string name="family_title">Family members</string>
     <string name="empty_state">No data yet</string>
     <string name="coming_next">Native parity work continues here.</string>
+    <string name="setup_title">Set up FamilyPlanner</string>
+    <string name="setup_subtitle">Create the local household and first family member.</string>
+    <string name="setup_family_name">Family name</string>
+    <string name="setup_first_member">First member</string>
+    <string name="setup_submit">Create local planner</string>
+    <string name="count_upcoming">%1$d upcoming events</string>
+    <string name="count_shopping">%1$d shopping items</string>
+    <string name="count_notes">%1$d notes</string>
 </resources>
