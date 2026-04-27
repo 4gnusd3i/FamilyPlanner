@@ -34,6 +34,12 @@ class FamilyPlannerViewModel @Inject constructor(
     private val _setupError = MutableStateFlow<String?>(null)
     val setupError: StateFlow<String?> = _setupError.asStateFlow()
 
+    init {
+        viewModelScope.launch {
+            repository.cleanupDoneShoppingItems()
+        }
+    }
+
     fun initializeHousehold(familyName: String, firstMemberName: String) {
         viewModelScope.launch {
             runCatching {
