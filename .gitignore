@@ -4,6 +4,14 @@ obj/
 publish/
 artifacts/
 releases/
+android/.gradle/
+android/**/build/
+android/local.properties
+*.apk
+*.aab
+*.ap_
+*.keystore
+*.jks
 
 # .NET local state
 .dotnet/
@@ -31,6 +39,7 @@ tests/FamilyPlanner.UiTests/.artifacts/
 .vs/
 .vscode/
 .idea/
+*.iml
 *.suo
 *.user
 *.userosscache

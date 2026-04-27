@@ -12,6 +12,12 @@
 *.bat text eol=crlf
 *.yml text eol=crlf
 *.yaml text eol=crlf
+*.kt text eol=crlf
+*.kts text eol=crlf
+*.toml text eol=crlf
+*.xml text eol=crlf
+*.properties text eol=crlf
+gradlew text eol=lf
 
 *.png binary
 *.jpg binary
@@ -20,3 +26,4 @@
 *.webp binary
 *.ico binary
 *.zip binary
+*.jar binary

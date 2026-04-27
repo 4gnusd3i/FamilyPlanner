@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FamilyPlanner</string>
+    <string name="nav_overview">Overview</string>
+    <string name="nav_week">Week</string>
+    <string name="nav_meals">Meals</string>
+    <string name="nav_lists">Lists</string>
+    <string name="nav_budget">Budget</string>
+    <string name="quick_event">Appointment</string>
+    <string name="quick_meal">Meal</string>
+    <string name="quick_expense">Expense</string>
+    <string name="quick_note">Note</string>
+    <string name="quick_item">Item</string>
+    <string name="overview_title">Upcoming</string>
+    <string name="week_title">Weekly plan</string>
+    <string name="meals_title">Meals</string>
+    <string name="shopping_title">Shopping list</string>
+    <string name="notes_title">Notes</string>
+    <string name="budget_title">Budget</string>
+    <string name="family_title">Family members</string>
+    <string name="empty_state">No data yet</string>
+    <string name="coming_next">Native parity work continues here.</string>
+</resources>

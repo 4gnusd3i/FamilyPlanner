@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FamilyPlanner</string>
+    <string name="nav_overview">Oversikt</string>
+    <string name="nav_week">Uke</string>
+    <string name="nav_meals">Måltider</string>
+    <string name="nav_lists">Lister</string>
+    <string name="nav_budget">Budsjett</string>
+    <string name="quick_event">Avtale</string>
+    <string name="quick_meal">Måltid</string>
+    <string name="quick_expense">Utgift</string>
+    <string name="quick_note">Notat</string>
+    <string name="quick_item">Vare</string>
+    <string name="overview_title">Kommende</string>
+    <string name="week_title">Ukeplan</string>
+    <string name="meals_title">Måltider</string>
+    <string name="shopping_title">Handleliste</string>
+    <string name="notes_title">Notater</string>
+    <string name="budget_title">Budsjett</string>
+    <string name="family_title">Familiemedlemmer</string>
+    <string name="empty_state">Ingen data ennå</string>
+    <string name="coming_next">Arbeidet med native funksjonsparitet fortsetter her.</string>
+</resources>
