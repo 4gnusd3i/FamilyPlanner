@@ -2,6 +2,7 @@ package io.github.by4gnusd3i.familyplanner.ui
 
 import io.github.by4gnusd3i.familyplanner.core.time.DateTimeProvider
 import io.github.by4gnusd3i.familyplanner.data.repository.PlannerRepository
+import io.github.by4gnusd3i.familyplanner.data.settings.AppSettings
 import io.github.by4gnusd3i.familyplanner.domain.model.BudgetSnapshot
 import io.github.by4gnusd3i.familyplanner.domain.model.PlannerDashboard
 import io.github.by4gnusd3i.familyplanner.domain.planner.BudgetMonthInput
@@ -98,6 +99,23 @@ class FamilyPlannerViewModelTest {
     }
 
     @Test
+    fun familyAndSettingsActionsSendExpectedRepositoryCalls() = runTest {
+        val repository = FakePlannerRepository()
+        val viewModel = FamilyPlannerViewModel(repository, dateTimeProvider)
+
+        viewModel.saveFamilyMember(12, "Liv", "#10b981")
+        viewModel.deleteFamilyMember(13)
+        viewModel.setLanguageOverride("nb")
+        viewModel.setLanguageOverride(null)
+        viewModel.setCurrencyCode("nok")
+
+        assertEquals(FamilyMemberInput(id = 12, name = "Liv", color = "#10b981"), repository.familyMembers.single())
+        assertEquals(listOf(13L), repository.deletedFamilyMembers)
+        assertEquals(listOf("nb", null), repository.languageOverrides)
+        assertEquals(listOf("nok"), repository.currencyCodes)
+    }
+
+    @Test
     fun repositoryFailureSurfacesActionErrorAndCanBeCleared() = runTest {
         val repository = FakePlannerRepository()
         repository.failNextAction = IllegalArgumentException("invalid event")
@@ -150,7 +168,9 @@ class FamilyPlannerViewModelTest {
 
     private class FakePlannerRepository : PlannerRepository {
         private val dashboard = MutableStateFlow(emptyDashboard())
+        private val settings = MutableStateFlow(AppSettings(languageOverride = null, currencyCode = "USD"))
         val setupRequests = mutableListOf<Pair<String, String>>()
+        val familyMembers = mutableListOf<FamilyMemberInput>()
         val events = mutableListOf<EventInput>()
         val meals = mutableListOf<MealPlanInput>()
         val expenses = mutableListOf<ExpenseInput>()
@@ -161,21 +181,39 @@ class FamilyPlannerViewModelTest {
         val deletedExpenses = mutableListOf<Long>()
         val deletedNotes = mutableListOf<Long>()
         val deletedShoppingItems = mutableListOf<Long>()
+        val deletedFamilyMembers = mutableListOf<Long>()
         val toggledShoppingItems = mutableListOf<Long>()
+        val languageOverrides = mutableListOf<String?>()
+        val currencyCodes = mutableListOf<String>()
         var cleanupCalls = 0
         var failSetup: RuntimeException? = null
         var failNextAction: RuntimeException? = null
 
         override fun observeDashboard(): Flow<PlannerDashboard> = dashboard
 
+        override fun observeSettings(): Flow<AppSettings> = settings
+
+        override suspend fun setLanguageOverride(languageId: String?) {
+            languageOverrides += languageId
+        }
+
+        override suspend fun setCurrencyCode(currencyCode: String) {
+            currencyCodes += currencyCode
+        }
+
         override suspend fun initializeHousehold(familyName: String, firstMemberName: String) {
             failSetup?.let { throw it }
             setupRequests += familyName to firstMemberName
         }
 
-        override suspend fun upsertFamilyMember(input: FamilyMemberInput): Long = unsupported()
+        override suspend fun upsertFamilyMember(input: FamilyMemberInput): Long {
+            familyMembers += input
+            return input.id ?: familyMembers.size.toLong()
+        }
 
-        override suspend fun deleteFamilyMember(id: Long) = Unit
+        override suspend fun deleteFamilyMember(id: Long) {
+            deletedFamilyMembers += id
+        }
 
         override suspend fun upsertEvent(input: EventInput): Long {
             failNextAction?.let {

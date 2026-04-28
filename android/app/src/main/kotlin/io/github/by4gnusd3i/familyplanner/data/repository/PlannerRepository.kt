@@ -1,5 +1,6 @@
 package io.github.by4gnusd3i.familyplanner.data.repository
 
+import io.github.by4gnusd3i.familyplanner.data.settings.AppSettings
 import io.github.by4gnusd3i.familyplanner.domain.model.PlannerDashboard
 import io.github.by4gnusd3i.familyplanner.domain.planner.BudgetMonthInput
 import io.github.by4gnusd3i.familyplanner.domain.planner.EventInput
@@ -12,6 +13,9 @@ import kotlinx.coroutines.flow.Flow
 
 interface PlannerRepository {
     fun observeDashboard(): Flow<PlannerDashboard>
+    fun observeSettings(): Flow<AppSettings>
+    suspend fun setLanguageOverride(languageId: String?)
+    suspend fun setCurrencyCode(currencyCode: String)
     suspend fun initializeHousehold(familyName: String, firstMemberName: String)
     suspend fun upsertFamilyMember(input: FamilyMemberInput): Long
     suspend fun deleteFamilyMember(id: Long)

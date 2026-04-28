@@ -36,6 +36,16 @@ class RoomPlannerRepository @Inject constructor(
     private val dateTimeProvider: DateTimeProvider,
     private val settingsRepository: AppSettingsRepository,
 ) : PlannerRepository {
+    override fun observeSettings() = settingsRepository.settings
+
+    override suspend fun setLanguageOverride(languageId: String?) {
+        settingsRepository.setLanguageOverride(languageId)
+    }
+
+    override suspend fun setCurrencyCode(currencyCode: String) {
+        settingsRepository.setCurrencyCode(currencyCode)
+    }
+
     override fun observeDashboard(): Flow<PlannerDashboard> =
         combineCoreDashboard(
             dao.observeHouseholdCount(),

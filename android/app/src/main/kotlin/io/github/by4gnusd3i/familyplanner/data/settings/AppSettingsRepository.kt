@@ -43,8 +43,13 @@ class AppSettingsRepository @Inject constructor(
     }
 
     suspend fun setCurrencyCode(currencyCode: String) {
+        val normalized = currencyCode.trim().uppercase(Locale.ROOT)
+        require(normalized.length == 3 && normalized.all { it in 'A'..'Z' }) {
+            "currency code must be three letters"
+        }
+
         context.settingsDataStore.edit { preferences ->
-            preferences[Keys.CurrencyCode] = currencyCode.uppercase(Locale.ROOT)
+            preferences[Keys.CurrencyCode] = normalized
         }
     }
 

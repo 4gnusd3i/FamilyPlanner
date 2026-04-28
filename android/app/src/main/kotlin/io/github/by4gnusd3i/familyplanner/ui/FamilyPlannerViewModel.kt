@@ -5,10 +5,12 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.by4gnusd3i.familyplanner.core.time.DateTimeProvider
 import io.github.by4gnusd3i.familyplanner.data.repository.PlannerRepository
+import io.github.by4gnusd3i.familyplanner.data.settings.AppSettings
 import io.github.by4gnusd3i.familyplanner.domain.model.BudgetSnapshot
 import io.github.by4gnusd3i.familyplanner.domain.model.PlannerDashboard
 import io.github.by4gnusd3i.familyplanner.domain.planner.EventInput
 import io.github.by4gnusd3i.familyplanner.domain.planner.ExpenseInput
+import io.github.by4gnusd3i.familyplanner.domain.planner.FamilyMemberInput
 import io.github.by4gnusd3i.familyplanner.domain.planner.MealPlanInput
 import io.github.by4gnusd3i.familyplanner.domain.planner.NoteInput
 import io.github.by4gnusd3i.familyplanner.domain.planner.ShoppingItemInput
@@ -51,6 +53,14 @@ class FamilyPlannerViewModel @Inject constructor(
                     shoppingItems = emptyList(),
                     notes = emptyList(),
                 ),
+            )
+
+    val settings: StateFlow<AppSettings> =
+        repository.observeSettings()
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = AppSettings(languageOverride = null, currencyCode = "USD"),
             )
 
     private val _setupError = MutableStateFlow<String?>(null)
@@ -208,6 +218,36 @@ class FamilyPlannerViewModel @Inject constructor(
     fun toggleShoppingItem(id: Long) {
         runPlannerAction {
             repository.toggleShoppingItem(id)
+        }
+    }
+
+    fun saveFamilyMember(id: Long?, name: String, color: String?) {
+        runPlannerAction {
+            repository.upsertFamilyMember(
+                FamilyMemberInput(
+                    id = id,
+                    name = name,
+                    color = color,
+                ),
+            )
+        }
+    }
+
+    fun deleteFamilyMember(id: Long) {
+        runPlannerAction {
+            repository.deleteFamilyMember(id)
+        }
+    }
+
+    fun setLanguageOverride(languageId: String?) {
+        runPlannerAction {
+            repository.setLanguageOverride(languageId)
+        }
+    }
+
+    fun setCurrencyCode(currencyCode: String) {
+        runPlannerAction {
+            repository.setCurrencyCode(currencyCode)
         }
     }
 
