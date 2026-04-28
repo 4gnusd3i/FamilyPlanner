@@ -9,11 +9,11 @@ plugins {
 }
 
 android {
-    namespace = "io.github.fourgnusd3i.familyplanner"
+    namespace = "io.github.by4gnusd3i.familyplanner"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "io.github.fourgnusd3i.familyplanner"
+        applicationId = "io.github.by4gnusd3i.familyplanner"
         minSdk = 27
         targetSdk = 36
         versionCode = 1
