@@ -64,6 +64,40 @@ class FamilyPlannerViewModelTest {
     }
 
     @Test
+    fun editAndDeleteActionsSendExpectedRepositoryCalls() = runTest {
+        val repository = FakePlannerRepository()
+        val viewModel = FamilyPlannerViewModel(repository, dateTimeProvider)
+        val editedDate = fixedDate.plusDays(1)
+
+        viewModel.saveEvent(7, "Oppdatert", "Detalj", editedDate)
+        viewModel.saveMeal(8, 4, "Pizza", "Salat")
+        viewModel.saveExpense(9, "250", "Transport", editedDate)
+        viewModel.saveNote(10, "Notat", "Tekst")
+        viewModel.saveShoppingItem(11, "Brød", "2")
+        viewModel.deleteEvent(7)
+        viewModel.deleteMeal(8)
+        viewModel.deleteExpense(9)
+        viewModel.deleteNote(10)
+        viewModel.deleteShoppingItem(11)
+        viewModel.toggleShoppingItem(11)
+
+        assertEquals(EventInput(id = 7, title = "Oppdatert", eventDate = editedDate, note = "Detalj"), repository.events.single())
+        assertEquals(MealPlanInput(id = 8, dayOfWeek = 4, meal = "Pizza", note = "Salat"), repository.meals.single())
+        assertEquals(
+            ExpenseInput(id = 9, amount = BigDecimal("250"), category = "Transport", expenseDate = editedDate),
+            repository.expenses.single(),
+        )
+        assertEquals(NoteInput(id = 10, title = "Notat", content = "Tekst"), repository.notes.single())
+        assertEquals(ShoppingItemInput(id = 11, item = "Brød", quantity = 2), repository.shoppingItems.single())
+        assertEquals(listOf(7L), repository.deletedEvents)
+        assertEquals(listOf(8L), repository.deletedMeals)
+        assertEquals(listOf(9L), repository.deletedExpenses)
+        assertEquals(listOf(10L), repository.deletedNotes)
+        assertEquals(listOf(11L), repository.deletedShoppingItems)
+        assertEquals(listOf(11L), repository.toggledShoppingItems)
+    }
+
+    @Test
     fun repositoryFailureSurfacesActionErrorAndCanBeCleared() = runTest {
         val repository = FakePlannerRepository()
         repository.failNextAction = IllegalArgumentException("invalid event")
@@ -122,6 +156,12 @@ class FamilyPlannerViewModelTest {
         val expenses = mutableListOf<ExpenseInput>()
         val notes = mutableListOf<NoteInput>()
         val shoppingItems = mutableListOf<ShoppingItemInput>()
+        val deletedEvents = mutableListOf<Long>()
+        val deletedMeals = mutableListOf<Long>()
+        val deletedExpenses = mutableListOf<Long>()
+        val deletedNotes = mutableListOf<Long>()
+        val deletedShoppingItems = mutableListOf<Long>()
+        val toggledShoppingItems = mutableListOf<Long>()
         var cleanupCalls = 0
         var failSetup: RuntimeException? = null
         var failNextAction: RuntimeException? = null
@@ -146,14 +186,18 @@ class FamilyPlannerViewModelTest {
             return events.size.toLong()
         }
 
-        override suspend fun deleteEvent(id: Long) = Unit
+        override suspend fun deleteEvent(id: Long) {
+            deletedEvents += id
+        }
 
         override suspend fun upsertMeal(input: MealPlanInput): Long {
             meals += input
             return meals.size.toLong()
         }
 
-        override suspend fun deleteMeal(id: Long) = Unit
+        override suspend fun deleteMeal(id: Long) {
+            deletedMeals += id
+        }
 
         override suspend fun upsertBudgetMonth(input: BudgetMonthInput): Long = unsupported()
 
@@ -166,23 +210,31 @@ class FamilyPlannerViewModelTest {
             return expenses.size.toLong()
         }
 
-        override suspend fun deleteExpense(id: Long) = Unit
+        override suspend fun deleteExpense(id: Long) {
+            deletedExpenses += id
+        }
 
         override suspend fun upsertNote(input: NoteInput): Long {
             notes += input
             return notes.size.toLong()
         }
 
-        override suspend fun deleteNote(id: Long) = Unit
+        override suspend fun deleteNote(id: Long) {
+            deletedNotes += id
+        }
 
         override suspend fun upsertShoppingItem(input: ShoppingItemInput): Long {
             shoppingItems += input
             return shoppingItems.size.toLong()
         }
 
-        override suspend fun toggleShoppingItem(id: Long) = Unit
+        override suspend fun toggleShoppingItem(id: Long) {
+            toggledShoppingItems += id
+        }
 
-        override suspend fun deleteShoppingItem(id: Long) = Unit
+        override suspend fun deleteShoppingItem(id: Long) {
+            deletedShoppingItems += id
+        }
 
         override suspend fun cleanupDoneShoppingItems() {
             cleanupCalls += 1

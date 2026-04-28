@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.DayOfWeek
+import java.time.LocalDate
 import javax.inject.Inject
 
 @HiltViewModel
@@ -77,11 +78,21 @@ class FamilyPlannerViewModel @Inject constructor(
     }
 
     fun addEvent(title: String, note: String?) {
+        saveEvent(
+            id = null,
+            title = title,
+            note = note,
+            eventDate = dateTimeProvider.today(),
+        )
+    }
+
+    fun saveEvent(id: Long?, title: String, note: String?, eventDate: LocalDate) {
         runPlannerAction {
             repository.upsertEvent(
                 EventInput(
+                    id = id,
                     title = title,
-                    eventDate = dateTimeProvider.today(),
+                    eventDate = eventDate,
                     note = note,
                 ),
             )
@@ -89,10 +100,20 @@ class FamilyPlannerViewModel @Inject constructor(
     }
 
     fun addMeal(meal: String, note: String?) {
+        saveMeal(
+            id = null,
+            dayOfWeek = dateTimeProvider.today().dayOfWeek.toPlannerDayIndex(),
+            meal = meal,
+            note = note,
+        )
+    }
+
+    fun saveMeal(id: Long?, dayOfWeek: Int, meal: String, note: String?) {
         runPlannerAction {
             repository.upsertMeal(
                 MealPlanInput(
-                    dayOfWeek = dateTimeProvider.today().dayOfWeek.toPlannerDayIndex(),
+                    id = id,
+                    dayOfWeek = dayOfWeek,
                     meal = meal,
                     note = note,
                 ),
@@ -101,21 +122,36 @@ class FamilyPlannerViewModel @Inject constructor(
     }
 
     fun addExpense(amount: String, category: String?) {
+        saveExpense(
+            id = null,
+            amount = amount,
+            category = category,
+            expenseDate = dateTimeProvider.today(),
+        )
+    }
+
+    fun saveExpense(id: Long?, amount: String, category: String?, expenseDate: LocalDate) {
         runPlannerAction {
             repository.upsertExpense(
                 ExpenseInput(
+                    id = id,
                     amount = amount.trim().replace(',', '.').toBigDecimal(),
                     category = category,
-                    expenseDate = dateTimeProvider.today(),
+                    expenseDate = expenseDate,
                 ),
             )
         }
     }
 
     fun addNote(title: String, content: String?) {
+        saveNote(id = null, title = title, content = content)
+    }
+
+    fun saveNote(id: Long?, title: String, content: String?) {
         runPlannerAction {
             repository.upsertNote(
                 NoteInput(
+                    id = id,
                     title = title,
                     content = content,
                 ),
@@ -124,13 +160,54 @@ class FamilyPlannerViewModel @Inject constructor(
     }
 
     fun addShoppingItem(item: String, quantity: String) {
+        saveShoppingItem(id = null, item = item, quantity = quantity)
+    }
+
+    fun saveShoppingItem(id: Long?, item: String, quantity: String) {
         runPlannerAction {
             repository.upsertShoppingItem(
                 ShoppingItemInput(
+                    id = id,
                     item = item,
                     quantity = quantity.trim().toIntOrNull() ?: 1,
                 ),
             )
+        }
+    }
+
+    fun deleteEvent(id: Long) {
+        runPlannerAction {
+            repository.deleteEvent(id)
+        }
+    }
+
+    fun deleteMeal(id: Long) {
+        runPlannerAction {
+            repository.deleteMeal(id)
+        }
+    }
+
+    fun deleteExpense(id: Long) {
+        runPlannerAction {
+            repository.deleteExpense(id)
+        }
+    }
+
+    fun deleteNote(id: Long) {
+        runPlannerAction {
+            repository.deleteNote(id)
+        }
+    }
+
+    fun deleteShoppingItem(id: Long) {
+        runPlannerAction {
+            repository.deleteShoppingItem(id)
+        }
+    }
+
+    fun toggleShoppingItem(id: Long) {
+        runPlannerAction {
+            repository.toggleShoppingItem(id)
         }
     }
 

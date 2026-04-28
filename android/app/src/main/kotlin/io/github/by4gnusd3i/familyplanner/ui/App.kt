@@ -1,6 +1,7 @@
 package io.github.by4gnusd3i.familyplanner.ui
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,6 +45,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -61,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.by4gnusd3i.familyplanner.R
 import io.github.by4gnusd3i.familyplanner.domain.model.BudgetSnapshot
+import io.github.by4gnusd3i.familyplanner.domain.model.ExpenseItem
 import io.github.by4gnusd3i.familyplanner.domain.model.FamilyMember
 import io.github.by4gnusd3i.familyplanner.domain.model.MealPlan
 import io.github.by4gnusd3i.familyplanner.domain.model.NoteItem
@@ -69,6 +72,7 @@ import io.github.by4gnusd3i.familyplanner.domain.model.PlannerEvent
 import io.github.by4gnusd3i.familyplanner.domain.model.ShoppingItem
 import io.github.by4gnusd3i.familyplanner.ui.theme.FamilyPlannerTheme
 import java.math.BigDecimal
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 private enum class PlannerDestination(
@@ -96,7 +100,47 @@ private data class PlannerActionCallbacks(
     val addExpense: (amount: String, category: String?) -> Unit,
     val addNote: (title: String, content: String?) -> Unit,
     val addShoppingItem: (item: String, quantity: String) -> Unit,
+    val saveEvent: (id: Long?, title: String, note: String?, eventDate: LocalDate) -> Unit,
+    val saveMeal: (id: Long?, dayOfWeek: Int, meal: String, note: String?) -> Unit,
+    val saveExpense: (id: Long?, amount: String, category: String?, expenseDate: LocalDate) -> Unit,
+    val saveNote: (id: Long?, title: String, content: String?) -> Unit,
+    val saveShoppingItem: (id: Long?, item: String, quantity: String) -> Unit,
+    val deleteEvent: (id: Long) -> Unit,
+    val deleteMeal: (id: Long) -> Unit,
+    val deleteExpense: (id: Long) -> Unit,
+    val deleteNote: (id: Long) -> Unit,
+    val deleteShoppingItem: (id: Long) -> Unit,
 )
+
+private sealed interface PlannerSummaryTarget {
+    val title: String
+    val detail: String?
+
+    data class Event(val event: PlannerEvent) : PlannerSummaryTarget {
+        override val title: String = event.title
+        override val detail: String? = event.note
+    }
+
+    data class Meal(val meal: MealPlan) : PlannerSummaryTarget {
+        override val title: String = meal.meal
+        override val detail: String? = meal.note
+    }
+
+    data class Expense(val expense: ExpenseItem, val currencyCode: String) : PlannerSummaryTarget {
+        override val title: String = "${expense.category} ${expense.amount.formatMoney()} $currencyCode"
+        override val detail: String? = expense.description
+    }
+
+    data class Note(val note: NoteItem) : PlannerSummaryTarget {
+        override val title: String = note.title
+        override val detail: String? = note.content
+    }
+
+    data class Shopping(val item: ShoppingItem) : PlannerSummaryTarget {
+        override val title: String = item.item
+        override val detail: String? = item.quantity.toString()
+    }
+}
 
 private val ShortDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.")
 
@@ -118,6 +162,16 @@ fun FamilyPlannerApp(viewModel: FamilyPlannerViewModel) {
             addExpense = viewModel::addExpense,
             addNote = viewModel::addNote,
             addShoppingItem = viewModel::addShoppingItem,
+            saveEvent = viewModel::saveEvent,
+            saveMeal = viewModel::saveMeal,
+            saveExpense = viewModel::saveExpense,
+            saveNote = viewModel::saveNote,
+            saveShoppingItem = viewModel::saveShoppingItem,
+            deleteEvent = viewModel::deleteEvent,
+            deleteMeal = viewModel::deleteMeal,
+            deleteExpense = viewModel::deleteExpense,
+            deleteNote = viewModel::deleteNote,
+            deleteShoppingItem = viewModel::deleteShoppingItem,
         ),
     )
 }
@@ -144,11 +198,33 @@ private fun FamilyPlannerContent(
     val windowWidth = with(density) { windowInfo.containerSize.width.toDp() }
     val isTablet = windowWidth >= 840.dp
     var activeAction by rememberSaveable { mutableStateOf<PlannerQuickAction?>(null) }
+    var summaryTarget by remember { mutableStateOf<PlannerSummaryTarget?>(null) }
+    var editTarget by remember { mutableStateOf<PlannerSummaryTarget?>(null) }
 
     activeAction?.let { action ->
         QuickActionDialog(
             action = action,
             onDismiss = { activeAction = null },
+            actions = actions,
+        )
+    }
+
+    summaryTarget?.let { target ->
+        SummaryDialog(
+            target = target,
+            onDismiss = { summaryTarget = null },
+            onEdit = {
+                summaryTarget = null
+                editTarget = target
+            },
+            actions = actions,
+        )
+    }
+
+    editTarget?.let { target ->
+        EditEntryDialog(
+            target = target,
+            onDismiss = { editTarget = null },
             actions = actions,
         )
     }
@@ -164,11 +240,13 @@ private fun FamilyPlannerContent(
         TabletDashboard(
             dashboard = dashboard,
             onQuickActionSelected = { activeAction = it },
+            onEntrySelected = { summaryTarget = it },
         )
     } else {
         PhoneShell(
             dashboard = dashboard,
             onQuickActionSelected = { activeAction = it },
+            onEntrySelected = { summaryTarget = it },
         )
     }
 }
@@ -244,6 +322,7 @@ private fun SetupScreen(
 private fun PhoneShell(
     dashboard: PlannerDashboard,
     onQuickActionSelected: (PlannerQuickAction) -> Unit,
+    onEntrySelected: (PlannerSummaryTarget) -> Unit,
 ) {
     var selected by rememberSaveable { mutableStateOf(PlannerDestination.Overview) }
     var showQuickActions by rememberSaveable { mutableStateOf(false) }
@@ -283,6 +362,7 @@ private fun PhoneShell(
         DestinationContent(
             destination = selected,
             dashboard = dashboard,
+            onEntrySelected = onEntrySelected,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
@@ -295,6 +375,7 @@ private fun PhoneShell(
 private fun TabletDashboard(
     dashboard: PlannerDashboard,
     onQuickActionSelected: (PlannerQuickAction) -> Unit,
+    onEntrySelected: (PlannerSummaryTarget) -> Unit,
 ) {
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -316,19 +397,19 @@ private fun TabletDashboard(
                         title = R.string.budget_title,
                         modifier = Modifier.weight(0.8f),
                     ) {
-                        BudgetSummary(dashboard.budget)
+                        BudgetSummary(dashboard.budget, onEntrySelected)
                     }
                     PlannerPanel(
                         title = R.string.shopping_title,
                         modifier = Modifier.weight(1f),
                     ) {
-                        ShoppingList(dashboard.shoppingItems)
+                        ShoppingList(dashboard.shoppingItems, onEntrySelected)
                     }
                     PlannerPanel(
                         title = R.string.notes_title,
                         modifier = Modifier.weight(1f),
                     ) {
-                        NotesList(dashboard.notes)
+                        NotesList(dashboard.notes, onEntrySelected)
                     }
                 }
                 Column(
@@ -336,17 +417,17 @@ private fun TabletDashboard(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     PlannerPanel(R.string.week_title, Modifier.weight(1.6f)) {
-                        UpcomingList(dashboard.upcomingEvents, dashboard.familyMembers)
+                        UpcomingList(dashboard.upcomingEvents, dashboard.familyMembers, onEntrySelected)
                     }
                     PlannerPanel(R.string.meals_title, Modifier.weight(0.7f)) {
-                        MealsList(dashboard.meals)
+                        MealsList(dashboard.meals, onEntrySelected)
                     }
                 }
                 PlannerPanel(
                     title = R.string.overview_title,
                     modifier = Modifier.width(280.dp),
                 ) {
-                    UpcomingList(dashboard.upcomingEvents, dashboard.familyMembers)
+                    UpcomingList(dashboard.upcomingEvents, dashboard.familyMembers, onEntrySelected)
                 }
             }
             FlowRow(
@@ -371,6 +452,7 @@ private fun TabletDashboard(
 private fun DestinationContent(
     destination: PlannerDestination,
     dashboard: PlannerDashboard,
+    onEntrySelected: (PlannerSummaryTarget) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -385,21 +467,21 @@ private fun DestinationContent(
                         title = R.string.overview_title,
                         modifier = Modifier.fillMaxWidth().height(280.dp),
                     ) {
-                        UpcomingList(dashboard.upcomingEvents, dashboard.familyMembers)
+                        UpcomingList(dashboard.upcomingEvents, dashboard.familyMembers, onEntrySelected)
                     }
                 }
             }
             PlannerDestination.Week -> {
                 item {
                     PlannerPanel(R.string.week_title, Modifier.fillMaxWidth().height(520.dp)) {
-                        UpcomingList(dashboard.upcomingEvents, dashboard.familyMembers)
+                        UpcomingList(dashboard.upcomingEvents, dashboard.familyMembers, onEntrySelected)
                     }
                 }
             }
             PlannerDestination.Meals -> {
                 item {
                     PlannerPanel(R.string.meals_title, Modifier.fillMaxWidth().height(420.dp)) {
-                        MealsList(dashboard.meals)
+                        MealsList(dashboard.meals, onEntrySelected)
                     }
                 }
             }
@@ -409,7 +491,7 @@ private fun DestinationContent(
                         title = R.string.shopping_title,
                         modifier = Modifier.fillMaxWidth().height(260.dp),
                     ) {
-                        ShoppingList(dashboard.shoppingItems)
+                        ShoppingList(dashboard.shoppingItems, onEntrySelected)
                     }
                 }
                 item {
@@ -417,14 +499,14 @@ private fun DestinationContent(
                         title = R.string.notes_title,
                         modifier = Modifier.fillMaxWidth().height(260.dp),
                     ) {
-                        NotesList(dashboard.notes)
+                        NotesList(dashboard.notes, onEntrySelected)
                     }
                 }
             }
             PlannerDestination.Budget -> {
                 item {
                     PlannerPanel(R.string.budget_title, Modifier.fillMaxWidth().height(420.dp)) {
-                        BudgetSummary(dashboard.budget)
+                        BudgetSummary(dashboard.budget, onEntrySelected)
                     }
                 }
             }
@@ -507,6 +589,7 @@ private fun PlannerPanel(
 private fun UpcomingList(
     events: List<PlannerEvent>,
     familyMembers: List<FamilyMember>,
+    onEntrySelected: (PlannerSummaryTarget) -> Unit,
 ) {
     if (events.isEmpty()) {
         EmptyPanelText()
@@ -520,6 +603,7 @@ private fun UpcomingList(
         events.take(5).forEach { event ->
             val owner = familyMembers.firstOrNull { it.id == event.ownerId }?.name
             PanelLine(
+                modifier = Modifier.clickable { onEntrySelected(PlannerSummaryTarget.Event(event)) },
                 title = listOfNotNull(
                     event.eventDate.format(ShortDateFormatter),
                     owner,
@@ -532,7 +616,10 @@ private fun UpcomingList(
 }
 
 @Composable
-private fun MealsList(meals: List<MealPlan>) {
+private fun MealsList(
+    meals: List<MealPlan>,
+    onEntrySelected: (PlannerSummaryTarget) -> Unit,
+) {
     if (meals.isEmpty()) {
         EmptyPanelText()
         return
@@ -544,6 +631,7 @@ private fun MealsList(meals: List<MealPlan>) {
     ) {
         meals.take(5).forEach { meal ->
             PanelLine(
+                modifier = Modifier.clickable { onEntrySelected(PlannerSummaryTarget.Meal(meal)) },
                 title = meal.meal,
                 detail = meal.note,
             )
@@ -552,7 +640,10 @@ private fun MealsList(meals: List<MealPlan>) {
 }
 
 @Composable
-private fun ShoppingList(items: List<ShoppingItem>) {
+private fun ShoppingList(
+    items: List<ShoppingItem>,
+    onEntrySelected: (PlannerSummaryTarget) -> Unit,
+) {
     if (items.isEmpty()) {
         EmptyPanelText()
         return
@@ -564,6 +655,7 @@ private fun ShoppingList(items: List<ShoppingItem>) {
     ) {
         items.take(5).forEach { item ->
             PanelLine(
+                modifier = Modifier.clickable { onEntrySelected(PlannerSummaryTarget.Shopping(item)) },
                 title = item.item,
                 detail = stringResource(R.string.quantity_value, item.quantity),
             )
@@ -572,7 +664,10 @@ private fun ShoppingList(items: List<ShoppingItem>) {
 }
 
 @Composable
-private fun NotesList(notes: List<NoteItem>) {
+private fun NotesList(
+    notes: List<NoteItem>,
+    onEntrySelected: (PlannerSummaryTarget) -> Unit,
+) {
     if (notes.isEmpty()) {
         EmptyPanelText()
         return
@@ -584,6 +679,7 @@ private fun NotesList(notes: List<NoteItem>) {
     ) {
         notes.take(5).forEach { note ->
             PanelLine(
+                modifier = Modifier.clickable { onEntrySelected(PlannerSummaryTarget.Note(note)) },
                 title = note.title,
                 detail = note.content,
             )
@@ -592,7 +688,10 @@ private fun NotesList(notes: List<NoteItem>) {
 }
 
 @Composable
-private fun BudgetSummary(budget: BudgetSnapshot) {
+private fun BudgetSummary(
+    budget: BudgetSnapshot,
+    onEntrySelected: (PlannerSummaryTarget) -> Unit,
+) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -604,6 +703,9 @@ private fun BudgetSummary(budget: BudgetSnapshot) {
         if (budget.expenses.isNotEmpty()) {
             budget.expenses.take(3).forEach { expense ->
                 PanelLine(
+                    modifier = Modifier.clickable {
+                        onEntrySelected(PlannerSummaryTarget.Expense(expense, budget.currencyCode))
+                    },
                     title = "${expense.category} ${expense.amount.formatMoney()} ${budget.currencyCode}",
                     detail = expense.description,
                 )
@@ -614,10 +716,15 @@ private fun BudgetSummary(budget: BudgetSnapshot) {
 
 @Composable
 private fun PanelLine(
+    modifier: Modifier = Modifier,
     title: String,
     detail: String?,
 ) {
-    Column(Modifier.fillMaxWidth()) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp),
+    ) {
         Text(
             text = title,
             style = MaterialTheme.typography.bodyMedium,
@@ -750,6 +857,137 @@ private fun QuickActionDialog(
 }
 
 @Composable
+private fun SummaryDialog(
+    target: PlannerSummaryTarget,
+    onDismiss: () -> Unit,
+    onEdit: () -> Unit,
+    actions: PlannerActionCallbacks,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = summaryTypeLabel(target),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        text = {
+            val detail = target.detail
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = target.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+                summaryMeta(target)?.let { meta ->
+                    Text(
+                        text = meta,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (!detail.isNullOrBlank()) {
+                    Text(
+                        text = detail,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.action_close))
+            }
+        },
+        confirmButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(
+                    onClick = {
+                        deleteTarget(target, actions)
+                        onDismiss()
+                    },
+                ) {
+                    Text(stringResource(R.string.action_delete))
+                }
+                TextButton(onClick = onEdit) {
+                    Text(stringResource(R.string.action_edit))
+                }
+            }
+        },
+    )
+}
+
+@Composable
+private fun EditEntryDialog(
+    target: PlannerSummaryTarget,
+    onDismiss: () -> Unit,
+    actions: PlannerActionCallbacks,
+) {
+    var primary by rememberSaveable(target.title) { mutableStateOf(editPrimaryValue(target)) }
+    var secondary by rememberSaveable(target.detail) { mutableStateOf(editSecondaryValue(target)) }
+    val primaryLabel = when (target) {
+        is PlannerSummaryTarget.Event -> R.string.field_title
+        is PlannerSummaryTarget.Meal -> R.string.field_meal
+        is PlannerSummaryTarget.Expense -> R.string.field_amount
+        is PlannerSummaryTarget.Note -> R.string.field_title
+        is PlannerSummaryTarget.Shopping -> R.string.field_item
+    }
+    val secondaryLabel = when (target) {
+        is PlannerSummaryTarget.Event -> R.string.field_note
+        is PlannerSummaryTarget.Meal -> R.string.field_note
+        is PlannerSummaryTarget.Expense -> R.string.field_category
+        is PlannerSummaryTarget.Note -> R.string.field_content
+        is PlannerSummaryTarget.Shopping -> R.string.field_quantity
+    }
+    val keyboardType = when (target) {
+        is PlannerSummaryTarget.Expense -> KeyboardType.Decimal
+        is PlannerSummaryTarget.Shopping -> KeyboardType.Number
+        else -> KeyboardType.Text
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.action_edit)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = primary,
+                    onValueChange = { primary = it },
+                    label = { Text(stringResource(primaryLabel)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = secondary,
+                    onValueChange = { secondary = it },
+                    label = { Text(stringResource(secondaryLabel)) },
+                    singleLine = target is PlannerSummaryTarget.Expense || target is PlannerSummaryTarget.Shopping,
+                    maxLines = if (target is PlannerSummaryTarget.Expense || target is PlannerSummaryTarget.Shopping) 1 else 3,
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.action_cancel))
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    saveTarget(target, primary, secondary, actions)
+                    onDismiss()
+                },
+            ) {
+                Text(stringResource(R.string.action_save))
+            }
+        },
+    )
+}
+
+@Composable
 private fun ActionErrorDialog(
     message: String,
     onDismiss: () -> Unit,
@@ -764,6 +1002,94 @@ private fun ActionErrorDialog(
             }
         },
     )
+}
+
+@Composable
+private fun summaryTypeLabel(target: PlannerSummaryTarget): String =
+    stringResource(
+        when (target) {
+            is PlannerSummaryTarget.Event -> R.string.quick_event
+            is PlannerSummaryTarget.Meal -> R.string.quick_meal
+            is PlannerSummaryTarget.Expense -> R.string.quick_expense
+            is PlannerSummaryTarget.Note -> R.string.quick_note
+            is PlannerSummaryTarget.Shopping -> R.string.quick_item
+        },
+    )
+
+@Composable
+private fun summaryMeta(target: PlannerSummaryTarget): String? =
+    when (target) {
+        is PlannerSummaryTarget.Event -> target.event.eventDate.format(ShortDateFormatter)
+        is PlannerSummaryTarget.Meal -> stringResource(R.string.day_index_value, target.meal.dayOfWeek + 1)
+        is PlannerSummaryTarget.Expense -> target.expense.expenseDate.format(ShortDateFormatter)
+        is PlannerSummaryTarget.Note -> null
+        is PlannerSummaryTarget.Shopping -> stringResource(R.string.quantity_value, target.item.quantity)
+    }
+
+private fun editPrimaryValue(target: PlannerSummaryTarget): String =
+    when (target) {
+        is PlannerSummaryTarget.Event -> target.event.title
+        is PlannerSummaryTarget.Meal -> target.meal.meal
+        is PlannerSummaryTarget.Expense -> target.expense.amount.formatMoney()
+        is PlannerSummaryTarget.Note -> target.note.title
+        is PlannerSummaryTarget.Shopping -> target.item.item
+    }
+
+private fun editSecondaryValue(target: PlannerSummaryTarget): String =
+    when (target) {
+        is PlannerSummaryTarget.Event -> target.event.note.orEmpty()
+        is PlannerSummaryTarget.Meal -> target.meal.note.orEmpty()
+        is PlannerSummaryTarget.Expense -> target.expense.category
+        is PlannerSummaryTarget.Note -> target.note.content.orEmpty()
+        is PlannerSummaryTarget.Shopping -> target.item.quantity.toString()
+    }
+
+private fun saveTarget(
+    target: PlannerSummaryTarget,
+    primary: String,
+    secondary: String,
+    actions: PlannerActionCallbacks,
+) {
+    when (target) {
+        is PlannerSummaryTarget.Event -> actions.saveEvent(
+            target.event.id,
+            primary,
+            secondary,
+            target.event.eventDate,
+        )
+        is PlannerSummaryTarget.Meal -> actions.saveMeal(
+            target.meal.id,
+            target.meal.dayOfWeek,
+            primary,
+            secondary,
+        )
+        is PlannerSummaryTarget.Expense -> actions.saveExpense(
+            target.expense.id,
+            primary,
+            secondary,
+            target.expense.expenseDate,
+        )
+        is PlannerSummaryTarget.Note -> actions.saveNote(
+            target.note.id,
+            primary,
+            secondary,
+        )
+        is PlannerSummaryTarget.Shopping -> actions.saveShoppingItem(
+            target.item.id,
+            primary,
+            secondary,
+        )
+    }
+}
+
+private fun deleteTarget(target: PlannerSummaryTarget, actions: PlannerActionCallbacks) {
+    when (target) {
+        is PlannerSummaryTarget.Event -> actions.deleteEvent(target.event.id)
+        is PlannerSummaryTarget.Meal -> actions.deleteMeal(target.meal.id)
+        is PlannerSummaryTarget.Expense -> actions.deleteExpense(target.expense.id)
+        is PlannerSummaryTarget.Note -> actions.deleteNote(target.note.id)
+        is PlannerSummaryTarget.Shopping -> actions.deleteShoppingItem(target.item.id)
+    }
 }
 
 private fun BigDecimal.formatMoney(): String =
@@ -820,7 +1146,11 @@ private fun previewDashboard(): PlannerDashboard =
 @Composable
 private fun PhonePreview() {
     FamilyPlannerTheme {
-        PhoneShell(previewDashboard(), onQuickActionSelected = {})
+        PhoneShell(
+            dashboard = previewDashboard(),
+            onQuickActionSelected = {},
+            onEntrySelected = {},
+        )
     }
 }
 
@@ -828,6 +1158,10 @@ private fun PhonePreview() {
 @Composable
 private fun TabletPreview() {
     FamilyPlannerTheme {
-        TabletDashboard(previewDashboard(), onQuickActionSelected = {})
+        TabletDashboard(
+            dashboard = previewDashboard(),
+            onQuickActionSelected = {},
+            onEntrySelected = {},
+        )
     }
 }
