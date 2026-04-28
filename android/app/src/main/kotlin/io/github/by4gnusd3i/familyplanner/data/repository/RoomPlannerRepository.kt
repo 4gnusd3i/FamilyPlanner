@@ -11,6 +11,8 @@ import io.github.by4gnusd3i.familyplanner.data.local.PlannerDao
 import io.github.by4gnusd3i.familyplanner.data.local.PlannerEventEntity
 import io.github.by4gnusd3i.familyplanner.data.local.ShoppingItemEntity
 import io.github.by4gnusd3i.familyplanner.data.local.toDomain
+import io.github.by4gnusd3i.familyplanner.data.settings.AppSettingsRepository
+import io.github.by4gnusd3i.familyplanner.domain.model.BudgetSnapshot
 import io.github.by4gnusd3i.familyplanner.domain.model.PlannerDashboard
 import io.github.by4gnusd3i.familyplanner.domain.planner.BudgetMonthInput
 import io.github.by4gnusd3i.familyplanner.domain.planner.EventInput
@@ -24,33 +26,93 @@ import io.github.by4gnusd3i.familyplanner.domain.planner.ShoppingItemInput
 import io.github.by4gnusd3i.familyplanner.domain.setup.SetupValidator
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import java.math.BigDecimal
 import java.time.Duration
+import java.time.YearMonth
 import javax.inject.Inject
 
 class RoomPlannerRepository @Inject constructor(
     private val dao: PlannerDao,
     private val dateTimeProvider: DateTimeProvider,
+    private val settingsRepository: AppSettingsRepository,
 ) : PlannerRepository {
     override fun observeDashboard(): Flow<PlannerDashboard> =
-        combine(
+        combineCoreDashboard(
             dao.observeHouseholdCount(),
             dao.observeFamilyMembers(),
             dao.observeAllEvents(),
             dao.observeShoppingItems(),
             dao.observeNotes(),
-        ) { householdCount, family, events, shopping, notes ->
+        ).let { core ->
+            val month = YearMonth.from(dateTimeProvider.today()).toString()
+            combine(
+                core,
+                dao.observeMeals(),
+                dao.observeBudgetMonth(month),
+                dao.observeExpenses(month),
+                settingsRepository.settings,
+            ) { coreDashboard, meals, budgetMonth, expenses, settings ->
+                val expenseItems = expenses.map { it.toDomain() }
+                val spent = expenseItems.fold(BigDecimal.ZERO) { total, expense -> total + expense.amount }
+                val limit = budgetMonth?.limit ?: BigDecimal.ZERO
+                val income = budgetMonth?.income ?: BigDecimal.ZERO
+
+                coreDashboard.copy(
+                    meals = meals.map { it.toDomain() },
+                    budget = BudgetSnapshot(
+                        month = month,
+                        limit = limit,
+                        income = income,
+                        spent = spent,
+                        remaining = limit - spent,
+                        available = income - spent,
+                        currencyCode = budgetMonth?.currencyCode ?: settings.currencyCode,
+                        expenses = expenseItems,
+                    ),
+                )
+            }
+        }
+
+    private fun combineCoreDashboard(
+        householdCount: Flow<Int>,
+        familyMembers: Flow<List<FamilyMemberEntity>>,
+        events: Flow<List<PlannerEventEntity>>,
+        shoppingItems: Flow<List<ShoppingItemEntity>>,
+        notes: Flow<List<NoteEntity>>,
+    ): Flow<PlannerDashboard> =
+        combine(
+            householdCount,
+            familyMembers,
+            events,
+            shoppingItems,
+            notes,
+        ) { householdProfileCount, family, plannerEvents, shopping, noteItems ->
             val upcoming = RecurrenceRules.upcomingEvents(
-                events = events.map { it.toDomain() },
+                events = plannerEvents.map { it.toDomain() },
                 now = dateTimeProvider.now(),
             )
             PlannerDashboard(
-                isSetupComplete = householdCount > 0,
+                isSetupComplete = householdProfileCount > 0,
                 familyMembers = family.map { it.toDomain() },
                 upcomingEvents = upcoming,
+                meals = emptyList(),
+                budget = emptyBudgetSnapshot(),
                 shoppingItems = shopping.map { it.toDomain() },
-                notes = notes.map { it.toDomain() },
+                notes = noteItems.map { it.toDomain() },
             )
         }
+
+    private fun emptyBudgetSnapshot(): BudgetSnapshot =
+        BudgetSnapshot(
+            month = YearMonth.from(dateTimeProvider.today()).toString(),
+            limit = BigDecimal.ZERO,
+            income = BigDecimal.ZERO,
+            spent = BigDecimal.ZERO,
+            remaining = BigDecimal.ZERO,
+            available = BigDecimal.ZERO,
+            currencyCode = "USD",
+            expenses = emptyList(),
+        )
 
     override suspend fun initializeHousehold(familyName: String, firstMemberName: String) {
         val request = SetupValidator.validate(familyName, firstMemberName)

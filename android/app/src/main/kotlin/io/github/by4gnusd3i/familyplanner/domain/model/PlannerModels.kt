@@ -50,6 +50,16 @@ data class MealPlan(
     val note: String?,
 )
 
+data class ExpenseItem(
+    val id: Long,
+    val amount: BigDecimal,
+    val category: String,
+    val expenseDate: LocalDate,
+    val ownerId: Long?,
+    val description: String?,
+    val month: String,
+)
+
 data class BudgetSnapshot(
     val month: String,
     val limit: BigDecimal,
@@ -58,6 +68,7 @@ data class BudgetSnapshot(
     val remaining: BigDecimal,
     val available: BigDecimal,
     val currencyCode: String,
+    val expenses: List<ExpenseItem>,
 )
 
 data class NoteItem(
@@ -80,6 +91,8 @@ data class PlannerDashboard(
     val isSetupComplete: Boolean,
     val familyMembers: List<FamilyMember>,
     val upcomingEvents: List<PlannerEvent>,
+    val meals: List<MealPlan>,
+    val budget: BudgetSnapshot,
     val shoppingItems: List<ShoppingItem>,
     val notes: List<NoteItem>,
 )

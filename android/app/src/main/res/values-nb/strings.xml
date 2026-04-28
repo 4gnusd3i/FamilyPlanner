@@ -28,4 +28,20 @@
     <string name="count_upcoming">%1$d kommende avtaler</string>
     <string name="count_shopping">%1$d varer</string>
     <string name="count_notes">%1$d notater</string>
+    <string name="action_choose_title">Legg til i planleggeren</string>
+    <string name="action_cancel">Avbryt</string>
+    <string name="action_save">Lagre</string>
+    <string name="action_ok">OK</string>
+    <string name="action_error_title">Kunne ikke lagre</string>
+    <string name="field_title">Tittel</string>
+    <string name="field_note">Notat</string>
+    <string name="field_meal">Måltid</string>
+    <string name="field_amount">Beløp</string>
+    <string name="field_category">Kategori</string>
+    <string name="field_content">Innhold</string>
+    <string name="field_item">Vare</string>
+    <string name="field_quantity">Antall</string>
+    <string name="quantity_value">Antall: %1$d</string>
+    <string name="budget_spent">Brukt: %1$s %2$s</string>
+    <string name="budget_remaining">Gjenstår: %1$s %2$s</string>
 </resources>
