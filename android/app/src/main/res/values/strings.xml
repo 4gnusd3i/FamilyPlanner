@@ -48,6 +48,9 @@
     <string name="action_ok">OK</string>
     <string name="action_error_title">Could not save</string>
     <string name="field_title">Title</string>
+    <string name="field_event_date">Date (YYYY-MM-DD)</string>
+    <string name="field_owner">Responsible</string>
+    <string name="owner_none">No responsible</string>
     <string name="field_note">Note</string>
     <string name="field_meal">Meal</string>
     <string name="field_amount">Amount</string>

@@ -48,14 +48,22 @@ class FamilyPlannerViewModelTest {
         val repository = FakePlannerRepository()
         val viewModel = FamilyPlannerViewModel(repository, dateTimeProvider)
 
-        viewModel.addEvent("Tannlege", "Husk kort")
+        viewModel.addEvent("Tannlege", "Husk kort", "2026-04-24", 12)
         viewModel.addMeal("Taco", "Mais")
         viewModel.addExpense("149,90", "Mat")
         viewModel.addNote("Pakkliste", "Sko")
         viewModel.addShoppingItem("Melk", "")
         viewModel.saveBudgetMonth("26500", "82000,50", "nok", "2026-04")
 
-        assertEquals(EventInput(title = "Tannlege", eventDate = fixedDate, note = "Husk kort"), repository.events.single())
+        assertEquals(
+            EventInput(
+                title = "Tannlege",
+                eventDate = LocalDate.of(2026, 4, 24),
+                ownerId = 12,
+                note = "Husk kort",
+            ),
+            repository.events.single(),
+        )
         assertEquals(MealPlanInput(dayOfWeek = 2, meal = "Taco", note = "Mais"), repository.meals.single())
         assertEquals(
             ExpenseInput(amount = BigDecimal("149.90"), category = "Mat", expenseDate = fixedDate),
@@ -81,7 +89,7 @@ class FamilyPlannerViewModelTest {
         val viewModel = FamilyPlannerViewModel(repository, dateTimeProvider)
         val editedDate = fixedDate.plusDays(1)
 
-        viewModel.saveEvent(7, "Oppdatert", "Detalj", editedDate)
+        viewModel.saveEvent(7, "Oppdatert", "Detalj", editedDate.toString(), 3)
         viewModel.saveMeal(8, 4, "Pizza", "Salat")
         viewModel.saveExpense(9, "250", "Transport", editedDate)
         viewModel.saveNote(10, "Notat", "Tekst")
@@ -93,7 +101,10 @@ class FamilyPlannerViewModelTest {
         viewModel.deleteShoppingItem(11)
         viewModel.toggleShoppingItem(11)
 
-        assertEquals(EventInput(id = 7, title = "Oppdatert", eventDate = editedDate, note = "Detalj"), repository.events.single())
+        assertEquals(
+            EventInput(id = 7, title = "Oppdatert", eventDate = editedDate, ownerId = 3, note = "Detalj"),
+            repository.events.single(),
+        )
         assertEquals(MealPlanInput(id = 8, dayOfWeek = 4, meal = "Pizza", note = "Salat"), repository.meals.single())
         assertEquals(
             ExpenseInput(id = 9, amount = BigDecimal("250"), category = "Transport", expenseDate = editedDate),
@@ -142,7 +153,7 @@ class FamilyPlannerViewModelTest {
         repository.failNextAction = IllegalArgumentException("invalid event")
         val viewModel = FamilyPlannerViewModel(repository, dateTimeProvider)
 
-        viewModel.addEvent("Tannlege", null)
+        viewModel.addEvent("Tannlege", null, fixedDate.toString(), null)
 
         assertEquals("invalid event", viewModel.actionError.value)
 
@@ -171,6 +182,17 @@ class FamilyPlannerViewModelTest {
 
         assertTrue(viewModel.actionError.value?.contains("could not be parsed") == true)
         assertTrue(repository.budgets.isEmpty())
+    }
+
+    @Test
+    fun invalidEventDateSurfacesActionError() = runTest {
+        val repository = FakePlannerRepository()
+        val viewModel = FamilyPlannerViewModel(repository, dateTimeProvider)
+
+        viewModel.addEvent("Tannlege", null, "24.04.2026", null)
+
+        assertTrue(viewModel.actionError.value?.contains("could not be parsed") == true)
+        assertTrue(repository.events.isEmpty())
     }
 
     @Test

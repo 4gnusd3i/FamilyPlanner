@@ -48,6 +48,9 @@
     <string name="action_ok">OK</string>
     <string name="action_error_title">Kunne ikke lagre</string>
     <string name="field_title">Tittel</string>
+    <string name="field_event_date">Dato (ÅÅÅÅ-MM-DD)</string>
+    <string name="field_owner">Ansvarlig</string>
+    <string name="owner_none">Ingen ansvarlig</string>
     <string name="field_note">Notat</string>
     <string name="field_meal">Måltid</string>
     <string name="field_amount">Beløp</string>

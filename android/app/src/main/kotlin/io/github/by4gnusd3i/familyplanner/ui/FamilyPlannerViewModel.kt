@@ -91,22 +91,25 @@ class FamilyPlannerViewModel @Inject constructor(
         }
     }
 
-    fun addEvent(title: String, note: String?) {
+    fun addEvent(title: String, note: String?, eventDate: String, ownerId: Long?) {
         saveEvent(
             id = null,
             title = title,
             note = note,
-            eventDate = dateTimeProvider.today(),
+            eventDate = eventDate,
+            ownerId = ownerId,
         )
     }
 
-    fun saveEvent(id: Long?, title: String, note: String?, eventDate: LocalDate) {
+    fun saveEvent(id: Long?, title: String, note: String?, eventDate: String, ownerId: Long?) {
         runPlannerAction {
             repository.upsertEvent(
                 EventInput(
                     id = id,
                     title = title,
-                    eventDate = eventDate,
+                    eventDate = eventDate.trim().takeIf { it.isNotEmpty() }?.let(LocalDate::parse)
+                        ?: dateTimeProvider.today(),
+                    ownerId = ownerId,
                     note = note,
                 ),
             )

@@ -115,13 +115,13 @@ private enum class PlannerQuickAction(@param:StringRes val titleRes: Int) {
 }
 
 private data class PlannerActionCallbacks(
-    val addEvent: (title: String, note: String?) -> Unit,
+    val addEvent: (title: String, note: String?, eventDate: String, ownerId: Long?) -> Unit,
     val addMeal: (meal: String, note: String?) -> Unit,
     val addExpense: (amount: String, category: String?) -> Unit,
     val addNote: (title: String, content: String?) -> Unit,
     val addShoppingItem: (item: String, quantity: String) -> Unit,
     val saveBudget: (limit: String, income: String, currencyCode: String, month: String) -> Unit,
-    val saveEvent: (id: Long?, title: String, note: String?, eventDate: LocalDate) -> Unit,
+    val saveEvent: (id: Long?, title: String, note: String?, eventDate: String, ownerId: Long?) -> Unit,
     val saveMeal: (id: Long?, dayOfWeek: Int, meal: String, note: String?) -> Unit,
     val saveExpense: (id: Long?, amount: String, category: String?, expenseDate: LocalDate) -> Unit,
     val saveNote: (id: Long?, title: String, content: String?) -> Unit,
@@ -253,11 +253,20 @@ private fun FamilyPlannerContent(
     }
 
     activeAction?.let { action ->
-        QuickActionDialog(
-            action = action,
-            onDismiss = { activeAction = null },
-            actions = actions,
-        )
+        if (action == PlannerQuickAction.Event) {
+            EventActionDialog(
+                familyMembers = dashboard.familyMembers,
+                defaultDate = LocalDate.now(),
+                onDismiss = { activeAction = null },
+                actions = actions,
+            )
+        } else {
+            QuickActionDialog(
+                action = action,
+                onDismiss = { activeAction = null },
+                actions = actions,
+            )
+        }
     }
 
     summaryTarget?.let { target ->
@@ -1111,6 +1120,117 @@ private fun QuickActionChooserDialog(
 }
 
 @Composable
+private fun EventActionDialog(
+    familyMembers: List<FamilyMember>,
+    defaultDate: LocalDate,
+    onDismiss: () -> Unit,
+    actions: PlannerActionCallbacks,
+) {
+    var title by rememberSaveable { mutableStateOf("") }
+    var note by rememberSaveable { mutableStateOf("") }
+    var eventDate by rememberSaveable { mutableStateOf(defaultDate.toString()) }
+    var ownerId by rememberSaveable { mutableStateOf<Long?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.quick_event)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text(stringResource(R.string.field_title)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = eventDate,
+                    onValueChange = { eventDate = it.take(10) },
+                    label = { Text(stringResource(R.string.field_event_date)) },
+                    singleLine = true,
+                )
+                OwnerSelector(
+                    familyMembers = familyMembers,
+                    selectedOwnerId = ownerId,
+                    onOwnerSelected = { ownerId = it },
+                )
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = note,
+                    onValueChange = { note = it },
+                    label = { Text(stringResource(R.string.field_note)) },
+                    maxLines = 3,
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.action_cancel))
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    actions.addEvent(title, note, eventDate, ownerId)
+                    onDismiss()
+                },
+            ) {
+                Text(stringResource(R.string.action_save))
+            }
+        },
+    )
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun OwnerSelector(
+    familyMembers: List<FamilyMember>,
+    selectedOwnerId: Long?,
+    onOwnerSelected: (Long?) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = stringResource(R.string.field_owner),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OwnerButton(
+                label = stringResource(R.string.owner_none),
+                selected = selectedOwnerId == null,
+                onClick = { onOwnerSelected(null) },
+            )
+            familyMembers.forEach { member ->
+                OwnerButton(
+                    label = member.name,
+                    selected = selectedOwnerId == member.id,
+                    onClick = { onOwnerSelected(member.id) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun OwnerButton(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Button(onClick = onClick) {
+        Text(
+            text = if (selected) "$label *" else label,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
 private fun QuickActionDialog(
     action: PlannerQuickAction,
     onDismiss: () -> Unit,
@@ -1170,7 +1290,7 @@ private fun QuickActionDialog(
             TextButton(
                 onClick = {
                     when (action) {
-                        PlannerQuickAction.Event -> actions.addEvent(primary, secondary)
+                        PlannerQuickAction.Event -> actions.addEvent(primary, secondary, LocalDate.now().toString(), null)
                         PlannerQuickAction.Meal -> actions.addMeal(primary, secondary)
                         PlannerQuickAction.Expense -> actions.addExpense(primary, secondary)
                         PlannerQuickAction.Note -> actions.addNote(primary, secondary)
@@ -1668,7 +1788,8 @@ private fun saveTarget(
             target.event.id,
             primary,
             secondary,
-            target.event.eventDate,
+            target.event.eventDate.toString(),
+            target.event.ownerId,
         )
         is PlannerSummaryTarget.Meal -> actions.saveMeal(
             target.meal.id,
@@ -1829,13 +1950,13 @@ private fun previewDashboard(): PlannerDashboard =
 
 private fun previewActions(): PlannerActionCallbacks =
     PlannerActionCallbacks(
-        addEvent = { _, _ -> },
+        addEvent = { _, _, _, _ -> },
         addMeal = { _, _ -> },
         addExpense = { _, _ -> },
         addNote = { _, _ -> },
         addShoppingItem = { _, _ -> },
         saveBudget = { _, _, _, _ -> },
-        saveEvent = { _, _, _, _ -> },
+        saveEvent = { _, _, _, _, _ -> },
         saveMeal = { _, _, _, _ -> },
         saveExpense = { _, _, _, _ -> },
         saveNote = { _, _, _ -> },
