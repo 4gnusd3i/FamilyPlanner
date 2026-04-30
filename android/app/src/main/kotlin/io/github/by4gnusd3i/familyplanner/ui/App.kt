@@ -1,6 +1,13 @@
 package io.github.by4gnusd3i.familyplanner.ui
 
+import android.content.Context
+import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 import androidx.annotation.StringRes
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -53,7 +60,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
@@ -78,6 +89,7 @@ import io.github.by4gnusd3i.familyplanner.domain.model.ShoppingItem
 import io.github.by4gnusd3i.familyplanner.domain.planner.RecurrenceRules
 import io.github.by4gnusd3i.familyplanner.ui.theme.FamilyPlannerTheme
 import java.math.BigDecimal
+import java.io.File
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -118,7 +130,14 @@ private data class PlannerActionCallbacks(
     val deleteExpense: (id: Long) -> Unit,
     val deleteNote: (id: Long) -> Unit,
     val deleteShoppingItem: (id: Long) -> Unit,
-    val saveFamilyMember: (id: Long?, name: String, color: String?, birthday: String, bio: String?) -> Unit,
+    val saveFamilyMember: (
+        id: Long?,
+        name: String,
+        color: String?,
+        birthday: String,
+        bio: String?,
+        avatarUri: String?,
+    ) -> Unit,
     val deleteFamilyMember: (id: Long) -> Unit,
     val setLanguageOverride: (languageId: String?) -> Unit,
     val setCurrencyCode: (currencyCode: String) -> Unit,
@@ -1294,6 +1313,12 @@ private fun FamilyMemberDialog(
     var color by rememberSaveable(member?.id) { mutableStateOf(member?.color ?: "#3b82f6") }
     var birthday by rememberSaveable(member?.id) { mutableStateOf(member?.birthday?.toString().orEmpty()) }
     var bio by rememberSaveable(member?.id) { mutableStateOf(member?.bio.orEmpty()) }
+    var avatarUri by rememberSaveable(member?.id) { mutableStateOf(member?.avatarUri.orEmpty()) }
+    val avatarPicker = rememberLauncherForActivityResult(PickVisualMedia()) { uri ->
+        if (uri != null) {
+            avatarUri = uri.toString()
+        }
+    }
     val title = if (member == null) R.string.settings_add_member else R.string.settings_edit_member
 
     AlertDialog(
@@ -1301,6 +1326,29 @@ private fun FamilyMemberDialog(
         title = { Text(stringResource(title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    AvatarSurface(
+                        member = member?.copy(avatarUri = avatarUri.takeIf { it.isNotBlank() })
+                            ?: FamilyMember(
+                                id = 0,
+                                name = name,
+                                color = color,
+                                avatarUri = avatarUri.takeIf { it.isNotBlank() },
+                                birthday = null,
+                                bio = null,
+                            ),
+                    )
+                    Button(
+                        onClick = {
+                            avatarPicker.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly))
+                        },
+                    ) {
+                        Text(stringResource(R.string.action_choose_avatar))
+                    }
+                }
                 OutlinedTextField(
                     modifier = Modifier.fillMaxWidth(),
                     value = name,
@@ -1352,7 +1400,7 @@ private fun FamilyMemberDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    actions.saveFamilyMember(member?.id, name, color, birthday, bio)
+                    actions.saveFamilyMember(member?.id, name, color, birthday, bio, avatarUri)
                     onDismiss()
                 },
             ) {
@@ -1525,16 +1573,68 @@ private fun FamilyChip(member: FamilyMember) {
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Surface(
-                modifier = Modifier.size(36.dp),
-                color = MaterialTheme.colorScheme.primaryContainer,
-                shape = RoundedCornerShape(14.dp),
-            ) {}
+            AvatarSurface(member)
             Spacer(Modifier.width(10.dp))
             Text(member.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
+
+@Composable
+private fun AvatarSurface(member: FamilyMember) {
+    val avatarBitmap = rememberAvatarBitmap(member.avatarUri)
+    Surface(
+        modifier = Modifier.size(36.dp),
+        color = member.color.toComposeColor(),
+        shape = RoundedCornerShape(14.dp),
+    ) {
+        if (avatarBitmap != null) {
+            Image(
+                bitmap = avatarBitmap,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
+        } else {
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    text = member.name.take(1).ifBlank { "?" },
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun rememberAvatarBitmap(avatarUri: String?): ImageBitmap? {
+    val context = LocalContext.current
+    return remember(avatarUri) {
+        avatarUri
+            ?.takeIf { it.isNotBlank() }
+            ?.let { loadAvatarBitmap(context, it) }
+    }
+}
+
+private fun loadAvatarBitmap(context: Context, avatarUri: String): ImageBitmap? =
+    runCatching {
+        val uri = Uri.parse(avatarUri)
+        val bitmap = if (uri.scheme == "file") {
+            BitmapFactory.decodeFile(File(requireNotNull(uri.path)).absolutePath)
+        } else {
+            context.contentResolver.openInputStream(uri).use { input ->
+                BitmapFactory.decodeStream(input)
+            }
+        }
+        bitmap?.asImageBitmap()
+    }.getOrNull()
+
+private fun String.toComposeColor(): androidx.compose.ui.graphics.Color =
+    runCatching {
+        androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(this))
+    }.getOrDefault(androidx.compose.ui.graphics.Color(0xFF3B82F6))
 
 private fun previewDashboard(): PlannerDashboard =
     PlannerDashboard(
@@ -1583,7 +1683,7 @@ private fun previewActions(): PlannerActionCallbacks =
         deleteExpense = { _ -> },
         deleteNote = { _ -> },
         deleteShoppingItem = { _ -> },
-        saveFamilyMember = { _, _, _, _, _ -> },
+        saveFamilyMember = { _, _, _, _, _, _ -> },
         deleteFamilyMember = { _ -> },
         setLanguageOverride = { _ -> },
         setCurrencyCode = { _ -> },

@@ -42,6 +42,7 @@
     <string name="action_save">Save</string>
     <string name="action_edit">Edit</string>
     <string name="action_edit_budget">Edit budget</string>
+    <string name="action_choose_avatar">Choose avatar</string>
     <string name="action_delete">Delete</string>
     <string name="action_close">Close</string>
     <string name="action_ok">OK</string>

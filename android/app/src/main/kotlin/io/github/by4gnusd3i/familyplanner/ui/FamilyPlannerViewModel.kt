@@ -236,7 +236,14 @@ class FamilyPlannerViewModel @Inject constructor(
         }
     }
 
-    fun saveFamilyMember(id: Long?, name: String, color: String?, birthday: String, bio: String?) {
+    fun saveFamilyMember(
+        id: Long?,
+        name: String,
+        color: String?,
+        birthday: String,
+        bio: String?,
+        avatarUri: String?,
+    ) {
         runPlannerAction {
             repository.upsertFamilyMember(
                 FamilyMemberInput(
@@ -245,6 +252,7 @@ class FamilyPlannerViewModel @Inject constructor(
                     color = color,
                     birthday = birthday.trim().takeIf { it.isNotEmpty() }?.let { LocalDate.parse(it) },
                     bio = bio,
+                    avatarUri = avatarUri,
                 ),
             )
         }

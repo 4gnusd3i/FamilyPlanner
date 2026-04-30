@@ -114,7 +114,7 @@ class FamilyPlannerViewModelTest {
         val repository = FakePlannerRepository()
         val viewModel = FamilyPlannerViewModel(repository, dateTimeProvider)
 
-        viewModel.saveFamilyMember(12, "Liv", "#10b981", "2018-05-14", "Liker fotball")
+        viewModel.saveFamilyMember(12, "Liv", "#10b981", "2018-05-14", "Liker fotball", "content://avatar")
         viewModel.deleteFamilyMember(13)
         viewModel.setLanguageOverride("nb")
         viewModel.setLanguageOverride(null)
@@ -125,6 +125,7 @@ class FamilyPlannerViewModelTest {
                 id = 12,
                 name = "Liv",
                 color = "#10b981",
+                avatarUri = "content://avatar",
                 birthday = LocalDate.of(2018, 5, 14),
                 bio = "Liker fotball",
             ),
@@ -155,7 +156,7 @@ class FamilyPlannerViewModelTest {
         val repository = FakePlannerRepository()
         val viewModel = FamilyPlannerViewModel(repository, dateTimeProvider)
 
-        viewModel.saveFamilyMember(12, "Liv", "#10b981", "14.05.2018", null)
+        viewModel.saveFamilyMember(12, "Liv", "#10b981", "14.05.2018", null, null)
 
         assertTrue(viewModel.actionError.value?.contains("could not be parsed") == true)
         assertTrue(repository.familyMembers.isEmpty())

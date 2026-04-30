@@ -1,6 +1,7 @@
 package io.github.by4gnusd3i.familyplanner.data.repository
 
 import io.github.by4gnusd3i.familyplanner.core.time.DateTimeProvider
+import io.github.by4gnusd3i.familyplanner.data.avatar.AvatarStorageService
 import io.github.by4gnusd3i.familyplanner.data.local.BudgetMonthEntity
 import io.github.by4gnusd3i.familyplanner.data.local.ExpenseEntity
 import io.github.by4gnusd3i.familyplanner.data.local.FamilyMemberEntity
@@ -35,6 +36,7 @@ class RoomPlannerRepository @Inject constructor(
     private val dao: PlannerDao,
     private val dateTimeProvider: DateTimeProvider,
     private val settingsRepository: AppSettingsRepository,
+    private val avatarStorage: AvatarStorageService,
 ) : PlannerRepository {
     override fun observeSettings() = settingsRepository.settings
 
@@ -144,17 +146,24 @@ class RoomPlannerRepository @Inject constructor(
         val member = PlannerInputNormalizer.familyMember(input)
         val existing = member.id?.let { dao.getFamilyMemberById(it) }
         val now = dateTimeProvider.instantNow()
+        val avatarUri = member.avatarUri
+            ?.let { avatarStorage.storeAvatar(it) }
+            ?: existing?.avatarUri
         val id = dao.upsertFamilyMember(
             FamilyMemberEntity(
                 id = member.id ?: 0,
                 name = member.name,
                 color = member.color ?: PlannerInputNormalizer.DEFAULT_MEMBER_COLOR,
-                avatarUri = member.avatarUri,
+                avatarUri = avatarUri,
                 birthday = member.birthday,
                 bio = member.bio,
                 createdAt = existing?.createdAt ?: now,
             ),
         )
+
+        if (existing?.avatarUri != null && avatarUri != existing.avatarUri) {
+            avatarStorage.deleteStoredAvatar(existing.avatarUri)
+        }
 
         val effectiveId = member.id ?: id
         dao.deleteBirthdayEventsForMember(effectiveId)
