@@ -60,6 +60,14 @@ class AvatarStorageService @Inject constructor(
         }
     }
 
+    fun deleteAllStoredAvatars() {
+        avatarDirectory().listFiles()?.forEach { file ->
+            if (file.isFile) {
+                file.delete()
+            }
+        }
+    }
+
     private fun isStoredAvatar(uri: Uri): Boolean {
         val avatarDirectory = avatarDirectory().canonicalFile
         val avatarFile = uri.path?.let(::File)?.canonicalFile ?: return false

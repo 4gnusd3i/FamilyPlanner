@@ -142,6 +142,7 @@ private data class PlannerActionCallbacks(
     val deleteFamilyMember: (id: Long) -> Unit,
     val setLanguageOverride: (languageId: String?) -> Unit,
     val setCurrencyCode: (currencyCode: String) -> Unit,
+    val resetAllData: () -> Unit,
 )
 
 private sealed interface PlannerSummaryTarget {
@@ -212,6 +213,7 @@ fun FamilyPlannerApp(viewModel: FamilyPlannerViewModel) {
             deleteFamilyMember = viewModel::deleteFamilyMember,
             setLanguageOverride = viewModel::setLanguageOverride,
             setCurrencyCode = viewModel::setCurrencyCode,
+            resetAllData = viewModel::resetAllData,
         ),
     )
 }
@@ -1549,6 +1551,26 @@ private fun SettingsDialog(
                         )
                     }
                 }
+                item {
+                    Text(
+                        text = stringResource(R.string.settings_data),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(R.string.settings_reset_data_description),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = actions.resetAllData,
+                    ) {
+                        Text(stringResource(R.string.action_reset_data))
+                    }
+                }
             }
         },
         confirmButton = {
@@ -1970,6 +1992,7 @@ private fun previewActions(): PlannerActionCallbacks =
         deleteFamilyMember = { _ -> },
         setLanguageOverride = { _ -> },
         setCurrencyCode = { _ -> },
+        resetAllData = {},
     )
 
 @Preview(widthDp = 390, heightDp = 844)

@@ -130,6 +130,7 @@ class FamilyPlannerViewModelTest {
         viewModel.setLanguageOverride("nb")
         viewModel.setLanguageOverride(null)
         viewModel.setCurrencyCode("nok")
+        viewModel.resetAllData()
 
         assertEquals(
             FamilyMemberInput(
@@ -145,6 +146,7 @@ class FamilyPlannerViewModelTest {
         assertEquals(listOf(13L), repository.deletedFamilyMembers)
         assertEquals(listOf("nb", null), repository.languageOverrides)
         assertEquals(listOf("nok"), repository.currencyCodes)
+        assertEquals(1, repository.resetCalls)
     }
 
     @Test
@@ -252,6 +254,7 @@ class FamilyPlannerViewModelTest {
         val languageOverrides = mutableListOf<String?>()
         val currencyCodes = mutableListOf<String>()
         var cleanupCalls = 0
+        var resetCalls = 0
         var failSetup: RuntimeException? = null
         var failNextAction: RuntimeException? = null
 
@@ -345,6 +348,10 @@ class FamilyPlannerViewModelTest {
 
         override suspend fun cleanupDoneShoppingItems() {
             cleanupCalls += 1
+        }
+
+        override suspend fun resetAllData() {
+            resetCalls += 1
         }
 
         private fun unsupported(): Nothing =

@@ -350,6 +350,11 @@ class RoomPlannerRepository @Inject constructor(
         dao.cleanupDoneShoppingItems(markedAt = now, cutoff = cutoff)
     }
 
+    override suspend fun resetAllData() {
+        dao.resetAll()
+        avatarStorage.deleteAllStoredAvatars()
+    }
+
     private suspend fun resolveEventColor(ownerId: Long?): String {
         if (ownerId == null) {
             return PlannerInputNormalizer.DEFAULT_EVENT_COLOR

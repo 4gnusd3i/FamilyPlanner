@@ -281,6 +281,12 @@ class FamilyPlannerViewModel @Inject constructor(
         }
     }
 
+    fun resetAllData() {
+        runPlannerAction {
+            repository.resetAllData()
+        }
+    }
+
     fun clearActionError() {
         _actionError.value = null
     }

@@ -32,4 +32,5 @@ interface PlannerRepository {
     suspend fun toggleShoppingItem(id: Long)
     suspend fun deleteShoppingItem(id: Long)
     suspend fun cleanupDoneShoppingItems()
+    suspend fun resetAllData()
 }
