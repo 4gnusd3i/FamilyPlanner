@@ -35,7 +35,6 @@ Known remaining baseline work:
 
 - Full native drag-and-drop gesture from avatar to calendar day.
 - More Compose UI/instrumented coverage for screen flows.
-- Room/instrumented DAO coverage on emulator.
 - Android release signing, APK packaging, and release documentation.
 - Manual tablet/phone smoke pass on real emulator/device.
 
@@ -70,7 +69,7 @@ To run emulator/instrumented tests later:
 .\android\Run-AndroidChecks.ps1 -Tasks connectedDebugAndroidTest
 ```
 
-Only run connected tests when an emulator or device is available.
+Only run connected tests when an emulator or device is available. Current connected baseline is 4 tests: setup screen smoke, no-Internet manifest assertion, Room reset cleanup, and owner-deletion detach behavior.
 
 ## Data And Privacy
 
