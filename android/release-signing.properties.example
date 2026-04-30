@@ -1,0 +1,7 @@
+# Copy this file to android/signing/release.properties and replace every value.
+# The android/signing directory is ignored and must never be committed.
+
+storeFile=signing/familyplanner-release.jks
+storePassword=replace-with-local-store-password
+keyAlias=familyplanner
+keyPassword=replace-with-local-key-password

@@ -35,7 +35,7 @@ Known remaining baseline work:
 
 - Full native drag-and-drop gesture from avatar to calendar day.
 - More Compose UI/instrumented coverage for screen flows.
-- Android release signing, APK packaging, and release documentation.
+- Create the first signed Android release branch/package.
 - Manual tablet/phone smoke pass on real emulator/device.
 
 ## Toolchain
@@ -85,3 +85,19 @@ Only run connected tests when an emulator or device is available. Current connec
 - `release/android/v*` branches are for Android release preparation.
 - First Android release tag format: `v0.1.0-android`.
 - Do not commit keystores, passwords, generated APKs/AABs, emulator artifacts, build outputs, local DBs, or personal paths.
+
+Release APK packaging is guarded by `Package-AndroidRelease.ps1` and only runs from `release/android/v*` with a clean worktree:
+
+```powershell
+.\android\Package-AndroidRelease.ps1 -Version v0.1.0-android
+```
+
+The script runs `test`, `lint`, and `assembleRelease`, verifies the APK with `apksigner`, then writes ignored artifacts under `releases/`.
+
+Local signing setup:
+
+1. Create or store the release keystore outside Git.
+2. Copy `android\release-signing.properties.example` to `android\signing\release.properties`.
+3. Set `storeFile`, `storePassword`, `keyAlias`, and `keyPassword` for the local keystore.
+
+The `android\signing\` directory is ignored; signing secrets must stay local.

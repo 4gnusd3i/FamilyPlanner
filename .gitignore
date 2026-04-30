@@ -7,6 +7,7 @@ releases/
 android/.gradle/
 android/**/build/
 android/local.properties
+android/signing/
 *.apk
 *.aab
 *.ap_

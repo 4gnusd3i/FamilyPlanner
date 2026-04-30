@@ -1,3 +1,4 @@
+import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
@@ -8,9 +9,36 @@ plugins {
     alias(libs.plugins.hilt)
 }
 
+val releaseSigningPropertiesFile = rootProject.file("signing/release.properties")
+val releaseSigningProperties = Properties().apply {
+    if (releaseSigningPropertiesFile.isFile) {
+        releaseSigningPropertiesFile.inputStream().use(::load)
+    }
+}
+
+fun releaseSigningProperty(name: String): String =
+    releaseSigningProperties.getProperty(name)?.takeIf { it.isNotBlank() }
+        ?: error("Missing Android release signing property '$name' in ${releaseSigningPropertiesFile.path}.")
+
 android {
     namespace = "io.github.by4gnusd3i.familyplanner"
     compileSdk = 36
+
+    signingConfigs {
+        if (releaseSigningPropertiesFile.isFile) {
+            create("release") {
+                val releaseStoreFile = rootProject.file(releaseSigningProperty("storeFile"))
+                if (!releaseStoreFile.isFile) {
+                    error("Android release signing storeFile not found: ${releaseStoreFile.path}.")
+                }
+
+                storeFile = releaseStoreFile
+                storePassword = releaseSigningProperty("storePassword")
+                keyAlias = releaseSigningProperty("keyAlias")
+                keyPassword = releaseSigningProperty("keyPassword")
+            }
+        }
+    }
 
     defaultConfig {
         applicationId = "io.github.by4gnusd3i.familyplanner"
@@ -45,6 +73,13 @@ android {
         }
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfigs.findByName("release")?.let { signingConfig = it }
+            isMinifyEnabled = false
         }
     }
 }
