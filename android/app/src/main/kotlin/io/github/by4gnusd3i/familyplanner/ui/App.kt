@@ -505,7 +505,11 @@ private fun TabletDashboard(
                         )
                     }
                     PlannerPanel(R.string.meals_title, Modifier.weight(0.7f)) {
-                        MealsList(dashboard.meals, onEntrySelected)
+                        MealPlannerGrid(
+                            weekStart = dashboard.weekStart,
+                            meals = dashboard.meals,
+                            onEntrySelected = onEntrySelected,
+                        )
                     }
                 }
                 PlannerPanel(
@@ -572,7 +576,11 @@ private fun DestinationContent(
             PlannerDestination.Meals -> {
                 item {
                     PlannerPanel(R.string.meals_title, Modifier.fillMaxWidth().height(420.dp)) {
-                        MealsList(dashboard.meals, onEntrySelected)
+                        MealPlannerGrid(
+                            weekStart = dashboard.weekStart,
+                            meals = dashboard.meals,
+                            onEntrySelected = onEntrySelected,
+                        )
                     }
                 }
             }
@@ -809,25 +817,66 @@ private fun UpcomingList(
 }
 
 @Composable
-private fun MealsList(
+private fun MealPlannerGrid(
+    weekStart: LocalDate,
     meals: List<MealPlan>,
     onEntrySelected: (PlannerSummaryTarget) -> Unit,
 ) {
-    if (meals.isEmpty()) {
-        EmptyPanelText()
-        return
-    }
+    val weekDays = remember(weekStart) { (0..6).map { weekStart.plusDays(it.toLong()) } }
 
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(horizontal = 2.dp),
+        ) {
+            weekDays.forEachIndexed { index, day ->
+                item {
+                    MealDayCard(
+                        modifier = Modifier.width(if (maxWidth >= 720.dp) 128.dp else 150.dp),
+                        day = day,
+                        meals = meals.filter { it.dayOfWeek == index },
+                        onEntrySelected = onEntrySelected,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MealDayCard(
+    modifier: Modifier,
+    day: LocalDate,
+    meals: List<MealPlan>,
+    onEntrySelected: (PlannerSummaryTarget) -> Unit,
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(20.dp),
     ) {
-        meals.take(5).forEach { meal ->
-            PanelLine(
-                modifier = Modifier.clickable { onEntrySelected(PlannerSummaryTarget.Meal(meal)) },
-                title = meal.meal,
-                detail = meal.note,
+        Column(
+            modifier = Modifier.padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = day.format(ShortDateFormatter),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
+            if (meals.isEmpty()) {
+                EmptyPanelText()
+            } else {
+                meals.take(3).forEach { meal ->
+                    PanelLine(
+                        modifier = Modifier.clickable { onEntrySelected(PlannerSummaryTarget.Meal(meal)) },
+                        title = meal.meal,
+                        detail = meal.note ?: meal.mealType,
+                    )
+                }
+            }
         }
     }
 }
