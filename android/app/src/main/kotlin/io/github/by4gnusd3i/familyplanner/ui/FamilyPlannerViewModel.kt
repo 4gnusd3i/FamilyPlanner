@@ -40,6 +40,8 @@ class FamilyPlannerViewModel @Inject constructor(
                 initialValue = PlannerDashboard(
                     isSetupComplete = false,
                     familyMembers = emptyList(),
+                    weekStart = dateTimeProvider.today().startOfWeek(),
+                    weekEvents = emptyList(),
                     upcomingEvents = emptyList(),
                     meals = emptyList(),
                     budget = BudgetSnapshot(
@@ -294,4 +296,7 @@ class FamilyPlannerViewModel @Inject constructor(
 
     private fun DayOfWeek.toPlannerDayIndex(): Int =
         value - 1
+
+    private fun LocalDate.startOfWeek(): LocalDate =
+        minusDays((dayOfWeek.value - 1).toLong())
 }

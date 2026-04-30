@@ -11,6 +11,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -174,6 +175,7 @@ private sealed interface PlannerSummaryTarget {
 }
 
 private val ShortDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.")
+private val ShortTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
 @Composable
 fun FamilyPlannerApp(viewModel: FamilyPlannerViewModel) {
@@ -495,7 +497,12 @@ private fun TabletDashboard(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     PlannerPanel(R.string.week_title, Modifier.weight(1.6f)) {
-                        UpcomingList(dashboard.upcomingEvents, dashboard.familyMembers, onEntrySelected)
+                        WeekCalendar(
+                            weekStart = dashboard.weekStart,
+                            events = dashboard.weekEvents,
+                            familyMembers = dashboard.familyMembers,
+                            onEntrySelected = onEntrySelected,
+                        )
                     }
                     PlannerPanel(R.string.meals_title, Modifier.weight(0.7f)) {
                         MealsList(dashboard.meals, onEntrySelected)
@@ -553,7 +560,12 @@ private fun DestinationContent(
             PlannerDestination.Week -> {
                 item {
                     PlannerPanel(R.string.week_title, Modifier.fillMaxWidth().height(520.dp)) {
-                        UpcomingList(dashboard.upcomingEvents, dashboard.familyMembers, onEntrySelected)
+                        WeekCalendar(
+                            weekStart = dashboard.weekStart,
+                            events = dashboard.weekEvents,
+                            familyMembers = dashboard.familyMembers,
+                            onEntrySelected = onEntrySelected,
+                        )
                     }
                 }
             }
@@ -661,6 +673,99 @@ private fun PlannerPanel(
                         text = body ?: "${stringResource(R.string.empty_state)}. ${stringResource(R.string.coming_next)}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeekCalendar(
+    weekStart: LocalDate,
+    events: List<PlannerEvent>,
+    familyMembers: List<FamilyMember>,
+    onEntrySelected: (PlannerSummaryTarget) -> Unit,
+) {
+    val weekDays = remember(weekStart) { (0..6).map { weekStart.plusDays(it.toLong()) } }
+
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        if (maxWidth >= 720.dp) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                weekDays.forEach { day ->
+                    WeekDayCard(
+                        modifier = Modifier.weight(1f),
+                        day = day,
+                        events = events.filter { it.eventDate == day },
+                        familyMembers = familyMembers,
+                        onEntrySelected = onEntrySelected,
+                    )
+                }
+            }
+        } else {
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(horizontal = 2.dp),
+            ) {
+                weekDays.forEach { day ->
+                    item {
+                        WeekDayCard(
+                            modifier = Modifier.width(150.dp),
+                            day = day,
+                            events = events.filter { it.eventDate == day },
+                            familyMembers = familyMembers,
+                            onEntrySelected = onEntrySelected,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeekDayCard(
+    modifier: Modifier,
+    day: LocalDate,
+    events: List<PlannerEvent>,
+    familyMembers: List<FamilyMember>,
+    onEntrySelected: (PlannerSummaryTarget) -> Unit,
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(20.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = day.format(ShortDateFormatter),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (events.isEmpty()) {
+                EmptyPanelText()
+            } else {
+                events.take(4).forEach { event ->
+                    val owner = if (event.isBirthdayEvent()) {
+                        null
+                    } else {
+                        familyMembers.firstOrNull { it.id == event.ownerId }?.name
+                    }
+                    PanelLine(
+                        modifier = Modifier.clickable { onEntrySelected(PlannerSummaryTarget.Event(event)) },
+                        title = listOfNotNull(
+                            owner,
+                            eventDisplayTitle(event, familyMembers),
+                        ).joinToString(" "),
+                        detail = eventTimeText(event) ?: event.note,
                     )
                 }
             }
@@ -1466,6 +1571,12 @@ private fun eventDisplayTitle(
 private fun PlannerEvent.isBirthdayEvent(): Boolean =
     sourceType == RecurrenceRules.BIRTHDAY_SOURCE_TYPE
 
+private fun eventTimeText(event: PlannerEvent): String? =
+    listOfNotNull(
+        event.startTime?.format(ShortTimeFormatter),
+        event.endTime?.format(ShortTimeFormatter),
+    ).joinToString(" - ").takeIf { it.isNotBlank() }
+
 private fun PlannerSummaryTarget.isReadOnlySystemEntry(): Boolean =
     this is PlannerSummaryTarget.Event && event.isBirthdayEvent()
 
@@ -1649,6 +1760,8 @@ private fun previewDashboard(): PlannerDashboard =
                 bio = null,
             ),
         ),
+        weekStart = LocalDate.of(2026, 4, 20),
+        weekEvents = emptyList(),
         upcomingEvents = emptyList(),
         meals = emptyList(),
         budget = BudgetSnapshot(

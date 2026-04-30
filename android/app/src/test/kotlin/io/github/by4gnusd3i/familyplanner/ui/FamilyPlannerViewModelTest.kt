@@ -334,6 +334,8 @@ class FamilyPlannerViewModelTest {
             PlannerDashboard(
                 isSetupComplete = false,
                 familyMembers = emptyList(),
+                weekStart = LocalDate.of(2026, 4, 20),
+                weekEvents = emptyList(),
                 upcomingEvents = emptyList(),
                 meals = emptyList(),
                 budget = BudgetSnapshot(

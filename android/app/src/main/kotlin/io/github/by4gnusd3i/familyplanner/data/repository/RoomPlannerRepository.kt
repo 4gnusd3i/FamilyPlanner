@@ -28,6 +28,7 @@ import io.github.by4gnusd3i.familyplanner.domain.setup.SetupValidator
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import java.math.BigDecimal
+import java.time.LocalDate
 import java.time.Duration
 import java.time.YearMonth
 import javax.inject.Inject
@@ -100,19 +101,35 @@ class RoomPlannerRepository @Inject constructor(
             notes,
         ) { householdProfileCount, family, plannerEvents, shopping, noteItems ->
             val now = dateTimeProvider.now()
+            val today = now.toLocalDate()
+            val weekStart = today.startOfWeek()
+            val weekEnd = weekStart.plusDays(6)
             val familyDomain = family.map { it.toDomain() }
-            val birthdayEvents = RecurrenceRules.generatedBirthdayEvents(
+            val storedEvents = plannerEvents.map { it.toDomain() }
+            val upcomingBirthdayEvents = RecurrenceRules.generatedBirthdayEvents(
                 familyMembers = familyDomain,
-                rangeStart = now.toLocalDate(),
-                rangeEnd = now.toLocalDate().plusDays(2),
+                rangeStart = today,
+                rangeEnd = today.plusDays(2),
+            )
+            val weekBirthdayEvents = RecurrenceRules.generatedBirthdayEvents(
+                familyMembers = familyDomain,
+                rangeStart = weekStart,
+                rangeEnd = weekEnd,
+            )
+            val weekEvents = RecurrenceRules.eventsInRange(
+                events = storedEvents + weekBirthdayEvents,
+                rangeStart = weekStart,
+                rangeEnd = weekEnd,
             )
             val upcoming = RecurrenceRules.upcomingEvents(
-                events = plannerEvents.map { it.toDomain() } + birthdayEvents,
+                events = storedEvents + upcomingBirthdayEvents,
                 now = now,
             )
             PlannerDashboard(
                 isSetupComplete = householdProfileCount > 0,
                 familyMembers = familyDomain,
+                weekStart = weekStart,
+                weekEvents = weekEvents,
                 upcomingEvents = upcoming,
                 meals = emptyList(),
                 budget = emptyBudgetSnapshot(),
@@ -342,4 +359,7 @@ class RoomPlannerRepository @Inject constructor(
             ?.takeIf { it.isNotBlank() }
             ?: PlannerInputNormalizer.DEFAULT_EVENT_COLOR
     }
+
+    private fun LocalDate.startOfWeek(): LocalDate =
+        minusDays((dayOfWeek.value - 1).toLong())
 }

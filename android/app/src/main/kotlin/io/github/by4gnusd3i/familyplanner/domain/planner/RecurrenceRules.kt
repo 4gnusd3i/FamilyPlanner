@@ -25,6 +25,21 @@ object RecurrenceRules {
             .sortedWith(eventComparator())
     }
 
+    fun eventsInRange(
+        events: List<PlannerEvent>,
+        rangeStart: LocalDate,
+        rangeEnd: LocalDate,
+    ): List<PlannerEvent> {
+        if (rangeEnd < rangeStart) return emptyList()
+
+        val directEvents = events
+            .filter { it.recurrenceType == null }
+            .filter { it.eventDate in rangeStart..rangeEnd }
+
+        return (directEvents + expandRecurringEvents(events, rangeStart, rangeEnd))
+            .sortedWith(eventComparator())
+    }
+
     fun upcomingEvents(
         events: List<PlannerEvent>,
         now: LocalDateTime,

@@ -90,6 +90,8 @@ data class ShoppingItem(
 data class PlannerDashboard(
     val isSetupComplete: Boolean,
     val familyMembers: List<FamilyMember>,
+    val weekStart: LocalDate,
+    val weekEvents: List<PlannerEvent>,
     val upcomingEvents: List<PlannerEvent>,
     val meals: List<MealPlan>,
     val budget: BudgetSnapshot,

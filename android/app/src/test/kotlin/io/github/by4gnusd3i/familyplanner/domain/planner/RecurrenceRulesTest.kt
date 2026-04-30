@@ -52,6 +52,40 @@ class RecurrenceRulesTest {
     }
 
     @Test
+    fun eventsInRangeIncludesDirectAndRecurringOccurrences() {
+        val direct = PlannerEvent(
+            id = 1,
+            title = "Dentist",
+            eventDate = LocalDate.of(2026, 4, 23),
+        )
+        val recurring = PlannerEvent(
+            id = 2,
+            title = "Reading",
+            eventDate = LocalDate.of(2026, 4, 20),
+            recurrenceType = RecurrenceType.Daily,
+            recurrenceUntil = LocalDate.of(2026, 4, 25),
+        )
+
+        val events = RecurrenceRules.eventsInRange(
+            events = listOf(direct, recurring),
+            rangeStart = LocalDate.of(2026, 4, 22),
+            rangeEnd = LocalDate.of(2026, 4, 24),
+        )
+
+        assertEquals(
+            listOf(
+                LocalDate.of(2026, 4, 22),
+                LocalDate.of(2026, 4, 23),
+                LocalDate.of(2026, 4, 23),
+                LocalDate.of(2026, 4, 24),
+            ),
+            events.map { it.eventDate },
+        )
+        assertEquals(1, events.count { it.sourceType == null })
+        assertEquals(3, events.count { it.sourceType == RecurrenceRules.RECURRING_SOURCE_TYPE })
+    }
+
+    @Test
     fun sameDayUntimedEventRemainsUpcomingUntilDayPasses() {
         val event = PlannerEvent(
             id = 1,
