@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -65,6 +66,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
@@ -143,6 +145,11 @@ private data class PlannerActionCallbacks(
     val setLanguageOverride: (languageId: String?) -> Unit,
     val setCurrencyCode: (currencyCode: String) -> Unit,
     val resetAllData: () -> Unit,
+)
+
+private data class EventDraft(
+    val eventDate: LocalDate,
+    val ownerId: Long?,
 )
 
 private sealed interface PlannerSummaryTarget {
@@ -241,9 +248,17 @@ private fun FamilyPlannerContent(
     val windowWidth = with(density) { windowInfo.containerSize.width.toDp() }
     val isTablet = windowWidth >= 840.dp
     var activeAction by rememberSaveable { mutableStateOf<PlannerQuickAction?>(null) }
+    var eventDraft by remember { mutableStateOf<EventDraft?>(null) }
     var summaryTarget by remember { mutableStateOf<PlannerSummaryTarget?>(null) }
     var editTarget by remember { mutableStateOf<PlannerSummaryTarget?>(null) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
+    val openQuickAction: (PlannerQuickAction) -> Unit = { action ->
+        if (action == PlannerQuickAction.Event) {
+            eventDraft = EventDraft(eventDate = LocalDate.now(), ownerId = null)
+        } else {
+            activeAction = action
+        }
+    }
 
     if (showSettings) {
         SettingsDialog(
@@ -254,21 +269,22 @@ private fun FamilyPlannerContent(
         )
     }
 
+    eventDraft?.let { draft ->
+        EventActionDialog(
+            familyMembers = dashboard.familyMembers,
+            defaultDate = draft.eventDate,
+            defaultOwnerId = draft.ownerId,
+            onDismiss = { eventDraft = null },
+            actions = actions,
+        )
+    }
+
     activeAction?.let { action ->
-        if (action == PlannerQuickAction.Event) {
-            EventActionDialog(
-                familyMembers = dashboard.familyMembers,
-                defaultDate = LocalDate.now(),
-                onDismiss = { activeAction = null },
-                actions = actions,
-            )
-        } else {
-            QuickActionDialog(
-                action = action,
-                onDismiss = { activeAction = null },
-                actions = actions,
-            )
-        }
+        QuickActionDialog(
+            action = action,
+            onDismiss = { activeAction = null },
+            actions = actions,
+        )
     }
 
     summaryTarget?.let { target ->
@@ -303,16 +319,19 @@ private fun FamilyPlannerContent(
         TabletDashboard(
             dashboard = dashboard,
             actions = actions,
-            onQuickActionSelected = { activeAction = it },
+            onQuickActionSelected = openQuickAction,
             onEntrySelected = { summaryTarget = it },
+            onEventDateSelected = { eventDraft = EventDraft(eventDate = it, ownerId = null) },
+            onFamilyLongPress = { eventDraft = EventDraft(eventDate = LocalDate.now(), ownerId = it) },
             onSettingsClick = { showSettings = true },
         )
     } else {
         PhoneShell(
             dashboard = dashboard,
             actions = actions,
-            onQuickActionSelected = { activeAction = it },
+            onQuickActionSelected = openQuickAction,
             onEntrySelected = { summaryTarget = it },
+            onEventDateSelected = { eventDraft = EventDraft(eventDate = it, ownerId = null) },
             onSettingsClick = { showSettings = true },
         )
     }
@@ -391,6 +410,7 @@ private fun PhoneShell(
     actions: PlannerActionCallbacks,
     onQuickActionSelected: (PlannerQuickAction) -> Unit,
     onEntrySelected: (PlannerSummaryTarget) -> Unit,
+    onEventDateSelected: (LocalDate) -> Unit,
     onSettingsClick: () -> Unit,
 ) {
     var selected by rememberSaveable { mutableStateOf(PlannerDestination.Overview) }
@@ -440,6 +460,7 @@ private fun PhoneShell(
             dashboard = dashboard,
             actions = actions,
             onEntrySelected = onEntrySelected,
+            onEventDateSelected = onEventDateSelected,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
@@ -454,6 +475,8 @@ private fun TabletDashboard(
     actions: PlannerActionCallbacks,
     onQuickActionSelected: (PlannerQuickAction) -> Unit,
     onEntrySelected: (PlannerSummaryTarget) -> Unit,
+    onEventDateSelected: (LocalDate) -> Unit,
+    onFamilyLongPress: (Long) -> Unit,
     onSettingsClick: () -> Unit,
 ) {
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -513,6 +536,7 @@ private fun TabletDashboard(
                             events = dashboard.weekEvents,
                             familyMembers = dashboard.familyMembers,
                             onEntrySelected = onEntrySelected,
+                            onDateSelected = onEventDateSelected,
                         )
                     }
                     PlannerPanel(R.string.meals_title, Modifier.weight(0.7f)) {
@@ -541,7 +565,10 @@ private fun TabletDashboard(
                     fontWeight = FontWeight.Bold,
                 )
                 dashboard.familyMembers.forEach { member ->
-                    FamilyChip(member)
+                    FamilyChip(
+                        member = member,
+                        onLongPress = { onFamilyLongPress(member.id) },
+                    )
                 }
             }
         }
@@ -554,6 +581,7 @@ private fun DestinationContent(
     dashboard: PlannerDashboard,
     actions: PlannerActionCallbacks,
     onEntrySelected: (PlannerSummaryTarget) -> Unit,
+    onEventDateSelected: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -580,6 +608,7 @@ private fun DestinationContent(
                             events = dashboard.weekEvents,
                             familyMembers = dashboard.familyMembers,
                             onEntrySelected = onEntrySelected,
+                            onDateSelected = onEventDateSelected,
                         )
                     }
                 }
@@ -705,6 +734,7 @@ private fun WeekCalendar(
     events: List<PlannerEvent>,
     familyMembers: List<FamilyMember>,
     onEntrySelected: (PlannerSummaryTarget) -> Unit,
+    onDateSelected: (LocalDate) -> Unit,
 ) {
     val weekDays = remember(weekStart) { (0..6).map { weekStart.plusDays(it.toLong()) } }
 
@@ -721,6 +751,7 @@ private fun WeekCalendar(
                         events = events.filter { it.eventDate == day },
                         familyMembers = familyMembers,
                         onEntrySelected = onEntrySelected,
+                        onDateSelected = onDateSelected,
                     )
                 }
             }
@@ -738,6 +769,7 @@ private fun WeekCalendar(
                             events = events.filter { it.eventDate == day },
                             familyMembers = familyMembers,
                             onEntrySelected = onEntrySelected,
+                            onDateSelected = onDateSelected,
                         )
                     }
                 }
@@ -753,9 +785,10 @@ private fun WeekDayCard(
     events: List<PlannerEvent>,
     familyMembers: List<FamilyMember>,
     onEntrySelected: (PlannerSummaryTarget) -> Unit,
+    onDateSelected: (LocalDate) -> Unit,
 ) {
     Card(
-        modifier = modifier,
+        modifier = modifier.clickable { onDateSelected(day) },
         shape = RoundedCornerShape(20.dp),
     ) {
         Column(
@@ -1125,13 +1158,14 @@ private fun QuickActionChooserDialog(
 private fun EventActionDialog(
     familyMembers: List<FamilyMember>,
     defaultDate: LocalDate,
+    defaultOwnerId: Long?,
     onDismiss: () -> Unit,
     actions: PlannerActionCallbacks,
 ) {
-    var title by rememberSaveable { mutableStateOf("") }
-    var note by rememberSaveable { mutableStateOf("") }
-    var eventDate by rememberSaveable { mutableStateOf(defaultDate.toString()) }
-    var ownerId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var title by rememberSaveable(defaultDate, defaultOwnerId) { mutableStateOf("") }
+    var note by rememberSaveable(defaultDate, defaultOwnerId) { mutableStateOf("") }
+    var eventDate by rememberSaveable(defaultDate, defaultOwnerId) { mutableStateOf(defaultDate.toString()) }
+    var ownerId by rememberSaveable(defaultDate, defaultOwnerId) { mutableStateOf(defaultOwnerId) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1870,10 +1904,17 @@ private fun memberDetail(member: FamilyMember): String =
     ).joinToString(" · ").ifBlank { member.color }
 
 @Composable
-private fun FamilyChip(member: FamilyMember) {
+private fun FamilyChip(
+    member: FamilyMember,
+    onLongPress: (() -> Unit)? = null,
+) {
     Card(shape = RoundedCornerShape(22.dp)) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            modifier = Modifier
+                .pointerInput(onLongPress) {
+                    detectTapGestures(onLongPress = { onLongPress?.invoke() })
+                }
+                .padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             AvatarSurface(member)
@@ -2004,6 +2045,7 @@ private fun PhonePreview() {
             actions = previewActions(),
             onQuickActionSelected = {},
             onEntrySelected = {},
+            onEventDateSelected = {},
             onSettingsClick = {},
         )
     }
@@ -2018,6 +2060,8 @@ private fun TabletPreview() {
             actions = previewActions(),
             onQuickActionSelected = {},
             onEntrySelected = {},
+            onEventDateSelected = {},
+            onFamilyLongPress = {},
             onSettingsClick = {},
         )
     }
