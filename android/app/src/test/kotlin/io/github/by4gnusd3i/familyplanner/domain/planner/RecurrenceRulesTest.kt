@@ -1,5 +1,6 @@
 package io.github.by4gnusd3i.familyplanner.domain.planner
 
+import io.github.by4gnusd3i.familyplanner.domain.model.FamilyMember
 import io.github.by4gnusd3i.familyplanner.domain.model.PlannerEvent
 import io.github.by4gnusd3i.familyplanner.domain.model.RecurrenceType
 import org.junit.Assert.assertEquals
@@ -79,4 +80,89 @@ class RecurrenceRulesTest {
             RecurrenceRules.birthdayDateForYear(birthday, 2028),
         )
     }
+
+    @Test
+    fun generatedBirthdayEventsOnlyIncludeBirthdaysInsideRange() {
+        val anna = familyMember(
+            id = 4,
+            name = "Anna",
+            birthday = LocalDate.of(2018, 4, 23),
+        )
+        val magnus = familyMember(
+            id = 5,
+            name = "Magnus",
+            birthday = LocalDate.of(2015, 4, 26),
+        )
+
+        val birthdays = RecurrenceRules.generatedBirthdayEvents(
+            familyMembers = listOf(anna, magnus),
+            rangeStart = LocalDate.of(2026, 4, 22),
+            rangeEnd = LocalDate.of(2026, 4, 24),
+        )
+
+        assertEquals(1, birthdays.size)
+        birthdays.single().let { event ->
+            assertEquals("Anna", event.title)
+            assertEquals(LocalDate.of(2026, 4, 23), event.eventDate)
+            assertEquals(4L, event.ownerId)
+            assertEquals("#4F83F1", event.color)
+            assertEquals(RecurrenceRules.BIRTHDAY_SOURCE_TYPE, event.sourceType)
+            assertEquals(4L, event.sourceMemberId)
+            assertEquals(2026, event.sourceYear)
+        }
+    }
+
+    @Test
+    fun generatedLeapDayBirthdayUsesFebruary28InNonLeapYears() {
+        val member = familyMember(
+            id = 9,
+            name = "Leap",
+            birthday = LocalDate.of(2024, 2, 29),
+        )
+
+        val birthdays = RecurrenceRules.generatedBirthdayEvents(
+            familyMembers = listOf(member),
+            rangeStart = LocalDate.of(2026, 2, 28),
+            rangeEnd = LocalDate.of(2026, 2, 28),
+        )
+
+        assertEquals(listOf(LocalDate.of(2026, 2, 28)), birthdays.map { it.eventDate })
+    }
+
+    @Test
+    fun upcomingIncludesGeneratedBirthdayUntilCalendarDayPasses() {
+        val birthday = RecurrenceRules.generatedBirthdayEvents(
+            familyMembers = listOf(
+                familyMember(
+                    id = 12,
+                    name = "Nora",
+                    birthday = LocalDate.of(2017, 4, 22),
+                ),
+            ),
+            rangeStart = LocalDate.of(2026, 4, 22),
+            rangeEnd = LocalDate.of(2026, 4, 24),
+        )
+
+        val upcoming = RecurrenceRules.upcomingEvents(
+            events = birthday,
+            now = LocalDateTime.of(2026, 4, 22, 23, 59),
+        )
+
+        assertEquals(listOf(LocalDate.of(2026, 4, 22)), upcoming.map { it.eventDate })
+        assertEquals(RecurrenceRules.BIRTHDAY_SOURCE_TYPE, upcoming.single().sourceType)
+    }
+
+    private fun familyMember(
+        id: Long,
+        name: String,
+        birthday: LocalDate?,
+    ): FamilyMember =
+        FamilyMember(
+            id = id,
+            name = name,
+            color = "#4F83F1",
+            avatarUri = null,
+            birthday = birthday,
+            bio = null,
+        )
 }

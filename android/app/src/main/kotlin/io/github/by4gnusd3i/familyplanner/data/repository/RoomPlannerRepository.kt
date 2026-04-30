@@ -97,13 +97,20 @@ class RoomPlannerRepository @Inject constructor(
             shoppingItems,
             notes,
         ) { householdProfileCount, family, plannerEvents, shopping, noteItems ->
+            val now = dateTimeProvider.now()
+            val familyDomain = family.map { it.toDomain() }
+            val birthdayEvents = RecurrenceRules.generatedBirthdayEvents(
+                familyMembers = familyDomain,
+                rangeStart = now.toLocalDate(),
+                rangeEnd = now.toLocalDate().plusDays(2),
+            )
             val upcoming = RecurrenceRules.upcomingEvents(
-                events = plannerEvents.map { it.toDomain() },
-                now = dateTimeProvider.now(),
+                events = plannerEvents.map { it.toDomain() } + birthdayEvents,
+                now = now,
             )
             PlannerDashboard(
                 isSetupComplete = householdProfileCount > 0,
-                familyMembers = family.map { it.toDomain() },
+                familyMembers = familyDomain,
                 upcomingEvents = upcoming,
                 meals = emptyList(),
                 budget = emptyBudgetSnapshot(),

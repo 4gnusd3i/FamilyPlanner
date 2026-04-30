@@ -1,5 +1,6 @@
 package io.github.by4gnusd3i.familyplanner.domain.planner
 
+import io.github.by4gnusd3i.familyplanner.domain.model.FamilyMember
 import io.github.by4gnusd3i.familyplanner.domain.model.PlannerEvent
 import io.github.by4gnusd3i.familyplanner.domain.model.RecurrenceType
 import java.time.LocalDate
@@ -42,12 +43,52 @@ object RecurrenceRules {
         return (directEvents + recurringEvents).sortedWith(eventComparator())
     }
 
+    fun generatedBirthdayEvents(
+        familyMembers: List<FamilyMember>,
+        rangeStart: LocalDate,
+        rangeEnd: LocalDate,
+    ): List<PlannerEvent> {
+        if (rangeEnd < rangeStart) return emptyList()
+
+        return familyMembers
+            .flatMap { member -> birthdayEventsForMember(member, rangeStart, rangeEnd) }
+            .sortedWith(eventComparator())
+    }
+
     fun birthdayDateForYear(birthday: LocalDate, year: Int): LocalDate =
         if (birthday.monthValue == 2 && birthday.dayOfMonth == 29 && !java.time.Year.isLeap(year.toLong())) {
             LocalDate.of(year, 2, 28)
         } else {
             LocalDate.of(year, birthday.monthValue, birthday.dayOfMonth)
         }
+
+    private fun birthdayEventsForMember(
+        member: FamilyMember,
+        rangeStart: LocalDate,
+        rangeEnd: LocalDate,
+    ): List<PlannerEvent> {
+        val birthday = member.birthday ?: return emptyList()
+        return (rangeStart.year..rangeEnd.year).mapNotNull { year ->
+            val birthdayDate = birthdayDateForYear(birthday, year)
+            if (birthdayDate < rangeStart || birthdayDate > rangeEnd) {
+                null
+            } else {
+                PlannerEvent(
+                    id = birthdayEventId(member.id, year),
+                    title = member.name,
+                    eventDate = birthdayDate,
+                    ownerId = member.id,
+                    color = member.color,
+                    sourceType = BIRTHDAY_SOURCE_TYPE,
+                    sourceMemberId = member.id,
+                    sourceYear = year,
+                )
+            }
+        }
+    }
+
+    private fun birthdayEventId(memberId: Long, year: Int): Long =
+        -((memberId.coerceAtLeast(1L) * 10_000L) + year)
 
     private fun expandSeries(
         series: PlannerEvent,

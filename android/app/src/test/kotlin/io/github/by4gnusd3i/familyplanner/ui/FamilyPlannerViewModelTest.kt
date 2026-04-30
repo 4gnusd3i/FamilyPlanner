@@ -24,6 +24,7 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.YearMonth
 
 class FamilyPlannerViewModelTest {
     @get:Rule
@@ -52,6 +53,7 @@ class FamilyPlannerViewModelTest {
         viewModel.addExpense("149,90", "Mat")
         viewModel.addNote("Pakkliste", "Sko")
         viewModel.addShoppingItem("Melk", "")
+        viewModel.saveBudgetMonth("26500", "82000,50", "nok", "2026-04")
 
         assertEquals(EventInput(title = "Tannlege", eventDate = fixedDate, note = "Husk kort"), repository.events.single())
         assertEquals(MealPlanInput(dayOfWeek = 2, meal = "Taco", note = "Mais"), repository.meals.single())
@@ -61,6 +63,15 @@ class FamilyPlannerViewModelTest {
         )
         assertEquals(NoteInput(title = "Pakkliste", content = "Sko"), repository.notes.single())
         assertEquals(ShoppingItemInput(item = "Melk", quantity = 1), repository.shoppingItems.single())
+        assertEquals(
+            BudgetMonthInput(
+                month = YearMonth.of(2026, 4),
+                limit = BigDecimal("26500"),
+                income = BigDecimal("82000.50"),
+                currencyCode = "nok",
+            ),
+            repository.budgets.single(),
+        )
         assertNull(viewModel.actionError.value)
     }
 
@@ -103,13 +114,22 @@ class FamilyPlannerViewModelTest {
         val repository = FakePlannerRepository()
         val viewModel = FamilyPlannerViewModel(repository, dateTimeProvider)
 
-        viewModel.saveFamilyMember(12, "Liv", "#10b981")
+        viewModel.saveFamilyMember(12, "Liv", "#10b981", "2018-05-14", "Liker fotball")
         viewModel.deleteFamilyMember(13)
         viewModel.setLanguageOverride("nb")
         viewModel.setLanguageOverride(null)
         viewModel.setCurrencyCode("nok")
 
-        assertEquals(FamilyMemberInput(id = 12, name = "Liv", color = "#10b981"), repository.familyMembers.single())
+        assertEquals(
+            FamilyMemberInput(
+                id = 12,
+                name = "Liv",
+                color = "#10b981",
+                birthday = LocalDate.of(2018, 5, 14),
+                bio = "Liker fotball",
+            ),
+            repository.familyMembers.single(),
+        )
         assertEquals(listOf(13L), repository.deletedFamilyMembers)
         assertEquals(listOf("nb", null), repository.languageOverrides)
         assertEquals(listOf("nok"), repository.currencyCodes)
@@ -128,6 +148,28 @@ class FamilyPlannerViewModelTest {
         viewModel.clearActionError()
 
         assertNull(viewModel.actionError.value)
+    }
+
+    @Test
+    fun invalidFamilyBirthdaySurfacesActionError() = runTest {
+        val repository = FakePlannerRepository()
+        val viewModel = FamilyPlannerViewModel(repository, dateTimeProvider)
+
+        viewModel.saveFamilyMember(12, "Liv", "#10b981", "14.05.2018", null)
+
+        assertTrue(viewModel.actionError.value?.contains("could not be parsed") == true)
+        assertTrue(repository.familyMembers.isEmpty())
+    }
+
+    @Test
+    fun invalidBudgetMonthSurfacesActionError() = runTest {
+        val repository = FakePlannerRepository()
+        val viewModel = FamilyPlannerViewModel(repository, dateTimeProvider)
+
+        viewModel.saveBudgetMonth("1000", "2000", "NOK", "04-2026")
+
+        assertTrue(viewModel.actionError.value?.contains("could not be parsed") == true)
+        assertTrue(repository.budgets.isEmpty())
     }
 
     @Test
@@ -173,6 +215,7 @@ class FamilyPlannerViewModelTest {
         val familyMembers = mutableListOf<FamilyMemberInput>()
         val events = mutableListOf<EventInput>()
         val meals = mutableListOf<MealPlanInput>()
+        val budgets = mutableListOf<BudgetMonthInput>()
         val expenses = mutableListOf<ExpenseInput>()
         val notes = mutableListOf<NoteInput>()
         val shoppingItems = mutableListOf<ShoppingItemInput>()
@@ -237,7 +280,10 @@ class FamilyPlannerViewModelTest {
             deletedMeals += id
         }
 
-        override suspend fun upsertBudgetMonth(input: BudgetMonthInput): Long = unsupported()
+        override suspend fun upsertBudgetMonth(input: BudgetMonthInput): Long {
+            budgets += input
+            return budgets.size.toLong()
+        }
 
         override suspend fun upsertExpense(input: ExpenseInput): Long {
             failNextAction?.let {

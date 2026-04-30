@@ -8,6 +8,7 @@ import io.github.by4gnusd3i.familyplanner.data.repository.PlannerRepository
 import io.github.by4gnusd3i.familyplanner.data.settings.AppSettings
 import io.github.by4gnusd3i.familyplanner.domain.model.BudgetSnapshot
 import io.github.by4gnusd3i.familyplanner.domain.model.PlannerDashboard
+import io.github.by4gnusd3i.familyplanner.domain.planner.BudgetMonthInput
 import io.github.by4gnusd3i.familyplanner.domain.planner.EventInput
 import io.github.by4gnusd3i.familyplanner.domain.planner.ExpenseInput
 import io.github.by4gnusd3i.familyplanner.domain.planner.FamilyMemberInput
@@ -23,6 +24,7 @@ import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.YearMonth
 import javax.inject.Inject
 
 @HiltViewModel
@@ -185,6 +187,19 @@ class FamilyPlannerViewModel @Inject constructor(
         }
     }
 
+    fun saveBudgetMonth(limit: String, income: String, currencyCode: String, month: String) {
+        runPlannerAction {
+            repository.upsertBudgetMonth(
+                BudgetMonthInput(
+                    month = YearMonth.parse(month.trim()),
+                    limit = limit.trim().replace(',', '.').toBigDecimal(),
+                    income = income.trim().replace(',', '.').toBigDecimal(),
+                    currencyCode = currencyCode,
+                ),
+            )
+        }
+    }
+
     fun deleteEvent(id: Long) {
         runPlannerAction {
             repository.deleteEvent(id)
@@ -221,13 +236,15 @@ class FamilyPlannerViewModel @Inject constructor(
         }
     }
 
-    fun saveFamilyMember(id: Long?, name: String, color: String?) {
+    fun saveFamilyMember(id: Long?, name: String, color: String?, birthday: String, bio: String?) {
         runPlannerAction {
             repository.upsertFamilyMember(
                 FamilyMemberInput(
                     id = id,
                     name = name,
                     color = color,
+                    birthday = birthday.trim().takeIf { it.isNotEmpty() }?.let { LocalDate.parse(it) },
+                    bio = bio,
                 ),
             )
         }

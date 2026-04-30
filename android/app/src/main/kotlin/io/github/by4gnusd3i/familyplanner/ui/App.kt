@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Dining
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Settings
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.material3.Card
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -63,6 +64,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.core.os.LocaleListCompat
 import io.github.by4gnusd3i.familyplanner.R
 import io.github.by4gnusd3i.familyplanner.data.settings.AppSettings
 import io.github.by4gnusd3i.familyplanner.domain.model.BudgetSnapshot
@@ -73,6 +75,7 @@ import io.github.by4gnusd3i.familyplanner.domain.model.NoteItem
 import io.github.by4gnusd3i.familyplanner.domain.model.PlannerDashboard
 import io.github.by4gnusd3i.familyplanner.domain.model.PlannerEvent
 import io.github.by4gnusd3i.familyplanner.domain.model.ShoppingItem
+import io.github.by4gnusd3i.familyplanner.domain.planner.RecurrenceRules
 import io.github.by4gnusd3i.familyplanner.ui.theme.FamilyPlannerTheme
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -104,6 +107,7 @@ private data class PlannerActionCallbacks(
     val addExpense: (amount: String, category: String?) -> Unit,
     val addNote: (title: String, content: String?) -> Unit,
     val addShoppingItem: (item: String, quantity: String) -> Unit,
+    val saveBudget: (limit: String, income: String, currencyCode: String, month: String) -> Unit,
     val saveEvent: (id: Long?, title: String, note: String?, eventDate: LocalDate) -> Unit,
     val saveMeal: (id: Long?, dayOfWeek: Int, meal: String, note: String?) -> Unit,
     val saveExpense: (id: Long?, amount: String, category: String?, expenseDate: LocalDate) -> Unit,
@@ -114,7 +118,7 @@ private data class PlannerActionCallbacks(
     val deleteExpense: (id: Long) -> Unit,
     val deleteNote: (id: Long) -> Unit,
     val deleteShoppingItem: (id: Long) -> Unit,
-    val saveFamilyMember: (id: Long?, name: String, color: String?) -> Unit,
+    val saveFamilyMember: (id: Long?, name: String, color: String?, birthday: String, bio: String?) -> Unit,
     val deleteFamilyMember: (id: Long) -> Unit,
     val setLanguageOverride: (languageId: String?) -> Unit,
     val setCurrencyCode: (currencyCode: String) -> Unit,
@@ -172,6 +176,7 @@ fun FamilyPlannerApp(viewModel: FamilyPlannerViewModel) {
             addExpense = viewModel::addExpense,
             addNote = viewModel::addNote,
             addShoppingItem = viewModel::addShoppingItem,
+            saveBudget = viewModel::saveBudgetMonth,
             saveEvent = viewModel::saveEvent,
             saveMeal = viewModel::saveMeal,
             saveExpense = viewModel::saveExpense,
@@ -237,6 +242,7 @@ private fun FamilyPlannerContent(
     summaryTarget?.let { target ->
         SummaryDialog(
             target = target,
+            familyMembers = dashboard.familyMembers,
             onDismiss = { summaryTarget = null },
             onEdit = {
                 summaryTarget = null
@@ -264,6 +270,7 @@ private fun FamilyPlannerContent(
     if (isTablet) {
         TabletDashboard(
             dashboard = dashboard,
+            actions = actions,
             onQuickActionSelected = { activeAction = it },
             onEntrySelected = { summaryTarget = it },
             onSettingsClick = { showSettings = true },
@@ -271,6 +278,7 @@ private fun FamilyPlannerContent(
     } else {
         PhoneShell(
             dashboard = dashboard,
+            actions = actions,
             onQuickActionSelected = { activeAction = it },
             onEntrySelected = { summaryTarget = it },
             onSettingsClick = { showSettings = true },
@@ -348,6 +356,7 @@ private fun SetupScreen(
 @Composable
 private fun PhoneShell(
     dashboard: PlannerDashboard,
+    actions: PlannerActionCallbacks,
     onQuickActionSelected: (PlannerQuickAction) -> Unit,
     onEntrySelected: (PlannerSummaryTarget) -> Unit,
     onSettingsClick: () -> Unit,
@@ -397,6 +406,7 @@ private fun PhoneShell(
         DestinationContent(
             destination = selected,
             dashboard = dashboard,
+            actions = actions,
             onEntrySelected = onEntrySelected,
             modifier = Modifier
                 .fillMaxSize()
@@ -409,6 +419,7 @@ private fun PhoneShell(
 @Composable
 private fun TabletDashboard(
     dashboard: PlannerDashboard,
+    actions: PlannerActionCallbacks,
     onQuickActionSelected: (PlannerQuickAction) -> Unit,
     onEntrySelected: (PlannerSummaryTarget) -> Unit,
     onSettingsClick: () -> Unit,
@@ -445,7 +456,7 @@ private fun TabletDashboard(
                         title = R.string.budget_title,
                         modifier = Modifier.weight(0.8f),
                     ) {
-                        BudgetSummary(dashboard.budget, onEntrySelected)
+                        BudgetSummary(dashboard.budget, onEntrySelected, actions)
                     }
                     PlannerPanel(
                         title = R.string.shopping_title,
@@ -500,6 +511,7 @@ private fun TabletDashboard(
 private fun DestinationContent(
     destination: PlannerDestination,
     dashboard: PlannerDashboard,
+    actions: PlannerActionCallbacks,
     onEntrySelected: (PlannerSummaryTarget) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -554,7 +566,7 @@ private fun DestinationContent(
             PlannerDestination.Budget -> {
                 item {
                     PlannerPanel(R.string.budget_title, Modifier.fillMaxWidth().height(420.dp)) {
-                        BudgetSummary(dashboard.budget, onEntrySelected)
+                        BudgetSummary(dashboard.budget, onEntrySelected, actions)
                     }
                 }
             }
@@ -653,13 +665,18 @@ private fun UpcomingList(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         events.take(5).forEach { event ->
-            val owner = familyMembers.firstOrNull { it.id == event.ownerId }?.name
+            val owner = if (event.isBirthdayEvent()) {
+                null
+            } else {
+                familyMembers.firstOrNull { it.id == event.ownerId }?.name
+            }
+            val title = eventDisplayTitle(event, familyMembers)
             PanelLine(
                 modifier = Modifier.clickable { onEntrySelected(PlannerSummaryTarget.Event(event)) },
                 title = listOfNotNull(
                     event.eventDate.format(ShortDateFormatter),
                     owner,
-                    event.title,
+                    title,
                 ).joinToString(" "),
                 detail = event.note,
             )
@@ -743,7 +760,18 @@ private fun NotesList(
 private fun BudgetSummary(
     budget: BudgetSnapshot,
     onEntrySelected: (PlannerSummaryTarget) -> Unit,
+    actions: PlannerActionCallbacks,
 ) {
+    var editingBudget by rememberSaveable(budget.month) { mutableStateOf(false) }
+
+    if (editingBudget) {
+        BudgetDialog(
+            budget = budget,
+            onDismiss = { editingBudget = false },
+            actions = actions,
+        )
+    }
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -752,6 +780,16 @@ private fun BudgetSummary(
             title = stringResource(R.string.budget_spent, budget.spent.formatMoney(), budget.currencyCode),
             detail = stringResource(R.string.budget_remaining, budget.remaining.formatMoney(), budget.currencyCode),
         )
+        PanelLine(
+            title = stringResource(R.string.budget_income, budget.income.formatMoney(), budget.currencyCode),
+            detail = stringResource(R.string.budget_limit, budget.limit.formatMoney(), budget.currencyCode),
+        )
+        Button(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = { editingBudget = true },
+        ) {
+            Text(stringResource(R.string.action_edit_budget), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
         if (budget.expenses.isNotEmpty()) {
             budget.expenses.take(3).forEach { expense ->
                 PanelLine(
@@ -764,6 +802,72 @@ private fun BudgetSummary(
             }
         }
     }
+}
+
+@Composable
+private fun BudgetDialog(
+    budget: BudgetSnapshot,
+    onDismiss: () -> Unit,
+    actions: PlannerActionCallbacks,
+) {
+    var limit by rememberSaveable(budget.month) { mutableStateOf(budget.limit.formatMoney()) }
+    var income by rememberSaveable(budget.month) { mutableStateOf(budget.income.formatMoney()) }
+    var currencyCode by rememberSaveable(budget.month) { mutableStateOf(budget.currencyCode) }
+    var month by rememberSaveable(budget.month) { mutableStateOf(budget.month) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.action_edit_budget)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = month,
+                    onValueChange = { month = it.take(7) },
+                    label = { Text(stringResource(R.string.field_month)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = income,
+                    onValueChange = { income = it },
+                    label = { Text(stringResource(R.string.field_income)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                )
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = limit,
+                    onValueChange = { limit = it },
+                    label = { Text(stringResource(R.string.field_budget_limit)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                )
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = currencyCode,
+                    onValueChange = { currencyCode = it.take(3).uppercase(Locale.ROOT) },
+                    label = { Text(stringResource(R.string.settings_currency)) },
+                    singleLine = true,
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.action_cancel))
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    actions.saveBudget(limit, income, currencyCode, month)
+                    onDismiss()
+                },
+            ) {
+                Text(stringResource(R.string.action_save))
+            }
+        },
+    )
 }
 
 @Composable
@@ -911,10 +1015,12 @@ private fun QuickActionDialog(
 @Composable
 private fun SummaryDialog(
     target: PlannerSummaryTarget,
+    familyMembers: List<FamilyMember>,
     onDismiss: () -> Unit,
     onEdit: () -> Unit,
     actions: PlannerActionCallbacks,
 ) {
+    val isReadOnly = target.isReadOnlySystemEntry()
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -928,7 +1034,7 @@ private fun SummaryDialog(
             val detail = target.detail
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = target.title,
+                    text = summaryTitle(target, familyMembers),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
@@ -953,17 +1059,19 @@ private fun SummaryDialog(
             }
         },
         confirmButton = {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(
-                    onClick = {
-                        deleteTarget(target, actions)
-                        onDismiss()
-                    },
-                ) {
-                    Text(stringResource(R.string.action_delete))
-                }
-                TextButton(onClick = onEdit) {
-                    Text(stringResource(R.string.action_edit))
+            if (!isReadOnly) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(
+                        onClick = {
+                            deleteTarget(target, actions)
+                            onDismiss()
+                        },
+                    ) {
+                        Text(stringResource(R.string.action_delete))
+                    }
+                    TextButton(onClick = onEdit) {
+                        Text(stringResource(R.string.action_edit))
+                    }
                 }
             }
         },
@@ -1079,17 +1187,26 @@ private fun SettingsDialog(
                         LanguageButton(
                             label = stringResource(R.string.settings_language_system),
                             selected = settings.languageOverride == null,
-                            onClick = { actions.setLanguageOverride(null) },
+                            onClick = {
+                                applyLanguageOverride(null)
+                                actions.setLanguageOverride(null)
+                            },
                         )
                         LanguageButton(
                             label = stringResource(R.string.settings_language_norwegian),
                             selected = settings.languageOverride == "nb",
-                            onClick = { actions.setLanguageOverride("nb") },
+                            onClick = {
+                                applyLanguageOverride("nb")
+                                actions.setLanguageOverride("nb")
+                            },
                         )
                         LanguageButton(
                             label = stringResource(R.string.settings_language_english),
                             selected = settings.languageOverride == "en",
-                            onClick = { actions.setLanguageOverride("en") },
+                            onClick = {
+                                applyLanguageOverride("en")
+                                actions.setLanguageOverride("en")
+                            },
                         )
                     }
                 }
@@ -1135,7 +1252,7 @@ private fun SettingsDialog(
                         PanelLine(
                             modifier = Modifier.clickable { editedMember = member },
                             title = member.name,
-                            detail = member.color,
+                            detail = memberDetail(member),
                         )
                     }
                 }
@@ -1175,6 +1292,8 @@ private fun FamilyMemberDialog(
 ) {
     var name by rememberSaveable(member?.id) { mutableStateOf(member?.name.orEmpty()) }
     var color by rememberSaveable(member?.id) { mutableStateOf(member?.color ?: "#3b82f6") }
+    var birthday by rememberSaveable(member?.id) { mutableStateOf(member?.birthday?.toString().orEmpty()) }
+    var bio by rememberSaveable(member?.id) { mutableStateOf(member?.bio.orEmpty()) }
     val title = if (member == null) R.string.settings_add_member else R.string.settings_edit_member
 
     AlertDialog(
@@ -1195,6 +1314,21 @@ private fun FamilyMemberDialog(
                     onValueChange = { color = it },
                     label = { Text(stringResource(R.string.field_color)) },
                     singleLine = true,
+                )
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = birthday,
+                    onValueChange = { birthday = it },
+                    label = { Text(stringResource(R.string.field_birthday)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = bio,
+                    onValueChange = { bio = it },
+                    label = { Text(stringResource(R.string.field_bio)) },
+                    minLines = 2,
+                    maxLines = 4,
                 )
             }
         },
@@ -1218,7 +1352,7 @@ private fun FamilyMemberDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    actions.saveFamilyMember(member?.id, name, color)
+                    actions.saveFamilyMember(member?.id, name, color, birthday, bio)
                     onDismiss()
                 },
             ) {
@@ -1256,6 +1390,36 @@ private fun summaryTypeLabel(target: PlannerSummaryTarget): String =
             is PlannerSummaryTarget.Shopping -> R.string.quick_item
         },
     )
+
+@Composable
+private fun summaryTitle(
+    target: PlannerSummaryTarget,
+    familyMembers: List<FamilyMember>,
+): String =
+    when (target) {
+        is PlannerSummaryTarget.Event -> eventDisplayTitle(target.event, familyMembers)
+        else -> target.title
+    }
+
+@Composable
+private fun eventDisplayTitle(
+    event: PlannerEvent,
+    familyMembers: List<FamilyMember>,
+): String {
+    if (!event.isBirthdayEvent()) return event.title
+
+    val memberName = familyMembers
+        .firstOrNull { it.id == event.sourceMemberId || it.id == event.ownerId }
+        ?.name
+        ?: event.title
+    return stringResource(R.string.birthday_event_title, memberName)
+}
+
+private fun PlannerEvent.isBirthdayEvent(): Boolean =
+    sourceType == RecurrenceRules.BIRTHDAY_SOURCE_TYPE
+
+private fun PlannerSummaryTarget.isReadOnlySystemEntry(): Boolean =
+    this is PlannerSummaryTarget.Event && event.isBirthdayEvent()
 
 @Composable
 private fun summaryMeta(target: PlannerSummaryTarget): String? =
@@ -1333,8 +1497,26 @@ private fun deleteTarget(target: PlannerSummaryTarget, actions: PlannerActionCal
     }
 }
 
+private fun applyLanguageOverride(languageId: String?) {
+    val languageTags = when (languageId) {
+        "nb" -> "nb-NO"
+        "en" -> "en-US"
+        else -> ""
+    }
+    val currentTags = AppCompatDelegate.getApplicationLocales().toLanguageTags()
+    if (currentTags != languageTags) {
+        AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(languageTags))
+    }
+}
+
 private fun BigDecimal.formatMoney(): String =
     stripTrailingZeros().toPlainString()
+
+private fun memberDetail(member: FamilyMember): String =
+    listOfNotNull(
+        member.birthday?.toString(),
+        member.bio?.takeIf { it.isNotBlank() },
+    ).joinToString(" · ").ifBlank { member.color }
 
 @Composable
 private fun FamilyChip(member: FamilyMember) {
@@ -1383,12 +1565,37 @@ private fun previewDashboard(): PlannerDashboard =
         notes = emptyList(),
     )
 
+private fun previewActions(): PlannerActionCallbacks =
+    PlannerActionCallbacks(
+        addEvent = { _, _ -> },
+        addMeal = { _, _ -> },
+        addExpense = { _, _ -> },
+        addNote = { _, _ -> },
+        addShoppingItem = { _, _ -> },
+        saveBudget = { _, _, _, _ -> },
+        saveEvent = { _, _, _, _ -> },
+        saveMeal = { _, _, _, _ -> },
+        saveExpense = { _, _, _, _ -> },
+        saveNote = { _, _, _ -> },
+        saveShoppingItem = { _, _, _ -> },
+        deleteEvent = { _ -> },
+        deleteMeal = { _ -> },
+        deleteExpense = { _ -> },
+        deleteNote = { _ -> },
+        deleteShoppingItem = { _ -> },
+        saveFamilyMember = { _, _, _, _, _ -> },
+        deleteFamilyMember = { _ -> },
+        setLanguageOverride = { _ -> },
+        setCurrencyCode = { _ -> },
+    )
+
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun PhonePreview() {
     FamilyPlannerTheme {
         PhoneShell(
             dashboard = previewDashboard(),
+            actions = previewActions(),
             onQuickActionSelected = {},
             onEntrySelected = {},
             onSettingsClick = {},
@@ -1402,6 +1609,7 @@ private fun TabletPreview() {
     FamilyPlannerTheme {
         TabletDashboard(
             dashboard = previewDashboard(),
+            actions = previewActions(),
             onQuickActionSelected = {},
             onEntrySelected = {},
             onSettingsClick = {},

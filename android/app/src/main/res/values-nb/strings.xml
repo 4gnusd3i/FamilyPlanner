@@ -41,6 +41,7 @@
     <string name="action_cancel">Avbryt</string>
     <string name="action_save">Lagre</string>
     <string name="action_edit">Rediger</string>
+    <string name="action_edit_budget">Rediger budsjett</string>
     <string name="action_delete">Slett</string>
     <string name="action_close">Lukk</string>
     <string name="action_ok">OK</string>
@@ -55,8 +56,16 @@
     <string name="field_quantity">Antall</string>
     <string name="field_name">Navn</string>
     <string name="field_color">Farge</string>
+    <string name="field_birthday">Bursdag (ÅÅÅÅ-MM-DD)</string>
+    <string name="field_bio">Bio</string>
+    <string name="field_month">Måned (ÅÅÅÅ-MM)</string>
+    <string name="field_income">Inntekt</string>
+    <string name="field_budget_limit">Ramme</string>
     <string name="quantity_value">Antall: %1$d</string>
     <string name="day_index_value">Dag %1$d</string>
     <string name="budget_spent">Brukt: %1$s %2$s</string>
     <string name="budget_remaining">Gjenstår: %1$s %2$s</string>
+    <string name="budget_income">Inntekt: %1$s %2$s</string>
+    <string name="budget_limit">Ramme: %1$s %2$s</string>
+    <string name="birthday_event_title">%1$s har bursdag</string>
 </resources>
