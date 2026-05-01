@@ -11,7 +11,7 @@ The planned branch name was `main/android`, but Git cannot store both `main` and
 - Kotlin, Jetpack Compose, Material 3, Hilt, Room, DataStore, Coroutines/Flow.
 - App ID and namespace: `io.github.by4gnusd3i.familyplanner`.
 - `compileSdk` and `targetSdk`: `36`.
-- `minSdk`: `27`.
+- `minSdk`: `29` (Android 10+).
 - Version name: `0.1.0-android`.
 - Android cloud backup and device-transfer extraction are disabled for the first Android baseline.
 - No `INTERNET` permission is declared.

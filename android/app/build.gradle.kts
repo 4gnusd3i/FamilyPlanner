@@ -42,7 +42,7 @@ android {
 
     defaultConfig {
         applicationId = "io.github.by4gnusd3i.familyplanner"
-        minSdk = 27
+        minSdk = 29
         targetSdk = 36
         versionCode = 1
         versionName = "0.1.0-android"
