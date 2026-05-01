@@ -11,6 +11,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -24,6 +26,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -358,7 +361,12 @@ private fun SetupScreen(
     var familyName by rememberSaveable { mutableStateOf("") }
     var firstMemberName by rememberSaveable { mutableStateOf("") }
 
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Surface(
+        modifier = Modifier
+            .fillMaxSize()
+            .safeDrawingPadding(),
+        color = MaterialTheme.colorScheme.background,
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -498,7 +506,12 @@ private fun TabletDashboard(
         dayDropBounds.entries.firstOrNull { (_, bounds) -> bounds.contains(position) }?.key
     }
 
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Surface(
+        modifier = Modifier
+            .fillMaxSize()
+            .safeDrawingPadding(),
+        color = MaterialTheme.colorScheme.background,
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -528,7 +541,7 @@ private fun TabletDashboard(
                 ) {
                     PlannerPanel(
                         title = R.string.budget_title,
-                        modifier = Modifier.weight(0.8f),
+                        modifier = Modifier.weight(1f),
                     ) {
                         BudgetSummary(dashboard.budget, onEntrySelected, actions)
                     }
@@ -737,7 +750,7 @@ private fun PlannerPanel(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(20.dp),
+                .padding(16.dp),
         ) {
             Text(
                 text = stringResource(title),
@@ -746,10 +759,10 @@ private fun PlannerPanel(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(12.dp))
             Box(
                 modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
+                contentAlignment = if (content != null) Alignment.TopStart else Alignment.Center,
             ) {
                 if (content != null) {
                     content()
@@ -891,8 +904,10 @@ private fun UpcomingList(
     }
 
     Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         events.take(5).forEach { event ->
             val owner = if (event.isBirthdayEvent()) {
@@ -1044,18 +1059,27 @@ private fun BudgetSummary(
     }
 
     Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        PanelLine(
-            title = stringResource(R.string.budget_spent, budget.spent.formatMoney(), budget.currencyCode),
-            detail = stringResource(R.string.budget_remaining, budget.remaining.formatMoney(), budget.currencyCode),
-        )
-        PanelLine(
-            title = stringResource(R.string.budget_income, budget.income.formatMoney(), budget.currencyCode),
-            detail = stringResource(R.string.budget_limit, budget.limit.formatMoney(), budget.currencyCode),
-        )
-        Button(
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            PanelLine(
+                modifier = Modifier.weight(1f),
+                title = stringResource(R.string.budget_spent, budget.spent.formatMoney(), budget.currencyCode),
+                detail = stringResource(R.string.budget_remaining, budget.remaining.formatMoney(), budget.currencyCode),
+            )
+            PanelLine(
+                modifier = Modifier.weight(1f),
+                title = stringResource(R.string.budget_income, budget.income.formatMoney(), budget.currencyCode),
+                detail = stringResource(R.string.budget_limit, budget.limit.formatMoney(), budget.currencyCode),
+            )
+        }
+        TextButton(
             modifier = Modifier.fillMaxWidth(),
             onClick = { editingBudget = true },
         ) {
