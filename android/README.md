@@ -31,11 +31,19 @@ Implemented parity slices:
 - Local data reset for Room data and stored avatars.
 - Touch-friendly event creation by tapping a week day or dragging a tablet family chip onto a week day to prefill responsible member and date.
 
-Known remaining baseline work:
+Current Android baseline status:
 
 - More Compose UI/instrumented coverage for screen flows.
-- Create the first signed Android release branch/package.
-- Manual tablet/phone smoke pass on real emulator/device.
+- Automated local checks pass with `test`, `lint`, and `assembleDebug`.
+- Connected emulator baseline passes with 5 tests.
+- `assembleRelease` succeeds from `android/main`.
+- Manual emulator smoke has covered setup, tablet dashboard, and phone bottom navigation.
+
+Known remaining release/promotion work:
+
+- Create the first signed Android release branch/package after local signing material exists.
+- Keep adding Compose UI/instrumented coverage as flows mature.
+- Remove the temporary Windows/web reference source and promote Android to branch root only after an explicit destructive branch-cleanup decision.
 
 ## Toolchain
 
@@ -69,6 +77,12 @@ To run emulator/instrumented tests later:
 ```
 
 Only run connected tests when an emulator or device is available. Current connected baseline is 5 tests: setup screen smoke, phone shell/quick-action smoke, no-Internet manifest assertion, Room reset cleanup, and owner-deletion detach behavior.
+
+Release assembly can be checked from the development branch without signing secrets:
+
+```powershell
+.\android\Run-AndroidChecks.ps1 -Tasks assembleRelease
+```
 
 ## Data And Privacy
 
