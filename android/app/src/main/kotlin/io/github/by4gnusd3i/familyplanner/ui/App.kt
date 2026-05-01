@@ -464,7 +464,7 @@ private fun PhoneShell(
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { showQuickActions = true }) {
-                Icon(Icons.Filled.Add, contentDescription = null)
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.action_choose_title))
             }
         },
     ) { padding ->
@@ -2128,6 +2128,11 @@ private fun previewActions(): PlannerActionCallbacks =
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun PhonePreview() {
+    FamilyPlannerPhoneShellTestContent()
+}
+
+@Composable
+internal fun FamilyPlannerPhoneShellTestContent() {
     FamilyPlannerTheme {
         PhoneShell(
             dashboard = previewDashboard(),

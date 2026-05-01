@@ -1,5 +1,6 @@
 package io.github.by4gnusd3i.familyplanner
 
+import android.content.Context
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -17,12 +18,16 @@ class SetupScreenTest {
 
     @Test
     fun freshInstallShowsSetupScreen() {
-        ApplicationProvider
-            .getApplicationContext<android.content.Context>()
-            .deleteDatabase("familyplanner.db")
+        resetAppData()
 
         ActivityScenario.launch(MainActivity::class.java).use {
             composeRule.onNodeWithText("Set up FamilyPlanner").assertIsDisplayed()
         }
+    }
+
+    private fun resetAppData() {
+        ApplicationProvider
+            .getApplicationContext<Context>()
+            .deleteDatabase("familyplanner.db")
     }
 }

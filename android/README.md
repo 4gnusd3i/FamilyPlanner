@@ -68,7 +68,7 @@ To run emulator/instrumented tests later:
 .\android\Run-AndroidChecks.ps1 -Tasks connectedDebugAndroidTest
 ```
 
-Only run connected tests when an emulator or device is available. Current connected baseline is 4 tests: setup screen smoke, no-Internet manifest assertion, Room reset cleanup, and owner-deletion detach behavior.
+Only run connected tests when an emulator or device is available. Current connected baseline is 5 tests: setup screen smoke, phone shell/quick-action smoke, no-Internet manifest assertion, Room reset cleanup, and owner-deletion detach behavior.
 
 ## Data And Privacy
 
