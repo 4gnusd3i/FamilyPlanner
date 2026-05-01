@@ -9,6 +9,7 @@ import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.rememberScrollState
@@ -41,11 +42,11 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Settings
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.compose.material3.Card
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -58,6 +59,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -69,6 +71,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -198,6 +202,22 @@ private sealed interface PlannerSummaryTarget {
 
 private val ShortDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.")
 private val ShortTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+private val PlannerInk = Color(0xFF22314D)
+private val PlannerMutedInk = Color(0xFF5C6680)
+private val PlannerPastelPetal = Color(0xFFFFC8DD)
+private val PlannerBabyPink = Color(0xFFFFAFCC)
+private val PlannerIcyBlue = Color(0xFFBDE0FE)
+private val PlannerSkyBlue = Color(0xFFA2D2FF)
+private val PlannerSurface = Color(0xE6FFFDFF)
+private val PlannerCardBorder = Color.White.copy(alpha = 0.72f)
+private val PlannerSoftBorder = PlannerSkyBlue.copy(alpha = 0.28f)
+private val PlannerPageGradient = Brush.verticalGradient(
+    colors = listOf(
+        Color(0xFFFFF8FB),
+        Color(0xFFF9EFF8),
+        Color(0xFFEFF8FF),
+    ),
+)
 
 @Composable
 fun FamilyPlannerApp(viewModel: FamilyPlannerViewModel) {
@@ -361,11 +381,10 @@ private fun SetupScreen(
     var familyName by rememberSaveable { mutableStateOf("") }
     var firstMemberName by rememberSaveable { mutableStateOf("") }
 
-    Surface(
+    PlannerBackground(
         modifier = Modifier
             .fillMaxSize()
-            .safeDrawingPadding(),
-        color = MaterialTheme.colorScheme.background,
+            .safeDrawingPadding()
     ) {
         Box(
             modifier = Modifier
@@ -376,6 +395,9 @@ private fun SetupScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(28.dp),
+                colors = plannerCardColors(),
+                border = plannerCardBorder(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
             ) {
                 Column(
                     modifier = Modifier.padding(24.dp),
@@ -424,6 +446,19 @@ private fun SetupScreen(
     }
 }
 
+@Composable
+private fun PlannerBackground(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .background(PlannerPageGradient),
+    ) {
+        content()
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PhoneShell(
@@ -447,45 +482,64 @@ private fun PhoneShell(
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(selected.titleRes), maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                actions = {
-                    IconButton(onClick = onSettingsClick) {
-                        Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings_title))
+    PlannerBackground(Modifier.fillMaxSize()) {
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(
+                            stringResource(selected.titleRes),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.headlineMedium,
+                        )
+                    },
+                    actions = {
+                        IconButton(onClick = onSettingsClick) {
+                            Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings_title))
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        titleContentColor = PlannerInk,
+                        actionIconContentColor = PlannerInk,
+                    ),
+                )
+            },
+            bottomBar = {
+                NavigationBar(containerColor = PlannerSurface) {
+                    PlannerDestination.entries.forEach { destination ->
+                        NavigationBarItem(
+                            selected = selected == destination,
+                            onClick = { selected = destination },
+                            icon = { Icon(destination.icon, contentDescription = null) },
+                            label = { Text(stringResource(destination.titleRes), maxLines = 1) },
+                        )
                     }
-                },
-            )
-        },
-        bottomBar = {
-            NavigationBar {
-                PlannerDestination.entries.forEach { destination ->
-                    NavigationBarItem(
-                        selected = selected == destination,
-                        onClick = { selected = destination },
-                        icon = { Icon(destination.icon, contentDescription = null) },
-                        label = { Text(stringResource(destination.titleRes), maxLines = 1) },
-                    )
                 }
-            }
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { showQuickActions = true }) {
-                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.action_choose_title))
-            }
-        },
-    ) { padding ->
-        DestinationContent(
-            destination = selected,
-            dashboard = dashboard,
-            actions = actions,
-            onEntrySelected = onEntrySelected,
-            onEventDateSelected = onEventDateSelected,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-        )
+            },
+            floatingActionButton = {
+                FloatingActionButton(
+                    onClick = { showQuickActions = true },
+                    containerColor = PlannerPastelPetal,
+                    contentColor = PlannerInk,
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.action_choose_title))
+                }
+            },
+        ) { padding ->
+            DestinationContent(
+                destination = selected,
+                dashboard = dashboard,
+                actions = actions,
+                onEntrySelected = onEntrySelected,
+                onEventDateSelected = onEventDateSelected,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+            )
+        }
     }
 }
 
@@ -506,17 +560,16 @@ private fun TabletDashboard(
         dayDropBounds.entries.firstOrNull { (_, bounds) -> bounds.contains(position) }?.key
     }
 
-    Surface(
+    PlannerBackground(
         modifier = Modifier
             .fillMaxSize()
-            .safeDrawingPadding(),
-        color = MaterialTheme.colorScheme.background,
+            .safeDrawingPadding()
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -533,11 +586,11 @@ private fun TabletDashboard(
             }
             Row(
                 modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 Column(
-                    modifier = Modifier.width(280.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.width(300.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
                     PlannerPanel(
                         title = R.string.budget_title,
@@ -560,7 +613,7 @@ private fun TabletDashboard(
                 }
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
                     PlannerPanel(R.string.week_title, Modifier.weight(1.6f)) {
                         WeekCalendar(
@@ -583,21 +636,16 @@ private fun TabletDashboard(
                 }
                 PlannerPanel(
                     title = R.string.overview_title,
-                    modifier = Modifier.width(280.dp),
+                    modifier = Modifier.width(300.dp),
                 ) {
                     UpcomingList(dashboard.upcomingEvents, dashboard.familyMembers, onEntrySelected)
                 }
             }
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+                horizontalArrangement = Arrangement.spacedBy(36.dp, Alignment.CenterHorizontally),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text(
-                    text = stringResource(R.string.family_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                )
                 dashboard.familyMembers.forEach { member ->
                     FamilyChip(
                         member = member,
@@ -708,17 +756,35 @@ private fun QuickActionRow(
     modifier: Modifier = Modifier,
     onQuickActionSelected: (PlannerQuickAction) -> Unit,
 ) {
-    LazyRow(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(horizontal = 4.dp),
-    ) {
-        PlannerQuickAction.entries.forEach { action ->
-            item {
-                QuickAction(
-                    label = action.titleRes,
-                    onClick = { onQuickActionSelected(action) },
-                )
+    BoxWithConstraints(modifier = modifier) {
+        if (maxWidth >= 520.dp) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                PlannerQuickAction.entries.forEach { action ->
+                    QuickAction(
+                        modifier = Modifier.weight(1f),
+                        label = action.titleRes,
+                        onClick = { onQuickActionSelected(action) },
+                    )
+                }
+            }
+        } else {
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = PaddingValues(horizontal = 4.dp),
+            ) {
+                PlannerQuickAction.entries.forEach { action ->
+                    item {
+                        QuickAction(
+                            modifier = Modifier.width(140.dp),
+                            label = action.titleRes,
+                            onClick = { onQuickActionSelected(action) },
+                        )
+                    }
+                }
             }
         }
     }
@@ -726,15 +792,46 @@ private fun QuickActionRow(
 
 @Composable
 private fun QuickAction(
+    modifier: Modifier = Modifier,
     @StringRes label: Int,
     onClick: () -> Unit,
 ) {
-    ExtendedFloatingActionButton(
-        onClick = onClick,
-        icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-        text = { Text(stringResource(label), maxLines = 1) },
-    )
+    Card(
+        modifier = modifier
+            .height(60.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White.copy(alpha = 0.6f),
+            contentColor = PlannerInk,
+        ),
+        border = BorderStroke(1.dp, PlannerSoftBorder),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 12.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = stringResource(label),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
 }
+
+@Composable
+private fun plannerCardColors() = CardDefaults.cardColors(
+    containerColor = PlannerSurface,
+    contentColor = PlannerInk,
+)
+
+private fun plannerCardBorder() = BorderStroke(1.dp, PlannerCardBorder)
 
 @Composable
 private fun PlannerPanel(
@@ -746,6 +843,9 @@ private fun PlannerPanel(
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(28.dp),
+        colors = plannerCardColors(),
+        border = plannerCardBorder(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
             modifier = Modifier
@@ -791,7 +891,7 @@ private fun WeekCalendar(
     val weekDays = remember(weekStart) { (0..6).map { weekStart.plusDays(it.toLong()) } }
 
     BoxWithConstraints(Modifier.fillMaxWidth()) {
-        if (maxWidth >= 720.dp) {
+        if (maxWidth >= 520.dp) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -852,19 +952,24 @@ private fun WeekDayCard(
             }
             .clickable { onDateSelected(day) },
         shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White.copy(alpha = 0.48f),
+            contentColor = PlannerInk,
+        ),
         border = if (isDropHighlighted) {
             BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
         } else {
-            null
+            BorderStroke(1.dp, PlannerSoftBorder)
         },
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
-            modifier = Modifier.padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
                 text = day.format(ShortDateFormatter),
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -938,19 +1043,35 @@ private fun MealPlannerGrid(
     val weekDays = remember(weekStart) { (0..6).map { weekStart.plusDays(it.toLong()) } }
 
     BoxWithConstraints(Modifier.fillMaxWidth()) {
-        LazyRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(horizontal = 2.dp),
-        ) {
-            weekDays.forEachIndexed { index, day ->
-                item {
+        if (maxWidth >= 520.dp) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                weekDays.forEachIndexed { index, day ->
                     MealDayCard(
-                        modifier = Modifier.width(if (maxWidth >= 720.dp) 128.dp else 150.dp),
+                        modifier = Modifier.weight(1f),
                         day = day,
                         meals = meals.filter { it.dayOfWeek == index },
                         onEntrySelected = onEntrySelected,
                     )
+                }
+            }
+        } else {
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(horizontal = 2.dp),
+            ) {
+                weekDays.forEachIndexed { index, day ->
+                    item {
+                        MealDayCard(
+                            modifier = Modifier.width(150.dp),
+                            day = day,
+                            meals = meals.filter { it.dayOfWeek == index },
+                            onEntrySelected = onEntrySelected,
+                        )
+                    }
                 }
             }
         }
@@ -967,6 +1088,12 @@ private fun MealDayCard(
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White.copy(alpha = 0.48f),
+            contentColor = PlannerInk,
+        ),
+        border = BorderStroke(1.dp, PlannerSoftBorder),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
             modifier = Modifier.padding(10.dp),
@@ -1187,7 +1314,7 @@ private fun PanelLine(
             Text(
                 text = detail,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = PlannerMutedInk,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -1200,7 +1327,7 @@ private fun EmptyPanelText() {
     Text(
         text = stringResource(R.string.empty_state),
         style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = PlannerMutedInk,
     )
 }
 
@@ -1993,47 +2120,53 @@ private fun FamilyChip(
     var chipBounds by remember { mutableStateOf<Rect?>(null) }
     var dragPosition by remember { mutableStateOf<Offset?>(null) }
 
-    Card(shape = RoundedCornerShape(22.dp)) {
-        Row(
-            modifier = Modifier
-                .onGloballyPositioned { coordinates ->
-                    chipBounds = coordinates.boundsInWindow()
-                }
-                .pointerInput(onLongPress, onDragStarted, onDragged, onDragEnded, onDragCancelled) {
-                    detectDragGesturesAfterLongPress(
-                        onDragStart = { localOffset ->
-                            val start = chipBounds?.topLeft?.plus(localOffset) ?: localOffset
-                            dragPosition = start
-                            onDragStarted?.invoke(start)
-                        },
-                        onDrag = { change, dragAmount ->
-                            change.consume()
-                            val next = (dragPosition ?: chipBounds?.center ?: Offset.Zero) + dragAmount
-                            dragPosition = next
-                            onDragged?.invoke(next)
-                        },
-                        onDragEnd = {
-                            val finalPosition = dragPosition ?: chipBounds?.center
-                            dragPosition = null
-                            if (finalPosition != null) {
-                                onDragEnded?.invoke(finalPosition)
-                            } else {
-                                onLongPress?.invoke()
-                            }
-                        },
-                        onDragCancel = {
-                            dragPosition = null
-                            onDragCancelled?.invoke()
-                        },
-                    )
-                }
-                .padding(horizontal = 14.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            AvatarSurface(member)
-            Spacer(Modifier.width(10.dp))
-            Text(member.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
+    Column(
+        modifier = Modifier
+            .width(76.dp)
+            .onGloballyPositioned { coordinates ->
+                chipBounds = coordinates.boundsInWindow()
+            }
+            .pointerInput(onLongPress, onDragStarted, onDragged, onDragEnded, onDragCancelled) {
+                detectDragGesturesAfterLongPress(
+                    onDragStart = { localOffset ->
+                        val start = chipBounds?.topLeft?.plus(localOffset) ?: localOffset
+                        dragPosition = start
+                        onDragStarted?.invoke(start)
+                    },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        val next = (dragPosition ?: chipBounds?.center ?: Offset.Zero) + dragAmount
+                        dragPosition = next
+                        onDragged?.invoke(next)
+                    },
+                    onDragEnd = {
+                        val finalPosition = dragPosition ?: chipBounds?.center
+                        dragPosition = null
+                        if (finalPosition != null) {
+                            onDragEnded?.invoke(finalPosition)
+                        } else {
+                            onLongPress?.invoke()
+                        }
+                    },
+                    onDragCancel = {
+                        dragPosition = null
+                        onDragCancelled?.invoke()
+                    },
+                )
+            }
+            .padding(vertical = 2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        AvatarSurface(member)
+        Text(
+            member.name,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Bold,
+            color = PlannerInk,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -2041,9 +2174,10 @@ private fun FamilyChip(
 private fun AvatarSurface(member: FamilyMember) {
     val avatarBitmap = rememberAvatarBitmap(member.avatarUri)
     Surface(
-        modifier = Modifier.size(36.dp),
+        modifier = Modifier.size(52.dp),
         color = member.color.toComposeColor(),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(18.dp),
+        border = BorderStroke(1.dp, PlannerSoftBorder),
     ) {
         if (avatarBitmap != null) {
             Image(
@@ -2169,9 +2303,8 @@ internal fun FamilyPlannerPhoneShellTestContent() {
     }
 }
 
-@Preview(widthDp = 1280, heightDp = 800)
 @Composable
-private fun TabletPreview() {
+internal fun FamilyPlannerTabletDashboardTestContent() {
     FamilyPlannerTheme {
         TabletDashboard(
             dashboard = previewDashboard(),
@@ -2183,4 +2316,10 @@ private fun TabletPreview() {
             onSettingsClick = {},
         )
     }
+}
+
+@Preview(widthDp = 1280, heightDp = 800)
+@Composable
+private fun TabletPreview() {
+    FamilyPlannerTabletDashboardTestContent()
 }
