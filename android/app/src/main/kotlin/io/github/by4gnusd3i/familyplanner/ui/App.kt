@@ -7,8 +7,10 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 import androidx.annotation.StringRes
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -26,7 +28,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -56,16 +57,21 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -150,6 +156,11 @@ private data class PlannerActionCallbacks(
 private data class EventDraft(
     val eventDate: LocalDate,
     val ownerId: Long?,
+)
+
+private data class FamilyDragState(
+    val memberId: Long,
+    val position: Offset,
 )
 
 private sealed interface PlannerSummaryTarget {
@@ -322,7 +333,9 @@ private fun FamilyPlannerContent(
             onQuickActionSelected = openQuickAction,
             onEntrySelected = { summaryTarget = it },
             onEventDateSelected = { eventDraft = EventDraft(eventDate = it, ownerId = null) },
-            onFamilyLongPress = { eventDraft = EventDraft(eventDate = LocalDate.now(), ownerId = it) },
+            onFamilyDateSelected = { memberId, eventDate ->
+                eventDraft = EventDraft(eventDate = eventDate, ownerId = memberId)
+            },
             onSettingsClick = { showSettings = true },
         )
     } else {
@@ -476,9 +489,15 @@ private fun TabletDashboard(
     onQuickActionSelected: (PlannerQuickAction) -> Unit,
     onEntrySelected: (PlannerSummaryTarget) -> Unit,
     onEventDateSelected: (LocalDate) -> Unit,
-    onFamilyLongPress: (Long) -> Unit,
+    onFamilyDateSelected: (Long, LocalDate) -> Unit,
     onSettingsClick: () -> Unit,
 ) {
+    val dayDropBounds = remember(dashboard.weekStart) { mutableStateMapOf<LocalDate, Rect>() }
+    var familyDragState by remember { mutableStateOf<FamilyDragState?>(null) }
+    val highlightedDropDate = familyDragState?.position?.let { position ->
+        dayDropBounds.entries.firstOrNull { (_, bounds) -> bounds.contains(position) }?.key
+    }
+
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
             modifier = Modifier
@@ -537,6 +556,8 @@ private fun TabletDashboard(
                             familyMembers = dashboard.familyMembers,
                             onEntrySelected = onEntrySelected,
                             onDateSelected = onEventDateSelected,
+                            onDayBoundsChanged = { day, bounds -> dayDropBounds[day] = bounds },
+                            highlightedDate = highlightedDropDate,
                         )
                     }
                     PlannerPanel(R.string.meals_title, Modifier.weight(0.7f)) {
@@ -567,7 +588,23 @@ private fun TabletDashboard(
                 dashboard.familyMembers.forEach { member ->
                     FamilyChip(
                         member = member,
-                        onLongPress = { onFamilyLongPress(member.id) },
+                        onLongPress = { onFamilyDateSelected(member.id, LocalDate.now()) },
+                        onDragStarted = { position ->
+                            familyDragState = FamilyDragState(member.id, position)
+                        },
+                        onDragged = { position ->
+                            familyDragState = FamilyDragState(member.id, position)
+                        },
+                        onDragEnded = { position ->
+                            val dropDate = dayDropBounds.entries
+                                .firstOrNull { (_, bounds) -> bounds.contains(position) }
+                                ?.key
+                            familyDragState = null
+                            onFamilyDateSelected(member.id, dropDate ?: LocalDate.now())
+                        },
+                        onDragCancelled = {
+                            familyDragState = null
+                        },
                     )
                 }
             }
@@ -735,6 +772,8 @@ private fun WeekCalendar(
     familyMembers: List<FamilyMember>,
     onEntrySelected: (PlannerSummaryTarget) -> Unit,
     onDateSelected: (LocalDate) -> Unit,
+    onDayBoundsChanged: (LocalDate, Rect) -> Unit = { _, _ -> },
+    highlightedDate: LocalDate? = null,
 ) {
     val weekDays = remember(weekStart) { (0..6).map { weekStart.plusDays(it.toLong()) } }
 
@@ -752,6 +791,8 @@ private fun WeekCalendar(
                         familyMembers = familyMembers,
                         onEntrySelected = onEntrySelected,
                         onDateSelected = onDateSelected,
+                        onBoundsChanged = onDayBoundsChanged,
+                        isDropHighlighted = highlightedDate == day,
                     )
                 }
             }
@@ -770,6 +811,8 @@ private fun WeekCalendar(
                             familyMembers = familyMembers,
                             onEntrySelected = onEntrySelected,
                             onDateSelected = onDateSelected,
+                            onBoundsChanged = onDayBoundsChanged,
+                            isDropHighlighted = highlightedDate == day,
                         )
                     }
                 }
@@ -786,10 +829,21 @@ private fun WeekDayCard(
     familyMembers: List<FamilyMember>,
     onEntrySelected: (PlannerSummaryTarget) -> Unit,
     onDateSelected: (LocalDate) -> Unit,
+    onBoundsChanged: (LocalDate, Rect) -> Unit = { _, _ -> },
+    isDropHighlighted: Boolean = false,
 ) {
     Card(
-        modifier = modifier.clickable { onDateSelected(day) },
+        modifier = modifier
+            .onGloballyPositioned { coordinates ->
+                onBoundsChanged(day, coordinates.boundsInWindow())
+            }
+            .clickable { onDateSelected(day) },
         shape = RoundedCornerShape(20.dp),
+        border = if (isDropHighlighted) {
+            BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+        } else {
+            null
+        },
     ) {
         Column(
             modifier = Modifier.padding(10.dp),
@@ -1907,12 +1961,47 @@ private fun memberDetail(member: FamilyMember): String =
 private fun FamilyChip(
     member: FamilyMember,
     onLongPress: (() -> Unit)? = null,
+    onDragStarted: ((Offset) -> Unit)? = null,
+    onDragged: ((Offset) -> Unit)? = null,
+    onDragEnded: ((Offset) -> Unit)? = null,
+    onDragCancelled: (() -> Unit)? = null,
 ) {
+    var chipBounds by remember { mutableStateOf<Rect?>(null) }
+    var dragPosition by remember { mutableStateOf<Offset?>(null) }
+
     Card(shape = RoundedCornerShape(22.dp)) {
         Row(
             modifier = Modifier
-                .pointerInput(onLongPress) {
-                    detectTapGestures(onLongPress = { onLongPress?.invoke() })
+                .onGloballyPositioned { coordinates ->
+                    chipBounds = coordinates.boundsInWindow()
+                }
+                .pointerInput(onLongPress, onDragStarted, onDragged, onDragEnded, onDragCancelled) {
+                    detectDragGesturesAfterLongPress(
+                        onDragStart = { localOffset ->
+                            val start = chipBounds?.topLeft?.plus(localOffset) ?: localOffset
+                            dragPosition = start
+                            onDragStarted?.invoke(start)
+                        },
+                        onDrag = { change, dragAmount ->
+                            change.consume()
+                            val next = (dragPosition ?: chipBounds?.center ?: Offset.Zero) + dragAmount
+                            dragPosition = next
+                            onDragged?.invoke(next)
+                        },
+                        onDragEnd = {
+                            val finalPosition = dragPosition ?: chipBounds?.center
+                            dragPosition = null
+                            if (finalPosition != null) {
+                                onDragEnded?.invoke(finalPosition)
+                            } else {
+                                onLongPress?.invoke()
+                            }
+                        },
+                        onDragCancel = {
+                            dragPosition = null
+                            onDragCancelled?.invoke()
+                        },
+                    )
                 }
                 .padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -2061,7 +2150,7 @@ private fun TabletPreview() {
             onQuickActionSelected = {},
             onEntrySelected = {},
             onEventDateSelected = {},
-            onFamilyLongPress = {},
+            onFamilyDateSelected = { _, _ -> },
             onSettingsClick = {},
         )
     }

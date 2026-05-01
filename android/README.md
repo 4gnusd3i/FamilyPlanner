@@ -29,11 +29,10 @@ Implemented parity slices:
 - Currency setting via DataStore.
 - Android Photo Picker avatar selection copied into app-private storage.
 - Local data reset for Room data and stored avatars.
-- Touch-friendly event creation by tapping a week day or long-pressing a tablet family chip to prefill responsible member.
+- Touch-friendly event creation by tapping a week day or dragging a tablet family chip onto a week day to prefill responsible member and date.
 
 Known remaining baseline work:
 
-- Full native drag-and-drop gesture from avatar to calendar day.
 - More Compose UI/instrumented coverage for screen flows.
 - Create the first signed Android release branch/package.
 - Manual tablet/phone smoke pass on real emulator/device.
