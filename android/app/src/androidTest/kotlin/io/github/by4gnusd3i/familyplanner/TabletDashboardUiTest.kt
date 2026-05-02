@@ -24,12 +24,13 @@ class TabletDashboardUiTest {
         }
 
         listOf(
-            "Appointment",
-            "Meal",
-            "Expense",
-            "Note",
-            "Item",
+            "+ Appointment",
+            "+ Meal",
+            "+ Expense",
+            "+ Note",
+            "+ Item",
             "Anna",
+            "Add member",
             "Budget",
             "Shopping list",
             "Notes",
@@ -60,7 +61,7 @@ class TabletDashboardUiTest {
         }
 
         val familyTile = composeRule.onNodeWithText("Anna").getUnclippedBoundsInRoot()
-        val weekPanel = composeRule.onNodeWithText("Weekly plan").getUnclippedBoundsInRoot()
+        val weekPanel = composeRule.onAllNodesWithText("Weekly plan")[0].getUnclippedBoundsInRoot()
         val mealPanel = composeRule.onNodeWithText("Meals").getUnclippedBoundsInRoot()
 
         assertTrue("Family row should sit below the main dashboard grid.", familyTile.top > weekPanel.top)

@@ -32,8 +32,8 @@ private val FamilyPlannerTypography = Typography(
     headlineLarge = TextStyle(
         fontFamily = FontFamily.Serif,
         fontWeight = FontWeight.Bold,
-        fontSize = 34.sp,
-        lineHeight = 40.sp,
+        fontSize = 31.sp,
+        lineHeight = 36.sp,
         letterSpacing = (-0.6).sp,
     ),
     headlineMedium = TextStyle(
@@ -46,22 +46,22 @@ private val FamilyPlannerTypography = Typography(
     headlineSmall = TextStyle(
         fontFamily = FontFamily.Serif,
         fontWeight = FontWeight.Bold,
-        fontSize = 24.sp,
-        lineHeight = 30.sp,
+        fontSize = 22.sp,
+        lineHeight = 27.sp,
         letterSpacing = (-0.3).sp,
     ),
     titleMedium = TextStyle(
         fontWeight = FontWeight.Bold,
-        fontSize = 16.sp,
-        lineHeight = 22.sp,
-    ),
-    bodyMedium = TextStyle(
-        fontSize = 14.sp,
+        fontSize = 15.sp,
         lineHeight = 20.sp,
     ),
+    bodyMedium = TextStyle(
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
+    ),
     bodySmall = TextStyle(
-        fontSize = 12.sp,
-        lineHeight = 16.sp,
+        fontSize = 11.sp,
+        lineHeight = 14.sp,
     ),
     labelLarge = TextStyle(
         fontWeight = FontWeight.Bold,

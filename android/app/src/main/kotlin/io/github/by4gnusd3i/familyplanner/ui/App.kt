@@ -2,7 +2,6 @@ package io.github.by4gnusd3i.familyplanner.ui
 
 import android.content.Context
 import android.graphics.BitmapFactory
-import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
@@ -24,14 +23,17 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -76,12 +78,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -89,9 +93,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.core.os.LocaleListCompat
+import androidx.core.graphics.toColorInt
+import androidx.core.net.toUri
 import io.github.by4gnusd3i.familyplanner.R
 import io.github.by4gnusd3i.familyplanner.data.settings.AppSettings
 import io.github.by4gnusd3i.familyplanner.domain.model.BudgetSnapshot
@@ -108,6 +115,8 @@ import java.math.BigDecimal
 import java.io.File
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle as JavaTextStyle
+import java.time.temporal.WeekFields
 import java.util.Locale
 
 private enum class PlannerDestination(
@@ -211,6 +220,24 @@ private val PlannerSkyBlue = Color(0xFFA2D2FF)
 private val PlannerSurface = Color(0xE6FFFDFF)
 private val PlannerCardBorder = Color.White.copy(alpha = 0.72f)
 private val PlannerSoftBorder = PlannerSkyBlue.copy(alpha = 0.28f)
+private val PlannerListGradient = Brush.linearGradient(
+    colors = listOf(
+        PlannerIcyBlue.copy(alpha = 0.72f),
+        Color.White.copy(alpha = 0.58f),
+    ),
+)
+private val PlannerNoteGradient = Brush.linearGradient(
+    colors = listOf(
+        PlannerPastelPetal.copy(alpha = 0.42f),
+        PlannerIcyBlue.copy(alpha = 0.32f),
+    ),
+)
+private val PlannerTodayGradient = Brush.linearGradient(
+    colors = listOf(
+        PlannerBabyPink.copy(alpha = 0.72f),
+        PlannerSkyBlue.copy(alpha = 0.72f),
+    ),
+)
 private val PlannerPageGradient = Brush.verticalGradient(
     colors = listOf(
         Color(0xFFFFF8FB),
@@ -568,54 +595,45 @@ private fun TabletDashboard(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Row(
+            QuickActionRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                QuickActionRow(
-                    modifier = Modifier.weight(1f),
-                    onQuickActionSelected = onQuickActionSelected,
-                )
-                IconButton(onClick = onSettingsClick) {
-                    Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings_title))
-                }
-            }
+                onQuickActionSelected = onQuickActionSelected,
+            )
             Row(
                 modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Column(
-                    modifier = Modifier.width(300.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    modifier = Modifier.width(292.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     PlannerPanel(
                         title = R.string.budget_title,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(0.86f),
                     ) {
                         BudgetSummary(dashboard.budget, onEntrySelected, actions)
                     }
                     PlannerPanel(
                         title = R.string.shopping_title,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1.24f),
                     ) {
-                        ShoppingList(dashboard.shoppingItems, onEntrySelected)
+                        ShoppingList(dashboard.shoppingItems, dashboard.familyMembers, onEntrySelected)
                     }
                     PlannerPanel(
                         title = R.string.notes_title,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(0.9f),
                     ) {
-                        NotesList(dashboard.notes, onEntrySelected)
+                        NotesList(dashboard.notes, dashboard.familyMembers, onEntrySelected)
                     }
                 }
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    PlannerPanel(R.string.week_title, Modifier.weight(1.6f)) {
+                    PlannerPanel(R.string.week_title, Modifier.weight(1.7f)) {
                         WeekCalendar(
                             weekStart = dashboard.weekStart,
                             events = dashboard.weekEvents,
@@ -630,24 +648,25 @@ private fun TabletDashboard(
                         MealPlannerGrid(
                             weekStart = dashboard.weekStart,
                             meals = dashboard.meals,
+                            familyMembers = dashboard.familyMembers,
                             onEntrySelected = onEntrySelected,
                         )
                     }
                 }
                 PlannerPanel(
                     title = R.string.overview_title,
-                    modifier = Modifier.width(300.dp),
+                    modifier = Modifier.width(292.dp),
                 ) {
                     UpcomingList(dashboard.upcomingEvents, dashboard.familyMembers, onEntrySelected)
                 }
             }
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(36.dp, Alignment.CenterHorizontally),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(44.dp, Alignment.CenterHorizontally),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 dashboard.familyMembers.forEach { member ->
-                    FamilyChip(
+                    FamilyFooterTile(
                         member = member,
                         onLongPress = { onFamilyDateSelected(member.id, LocalDate.now()) },
                         onDragStarted = { position ->
@@ -668,6 +687,7 @@ private fun TabletDashboard(
                         },
                     )
                 }
+                AddFamilyFooterTile(onClick = onSettingsClick)
             }
         }
     }
@@ -717,6 +737,7 @@ private fun DestinationContent(
                         MealPlannerGrid(
                             weekStart = dashboard.weekStart,
                             meals = dashboard.meals,
+                            familyMembers = dashboard.familyMembers,
                             onEntrySelected = onEntrySelected,
                         )
                     }
@@ -728,7 +749,7 @@ private fun DestinationContent(
                         title = R.string.shopping_title,
                         modifier = Modifier.fillMaxWidth().height(260.dp),
                     ) {
-                        ShoppingList(dashboard.shoppingItems, onEntrySelected)
+                        ShoppingList(dashboard.shoppingItems, dashboard.familyMembers, onEntrySelected)
                     }
                 }
                 item {
@@ -736,7 +757,7 @@ private fun DestinationContent(
                         title = R.string.notes_title,
                         modifier = Modifier.fillMaxWidth().height(260.dp),
                     ) {
-                        NotesList(dashboard.notes, onEntrySelected)
+                        NotesList(dashboard.notes, dashboard.familyMembers, onEntrySelected)
                     }
                 }
             }
@@ -798,9 +819,9 @@ private fun QuickAction(
 ) {
     Card(
         modifier = modifier
-            .height(60.dp)
+            .height(48.dp)
             .clickable { onClick() },
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = Color.White.copy(alpha = 0.6f),
             contentColor = PlannerInk,
@@ -815,7 +836,7 @@ private fun QuickAction(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = stringResource(label),
+                text = "+ ${stringResource(label)}",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
@@ -842,7 +863,7 @@ private fun PlannerPanel(
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(22.dp),
         colors = plannerCardColors(),
         border = plannerCardBorder(),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -850,7 +871,7 @@ private fun PlannerPanel(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(12.dp),
         ) {
             Text(
                 text = stringResource(title),
@@ -859,7 +880,7 @@ private fun PlannerPanel(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(8.dp))
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = if (content != null) Alignment.TopStart else Alignment.Center,
@@ -889,36 +910,56 @@ private fun WeekCalendar(
     highlightedDate: LocalDate? = null,
 ) {
     val weekDays = remember(weekStart) { (0..6).map { weekStart.plusDays(it.toLong()) } }
+    val locale = LocalLocale.current.platformLocale
+    val weekNumber = remember(weekStart, locale) {
+        weekStart.get(WeekFields.of(locale).weekOfWeekBasedYear())
+    }
+    val weekRange = remember(weekStart) {
+        "${weekStart.format(ShortDateFormatter)} - ${weekStart.plusDays(6).format(ShortDateFormatter)}"
+    }
 
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
-        if (maxWidth >= 520.dp) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                weekDays.forEach { day ->
-                    WeekDayCard(
-                        modifier = Modifier.weight(1f),
-                        day = day,
-                        events = events.filter { it.eventDate == day },
-                        familyMembers = familyMembers,
-                        onEntrySelected = onEntrySelected,
-                        onDateSelected = onDateSelected,
-                        onBoundsChanged = onDayBoundsChanged,
-                        isDropHighlighted = highlightedDate == day,
-                    )
-                }
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                text = weekNumber.toString(),
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.week_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = weekRange,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = PlannerMutedInk,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
-        } else {
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(horizontal = 2.dp),
-            ) {
-                weekDays.forEach { day ->
-                    item {
+        }
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            if (maxWidth >= 520.dp) {
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.spacedBy(7.dp),
+                ) {
+                    weekDays.forEach { day ->
                         WeekDayCard(
-                            modifier = Modifier.width(150.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
                             day = day,
                             events = events.filter { it.eventDate == day },
                             familyMembers = familyMembers,
@@ -927,6 +968,29 @@ private fun WeekCalendar(
                             onBoundsChanged = onDayBoundsChanged,
                             isDropHighlighted = highlightedDate == day,
                         )
+                    }
+                }
+            } else {
+                LazyRow(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(horizontal = 2.dp),
+                ) {
+                    weekDays.forEach { day ->
+                        item {
+                            WeekDayCard(
+                                modifier = Modifier
+                                    .width(150.dp)
+                                    .fillMaxHeight(),
+                                day = day,
+                                events = events.filter { it.eventDate == day },
+                                familyMembers = familyMembers,
+                                onEntrySelected = onEntrySelected,
+                                onDateSelected = onDateSelected,
+                                onBoundsChanged = onDayBoundsChanged,
+                                isDropHighlighted = highlightedDate == day,
+                            )
+                        }
                     }
                 }
             }
@@ -945,55 +1009,184 @@ private fun WeekDayCard(
     onBoundsChanged: (LocalDate, Rect) -> Unit = { _, _ -> },
     isDropHighlighted: Boolean = false,
 ) {
+    val isToday = day == LocalDate.now()
     Card(
         modifier = modifier
             .onGloballyPositioned { coordinates ->
                 onBoundsChanged(day, coordinates.boundsInWindow())
             }
             .clickable { onDateSelected(day) },
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.48f),
+            containerColor = Color.White.copy(alpha = 0.50f),
             contentColor = PlannerInk,
         ),
-        border = if (isDropHighlighted) {
-            BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+        border = if (isDropHighlighted || isToday) {
+            BorderStroke(1.5.dp, PlannerBabyPink.copy(alpha = 0.72f))
         } else {
             BorderStroke(1.dp, PlannerSoftBorder)
         },
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
-            modifier = Modifier.padding(8.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(6.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
+            DayHeader(day = day, isToday = isToday)
+            if (events.isEmpty()) {
+                EmptyPanelText()
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    events.forEach { event ->
+                        EventCalendarCard(
+                            event = event,
+                            familyMembers = familyMembers,
+                            onClick = { onEntrySelected(PlannerSummaryTarget.Event(event)) },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DayHeader(day: LocalDate, isToday: Boolean) {
+    val locale = LocalLocale.current.platformLocale
+    val headerBrush = if (isToday) {
+        PlannerTodayGradient
+    } else {
+        Brush.linearGradient(
+            colors = listOf(
+                PlannerPastelPetal.copy(alpha = 0.20f),
+                PlannerPastelPetal.copy(alpha = 0.20f),
+            ),
+        )
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(52.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(headerBrush),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = day.format(ShortDateFormatter),
-                style = MaterialTheme.typography.titleMedium,
+                text = day.dayOfWeek.getDisplayName(JavaTextStyle.SHORT, locale).uppercase(locale),
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold,
+                color = PlannerMutedInk,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = "${day.dayOfMonth}.",
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (events.isEmpty()) {
-                EmptyPanelText()
-            } else {
-                events.take(4).forEach { event ->
-                    val owner = if (event.isBirthdayEvent()) {
-                        null
-                    } else {
-                        familyMembers.firstOrNull { it.id == event.ownerId }?.name
-                    }
-                    PanelLine(
-                        modifier = Modifier.clickable { onEntrySelected(PlannerSummaryTarget.Event(event)) },
-                        title = listOfNotNull(
-                            owner,
-                            eventDisplayTitle(event, familyMembers),
-                        ).joinToString(" "),
-                        detail = eventTimeText(event) ?: event.note,
+        }
+    }
+}
+
+@Composable
+private fun EventCalendarCard(
+    event: PlannerEvent,
+    familyMembers: List<FamilyMember>,
+    onClick: () -> Unit,
+) {
+    val owner = eventOwner(event, familyMembers)
+    val accent = (event.color ?: owner?.color ?: "#A2D2FF").toComposeColor()
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White.copy(alpha = 0.78f),
+            contentColor = PlannerInk,
+        ),
+        border = BorderStroke(1.dp, PlannerSoftBorder),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            accent.copy(alpha = 0.22f),
+                            Color.White.copy(alpha = 0.70f),
+                        ),
+                    ),
+                )
+                .padding(start = 8.dp, top = 6.dp, end = 6.dp, bottom = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+        ) {
+            MiniAvatar(member = owner, fallbackColor = accent, size = 22.dp)
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp),
+            ) {
+                if (owner != null && !event.isBirthdayEvent()) {
+                    Text(
+                        text = owner.name,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = accent,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
+                Text(
+                    text = eventDisplayTitle(event, familyMembers),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                event.startTime?.let { TimePill(it.format(ShortTimeFormatter)) }
+                if (!event.note.isNullOrBlank()) {
+                    Text(
+                        text = stringResource(R.string.action_show_more),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = PlannerMutedInk,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                event.endTime?.let { TimePill(it.format(ShortTimeFormatter)) }
             }
         }
+    }
+}
+
+@Composable
+private fun TimePill(text: String) {
+    Surface(
+        shape = RoundedCornerShape(6.dp),
+        color = PlannerBabyPink.copy(alpha = 0.90f),
+        contentColor = PlannerInk,
+    ) {
+        Text(
+            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -1012,23 +1205,123 @@ private fun UpcomingList(
         modifier = Modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(9.dp),
     ) {
-        events.take(5).forEach { event ->
-            val owner = if (event.isBirthdayEvent()) {
-                null
-            } else {
-                familyMembers.firstOrNull { it.id == event.ownerId }?.name
+        events.forEach { event ->
+            UpcomingEventCard(
+                event = event,
+                familyMembers = familyMembers,
+                onClick = { onEntrySelected(PlannerSummaryTarget.Event(event)) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun UpcomingEventCard(
+    event: PlannerEvent,
+    familyMembers: List<FamilyMember>,
+    onClick: () -> Unit,
+) {
+    val owner = eventOwner(event, familyMembers)
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 66.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = PlannerIcyBlue.copy(alpha = 0.58f),
+            contentColor = PlannerInk,
+        ),
+        border = BorderStroke(1.dp, PlannerSoftBorder),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(PlannerListGradient)
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            DateTile(event.eventDate)
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                owner?.let { member ->
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        MiniAvatar(member = member, size = 20.dp)
+                        Text(
+                            text = member.name,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = member.color.toComposeColor(),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                Text(
+                    text = eventDisplayTitle(event, familyMembers),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                eventTimeText(event)?.let { time ->
+                    Text(
+                        text = time,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = PlannerMutedInk,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
-            val title = eventDisplayTitle(event, familyMembers)
-            PanelLine(
-                modifier = Modifier.clickable { onEntrySelected(PlannerSummaryTarget.Event(event)) },
-                title = listOfNotNull(
-                    event.eventDate.format(ShortDateFormatter),
-                    owner,
-                    title,
-                ).joinToString(" "),
-                detail = event.note,
+        }
+    }
+}
+
+@Composable
+private fun DateTile(date: LocalDate) {
+    val locale = LocalLocale.current.platformLocale
+    Surface(
+        modifier = Modifier
+            .width(54.dp)
+            .height(54.dp),
+        shape = RoundedCornerShape(10.dp),
+        color = PlannerSkyBlue.copy(alpha = 0.66f),
+        contentColor = PlannerInk,
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 5.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text(
+                text = date.dayOfWeek.getDisplayName(JavaTextStyle.SHORT, locale),
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = date.dayOfMonth.toString(),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+            )
+            Text(
+                text = date.month.getDisplayName(JavaTextStyle.SHORT, locale),
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -1038,37 +1331,44 @@ private fun UpcomingList(
 private fun MealPlannerGrid(
     weekStart: LocalDate,
     meals: List<MealPlan>,
+    familyMembers: List<FamilyMember>,
     onEntrySelected: (PlannerSummaryTarget) -> Unit,
 ) {
     val weekDays = remember(weekStart) { (0..6).map { weekStart.plusDays(it.toLong()) } }
 
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
         if (maxWidth >= 520.dp) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.spacedBy(7.dp),
             ) {
                 weekDays.forEachIndexed { index, day ->
                     MealDayCard(
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
                         day = day,
                         meals = meals.filter { it.dayOfWeek == index },
+                        familyMembers = familyMembers,
                         onEntrySelected = onEntrySelected,
                     )
                 }
             }
         } else {
             LazyRow(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxSize(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(horizontal = 2.dp),
             ) {
                 weekDays.forEachIndexed { index, day ->
                     item {
                         MealDayCard(
-                            modifier = Modifier.width(150.dp),
+                            modifier = Modifier
+                                .width(150.dp)
+                                .fillMaxHeight(),
                             day = day,
                             meals = meals.filter { it.dayOfWeek == index },
+                            familyMembers = familyMembers,
                             onEntrySelected = onEntrySelected,
                         )
                     }
@@ -1083,6 +1383,7 @@ private fun MealDayCard(
     modifier: Modifier,
     day: LocalDate,
     meals: List<MealPlan>,
+    familyMembers: List<FamilyMember>,
     onEntrySelected: (PlannerSummaryTarget) -> Unit,
 ) {
     Card(
@@ -1096,8 +1397,10 @@ private fun MealDayCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
-            modifier = Modifier.padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(6.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
                 text = day.format(ShortDateFormatter),
@@ -1109,12 +1412,20 @@ private fun MealDayCard(
             if (meals.isEmpty()) {
                 EmptyPanelText()
             } else {
-                meals.take(3).forEach { meal ->
-                    PanelLine(
-                        modifier = Modifier.clickable { onEntrySelected(PlannerSummaryTarget.Meal(meal)) },
-                        title = meal.meal,
-                        detail = meal.note ?: meal.mealType,
-                    )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(5.dp),
+                ) {
+                    meals.forEach { meal ->
+                        MealCompactCard(
+                            meal = meal,
+                            owner = familyMembers.firstOrNull { it.id == meal.ownerId },
+                            onClick = { onEntrySelected(PlannerSummaryTarget.Meal(meal)) },
+                        )
+                    }
                 }
             }
         }
@@ -1122,8 +1433,48 @@ private fun MealDayCard(
 }
 
 @Composable
+private fun MealCompactCard(
+    meal: MealPlan,
+    owner: FamilyMember?,
+    onClick: () -> Unit,
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 32.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(13.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White.copy(alpha = 0.70f),
+            contentColor = PlannerInk,
+        ),
+        border = BorderStroke(1.dp, PlannerSoftBorder),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 6.dp, vertical = 5.dp),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            MiniAvatar(member = owner, size = 18.dp)
+            Text(
+                text = meal.meal,
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
 private fun ShoppingList(
     items: List<ShoppingItem>,
+    familyMembers: List<FamilyMember>,
     onEntrySelected: (PlannerSummaryTarget) -> Unit,
 ) {
     if (items.isEmpty()) {
@@ -1132,14 +1483,16 @@ private fun ShoppingList(
     }
 
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        items.take(5).forEach { item ->
-            PanelLine(
-                modifier = Modifier.clickable { onEntrySelected(PlannerSummaryTarget.Shopping(item)) },
-                title = item.item,
-                detail = stringResource(R.string.quantity_value, item.quantity),
+        items.forEach { item ->
+            ShoppingItemCard(
+                item = item,
+                owner = familyMembers.firstOrNull { it.id == item.ownerId },
+                onClick = { onEntrySelected(PlannerSummaryTarget.Shopping(item)) },
             )
         }
     }
@@ -1148,6 +1501,7 @@ private fun ShoppingList(
 @Composable
 private fun NotesList(
     notes: List<NoteItem>,
+    familyMembers: List<FamilyMember>,
     onEntrySelected: (PlannerSummaryTarget) -> Unit,
 ) {
     if (notes.isEmpty()) {
@@ -1156,15 +1510,131 @@ private fun NotesList(
     }
 
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        notes.take(5).forEach { note ->
-            PanelLine(
-                modifier = Modifier.clickable { onEntrySelected(PlannerSummaryTarget.Note(note)) },
-                title = note.title,
-                detail = note.content,
+        notes.forEach { note ->
+            NoteCard(
+                note = note,
+                owner = familyMembers.firstOrNull { it.id == note.ownerId },
+                onClick = { onEntrySelected(PlannerSummaryTarget.Note(note)) },
             )
+        }
+    }
+}
+
+@Composable
+private fun ShoppingItemCard(
+    item: ShoppingItem,
+    owner: FamilyMember?,
+    onClick: () -> Unit,
+) {
+    ReleaseListCard(
+        modifier = Modifier.clickable { onClick() },
+        gradient = PlannerListGradient,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Surface(
+                modifier = Modifier.size(38.dp),
+                shape = CircleShape,
+                color = Color.Transparent,
+                border = BorderStroke(2.dp, PlannerBabyPink),
+            ) {}
+            MiniAvatar(member = owner, size = 22.dp)
+            Text(
+                text = item.item,
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Surface(
+                shape = CircleShape,
+                color = PlannerBabyPink,
+                contentColor = PlannerInk,
+            ) {
+                Text(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                    text = item.quantity.toString(),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun NoteCard(
+    note: NoteItem,
+    owner: FamilyMember?,
+    onClick: () -> Unit,
+) {
+    ReleaseListCard(
+        modifier = Modifier.clickable { onClick() },
+        gradient = PlannerNoteGradient,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            MiniAvatar(member = owner, size = 22.dp)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = note.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (!note.content.isNullOrBlank()) {
+                    Text(
+                        text = note.content,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = PlannerMutedInk,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReleaseListCard(
+    modifier: Modifier = Modifier,
+    gradient: Brush = PlannerListGradient,
+    content: @Composable () -> Unit,
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White.copy(alpha = 0.62f),
+            contentColor = PlannerInk,
+        ),
+        border = BorderStroke(1.dp, PlannerSoftBorder),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(gradient)
+                .padding(8.dp),
+        ) {
+            content()
         }
     }
 }
@@ -1189,8 +1659,15 @@ private fun BudgetSummary(
         modifier = Modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        val spentRatio = if (budget.limit.signum() > 0) {
+            budget.spent.divide(budget.limit, 4, java.math.RoundingMode.HALF_UP)
+                .toFloat()
+                .coerceIn(0f, 1f)
+        } else {
+            0f
+        }
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -1206,6 +1683,29 @@ private fun BudgetSummary(
                 detail = stringResource(R.string.budget_limit, budget.limit.formatMoney(), budget.currencyCode),
             )
         }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(16.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(PlannerPastelPetal.copy(alpha = 0.22f)),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(spentRatio)
+                    .background(PlannerSkyBlue.copy(alpha = 0.88f)),
+            )
+        }
+        Text(
+            modifier = Modifier.fillMaxWidth(),
+            text = stringResource(R.string.budget_remaining, budget.remaining.formatMoney(), budget.currencyCode),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF2B6790),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
         TextButton(
             modifier = Modifier.fillMaxWidth(),
             onClick = { editingBudget = true },
@@ -2109,7 +2609,7 @@ private fun memberDetail(member: FamilyMember): String =
     ).joinToString(" · ").ifBlank { member.color }
 
 @Composable
-private fun FamilyChip(
+private fun FamilyFooterTile(
     member: FamilyMember,
     onLongPress: (() -> Unit)? = null,
     onDragStarted: ((Offset) -> Unit)? = null,
@@ -2122,7 +2622,7 @@ private fun FamilyChip(
 
     Column(
         modifier = Modifier
-            .width(76.dp)
+            .width(72.dp)
             .onGloballyPositioned { coordinates ->
                 chipBounds = coordinates.boundsInWindow()
             }
@@ -2154,13 +2654,54 @@ private fun FamilyChip(
                     },
                 )
             }
-            .padding(vertical = 2.dp),
+            .padding(vertical = 1.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         AvatarSurface(member)
         Text(
             member.name,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Bold,
+            color = PlannerInk,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun AddFamilyFooterTile(onClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .width(72.dp)
+            .clickable { onClick() }
+            .padding(vertical = 1.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Surface(
+            modifier = Modifier.size(52.dp),
+            color = PlannerPastelPetal.copy(alpha = 0.72f),
+            shape = RoundedCornerShape(18.dp),
+            border = BorderStroke(1.dp, PlannerSoftBorder),
+        ) {
+            Box(
+                modifier = Modifier.background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            PlannerPastelPetal.copy(alpha = 0.82f),
+                            PlannerSkyBlue.copy(alpha = 0.72f),
+                        ),
+                    ),
+                ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.settings_add_member))
+            }
+        }
+        Text(
+            stringResource(R.string.settings_add_member),
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.Bold,
             color = PlannerInk,
@@ -2200,6 +2741,45 @@ private fun AvatarSurface(member: FamilyMember) {
 }
 
 @Composable
+private fun MiniAvatar(
+    member: FamilyMember?,
+    fallbackColor: Color = PlannerSkyBlue,
+    size: Dp,
+) {
+    val avatarBitmap = rememberAvatarBitmap(member?.avatarUri)
+    Surface(
+        modifier = Modifier.size(size),
+        color = member?.color?.toComposeColor() ?: fallbackColor,
+        shape = CircleShape,
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.88f)),
+    ) {
+        if (avatarBitmap != null) {
+            Image(
+                bitmap = avatarBitmap,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
+        } else {
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    text = member?.name?.take(1)?.ifBlank { "?" } ?: "",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = PlannerInk,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+}
+
+private fun eventOwner(event: PlannerEvent, familyMembers: List<FamilyMember>): FamilyMember? =
+    familyMembers.firstOrNull { member ->
+        member.id == event.sourceMemberId || member.id == event.ownerId
+    }
+
+@Composable
 private fun rememberAvatarBitmap(avatarUri: String?): ImageBitmap? {
     val context = LocalContext.current
     return remember(avatarUri) {
@@ -2211,7 +2791,7 @@ private fun rememberAvatarBitmap(avatarUri: String?): ImageBitmap? {
 
 private fun loadAvatarBitmap(context: Context, avatarUri: String): ImageBitmap? =
     runCatching {
-        val uri = Uri.parse(avatarUri)
+        val uri = avatarUri.toUri()
         val bitmap = if (uri.scheme == "file") {
             BitmapFactory.decodeFile(File(requireNotNull(uri.path)).absolutePath)
         } else {
@@ -2224,7 +2804,7 @@ private fun loadAvatarBitmap(context: Context, avatarUri: String): ImageBitmap? 
 
 private fun String.toComposeColor(): androidx.compose.ui.graphics.Color =
     runCatching {
-        androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(this))
+        androidx.compose.ui.graphics.Color(toColorInt())
     }.getOrDefault(androidx.compose.ui.graphics.Color(0xFF3B82F6))
 
 private fun previewDashboard(): PlannerDashboard =

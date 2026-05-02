@@ -10,7 +10,7 @@ The planned branch name was `main/android`, but Git cannot store both `main` and
 
 - Kotlin, Jetpack Compose, Material 3, Hilt, Room, DataStore, Coroutines/Flow.
 - App ID and namespace: `io.github.by4gnusd3i.familyplanner`.
-- `compileSdk` and `targetSdk`: `36`.
+- `compileSdk` and `targetSdk`: `37`.
 - `minSdk`: `29` (Android 10+).
 - Version name: `0.1.0-android`.
 - Android cloud backup and device-transfer extraction are disabled for the first Android baseline.
@@ -35,7 +35,7 @@ Current Android baseline status:
 
 - More Compose UI/instrumented coverage for screen flows.
 - Automated local checks pass with `test`, `lint`, and `assembleDebug`.
-- Connected emulator baseline passes with 5 tests.
+- Connected emulator baseline passes with 8 tests.
 - `assembleRelease` succeeds from `android/main`.
 - Manual emulator smoke has covered setup, tablet dashboard, and phone bottom navigation.
 
@@ -48,7 +48,7 @@ Known remaining release/promotion work:
 ## Toolchain
 
 - JDK 17
-- Android SDK platforms 35 and 36
+- Android SDK platforms 35 and 37
 - Gradle 9.4.1 wrapper
 - Android Gradle Plugin 9.2.0
 - Kotlin 2.3.21
@@ -76,7 +76,7 @@ To run emulator/instrumented tests later:
 .\android\Run-AndroidChecks.ps1 -Tasks connectedDebugAndroidTest
 ```
 
-Only run connected tests when an emulator or device is available. Current connected baseline is 5 tests: setup screen smoke, phone shell/quick-action smoke, no-Internet manifest assertion, Room reset cleanup, and owner-deletion detach behavior.
+Only run connected tests when an emulator or device is available. Current connected baseline is 8 tests: setup screen smoke, phone shell/quick-action smoke, tablet dashboard hierarchy, no-Internet manifest assertion, Room reset cleanup, and owner-deletion detach behavior.
 
 Release assembly can be checked from the development branch without signing secrets:
 

@@ -17,7 +17,6 @@
     <string name="shopping_title">Handleliste</string>
     <string name="notes_title">Notater</string>
     <string name="budget_title">Budsjett</string>
-    <string name="family_title">Familiemedlemmer</string>
     <string name="settings_title">Innstillinger</string>
     <string name="settings_language">Språk</string>
     <string name="settings_language_system">Systemspråk</string>
@@ -36,9 +35,6 @@
     <string name="setup_family_name">Familienavn</string>
     <string name="setup_first_member">Første medlem</string>
     <string name="setup_submit">Opprett lokal planlegger</string>
-    <string name="count_upcoming">%1$d kommende avtaler</string>
-    <string name="count_shopping">%1$d varer</string>
-    <string name="count_notes">%1$d notater</string>
     <string name="action_choose_title">Legg til i planleggeren</string>
     <string name="action_cancel">Avbryt</string>
     <string name="action_save">Lagre</string>
@@ -46,6 +42,7 @@
     <string name="action_edit_budget">Rediger budsjett</string>
     <string name="action_choose_avatar">Velg avatar</string>
     <string name="action_delete">Slett</string>
+    <string name="action_show_more">Vis mer&#8230;</string>
     <string name="action_reset_data">Nullstill lokale data</string>
     <string name="action_close">Lukk</string>
     <string name="action_ok">OK</string>

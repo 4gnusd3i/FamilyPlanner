@@ -22,7 +22,7 @@ fun releaseSigningProperty(name: String): String =
 
 android {
     namespace = "io.github.by4gnusd3i.familyplanner"
-    compileSdk = 36
+    compileSdk = 37
 
     signingConfigs {
         if (releaseSigningPropertiesFile.isFile) {
@@ -43,7 +43,7 @@ android {
     defaultConfig {
         applicationId = "io.github.by4gnusd3i.familyplanner"
         minSdk = 29
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
         versionName = "0.1.0-android"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

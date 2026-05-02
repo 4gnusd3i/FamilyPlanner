@@ -17,7 +17,6 @@
     <string name="shopping_title">Shopping list</string>
     <string name="notes_title">Notes</string>
     <string name="budget_title">Budget</string>
-    <string name="family_title">Family members</string>
     <string name="settings_title">Settings</string>
     <string name="settings_language">Language</string>
     <string name="settings_language_system">System language</string>
@@ -36,9 +35,6 @@
     <string name="setup_family_name">Family name</string>
     <string name="setup_first_member">First member</string>
     <string name="setup_submit">Create local planner</string>
-    <string name="count_upcoming">%1$d upcoming events</string>
-    <string name="count_shopping">%1$d shopping items</string>
-    <string name="count_notes">%1$d notes</string>
     <string name="action_choose_title">Add to planner</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_save">Save</string>
@@ -46,6 +42,7 @@
     <string name="action_edit_budget">Edit budget</string>
     <string name="action_choose_avatar">Choose avatar</string>
     <string name="action_delete">Delete</string>
+    <string name="action_show_more">Show more&#8230;</string>
     <string name="action_reset_data">Reset local data</string>
     <string name="action_close">Close</string>
     <string name="action_ok">OK</string>
