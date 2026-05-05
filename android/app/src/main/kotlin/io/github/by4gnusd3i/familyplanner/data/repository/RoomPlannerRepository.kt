@@ -33,6 +33,14 @@ import java.time.Duration
 import java.time.YearMonth
 import javax.inject.Inject
 
+private data class CorePlannerSnapshot(
+    val householdProfileCount: Int,
+    val family: List<FamilyMemberEntity>,
+    val plannerEvents: List<PlannerEventEntity>,
+    val shopping: List<ShoppingItemEntity>,
+    val noteItems: List<NoteEntity>,
+)
+
 class RoomPlannerRepository @Inject constructor(
     private val dao: PlannerDao,
     private val dateTimeProvider: DateTimeProvider,
@@ -49,13 +57,14 @@ class RoomPlannerRepository @Inject constructor(
         settingsRepository.setCurrencyCode(currencyCode)
     }
 
-    override fun observeDashboard(): Flow<PlannerDashboard> =
+    override fun observeDashboard(selectedWeekStart: Flow<LocalDate>): Flow<PlannerDashboard> =
         combineCoreDashboard(
             dao.observeHouseholdCount(),
             dao.observeFamilyMembers(),
             dao.observeAllEvents(),
             dao.observeShoppingItems(),
             dao.observeNotes(),
+            selectedWeekStart,
         ).let { core ->
             val month = YearMonth.from(dateTimeProvider.today()).toString()
             combine(
@@ -92,6 +101,7 @@ class RoomPlannerRepository @Inject constructor(
         events: Flow<List<PlannerEventEntity>>,
         shoppingItems: Flow<List<ShoppingItemEntity>>,
         notes: Flow<List<NoteEntity>>,
+        selectedWeekStart: Flow<LocalDate>,
     ): Flow<PlannerDashboard> =
         combine(
             householdCount,
@@ -100,42 +110,45 @@ class RoomPlannerRepository @Inject constructor(
             shoppingItems,
             notes,
         ) { householdProfileCount, family, plannerEvents, shopping, noteItems ->
-            val now = dateTimeProvider.now()
-            val today = now.toLocalDate()
-            val weekStart = today.startOfWeek()
-            val weekEnd = weekStart.plusDays(6)
-            val familyDomain = family.map { it.toDomain() }
-            val storedEvents = plannerEvents.map { it.toDomain() }
-            val upcomingBirthdayEvents = RecurrenceRules.generatedBirthdayEvents(
-                familyMembers = familyDomain,
-                rangeStart = today,
-                rangeEnd = today.plusDays(2),
-            )
-            val weekBirthdayEvents = RecurrenceRules.generatedBirthdayEvents(
-                familyMembers = familyDomain,
-                rangeStart = weekStart,
-                rangeEnd = weekEnd,
-            )
-            val weekEvents = RecurrenceRules.eventsInRange(
-                events = storedEvents + weekBirthdayEvents,
-                rangeStart = weekStart,
-                rangeEnd = weekEnd,
-            )
-            val upcoming = RecurrenceRules.upcomingEvents(
-                events = storedEvents + upcomingBirthdayEvents,
-                now = now,
-            )
-            PlannerDashboard(
-                isSetupComplete = householdProfileCount > 0,
-                familyMembers = familyDomain,
-                weekStart = weekStart,
-                weekEvents = weekEvents,
-                upcomingEvents = upcoming,
-                meals = emptyList(),
-                budget = emptyBudgetSnapshot(),
-                shoppingItems = shopping.map { it.toDomain() },
-                notes = noteItems.map { it.toDomain() },
-            )
+            CorePlannerSnapshot(householdProfileCount, family, plannerEvents, shopping, noteItems)
+        }.let { snapshots ->
+            combine(snapshots, selectedWeekStart) { snapshot, weekStart ->
+                val now = dateTimeProvider.now()
+                val today = now.toLocalDate()
+                val weekEnd = weekStart.plusDays(6)
+                val familyDomain = snapshot.family.map { it.toDomain() }
+                val storedEvents = snapshot.plannerEvents.map { it.toDomain() }
+                val upcomingBirthdayEvents = RecurrenceRules.generatedBirthdayEvents(
+                    familyMembers = familyDomain,
+                    rangeStart = today,
+                    rangeEnd = today.plusDays(2),
+                )
+                val weekBirthdayEvents = RecurrenceRules.generatedBirthdayEvents(
+                    familyMembers = familyDomain,
+                    rangeStart = weekStart,
+                    rangeEnd = weekEnd,
+                )
+                val weekEvents = RecurrenceRules.eventsInRange(
+                    events = storedEvents + weekBirthdayEvents,
+                    rangeStart = weekStart,
+                    rangeEnd = weekEnd,
+                )
+                val upcoming = RecurrenceRules.upcomingEvents(
+                    events = storedEvents + upcomingBirthdayEvents,
+                    now = now,
+                )
+                PlannerDashboard(
+                    isSetupComplete = snapshot.householdProfileCount > 0,
+                    familyMembers = familyDomain,
+                    weekStart = weekStart,
+                    weekEvents = weekEvents,
+                    upcomingEvents = upcoming,
+                    meals = emptyList(),
+                    budget = emptyBudgetSnapshot(),
+                    shoppingItems = snapshot.shopping.map { it.toDomain() },
+                    notes = snapshot.noteItems.map { it.toDomain() },
+                )
+            }
         }
 
     private fun emptyBudgetSnapshot(): BudgetSnapshot =
@@ -150,12 +163,23 @@ class RoomPlannerRepository @Inject constructor(
             expenses = emptyList(),
         )
 
-    override suspend fun initializeHousehold(familyName: String, firstMemberName: String) {
-        val request = SetupValidator.validate(familyName, firstMemberName)
+    override suspend fun initializeHousehold(familyName: String, firstMember: FamilyMemberInput) {
+        val request = SetupValidator.validate(familyName, firstMember.name)
+        val normalizedMember = PlannerInputNormalizer.familyMember(
+            firstMember.copy(name = request.firstMemberName),
+        )
         val now = dateTimeProvider.instantNow()
+        val avatarUri = normalizedMember.avatarUri?.let { avatarStorage.storeAvatar(it) }
         dao.initializeHousehold(
             profile = HouseholdProfileEntity(familyName = request.familyName, createdAt = now),
-            firstMember = FamilyMemberEntity(name = request.firstMemberName, createdAt = now),
+            firstMember = FamilyMemberEntity(
+                name = normalizedMember.name,
+                color = normalizedMember.color ?: PlannerInputNormalizer.DEFAULT_MEMBER_COLOR,
+                avatarUri = avatarUri,
+                birthday = normalizedMember.birthday,
+                bio = normalizedMember.bio,
+                createdAt = now,
+            ),
         )
     }
 

@@ -22,6 +22,8 @@ Implemented parity slices:
 - Phone bottom navigation: `Oversikt`, `Uke`, `Måltider`, `Lister`, `Budsjett`.
 - Tablet dashboard with quick actions, family row, budget, lists, week calendar, meal grid, and upcoming.
 - Room-backed events, meals, budget months, expenses, notes, shopping items, family members, and household setup.
+- Week navigation for previous/current/next week.
+- Native create/edit surfaces for event time/recurrence, meal day/type/owner, and expense date/owner/description.
 - Generated birthday events with leap-day handling.
 - Upcoming filtering with one recurring occurrence per series in the upcoming window.
 - Summary-first entry interaction for events, meals, expenses, notes, and shopping items.
@@ -76,7 +78,7 @@ To run emulator/instrumented tests later:
 .\android\Run-AndroidChecks.ps1 -Tasks connectedDebugAndroidTest
 ```
 
-Only run connected tests when an emulator or device is available. Current connected baseline is 8 tests: setup screen smoke, phone shell/quick-action smoke, tablet dashboard hierarchy, no-Internet manifest assertion, Room reset cleanup, and owner-deletion detach behavior.
+Only run connected tests when an emulator or device is available. Current connected baseline is 10 tests: setup screen smoke, setup member-detail fields, phone shell/quick-action smoke, tablet dashboard hierarchy, week navigation controls, parity form fields, no-Internet manifest assertion, Room reset cleanup, and owner-deletion detach behavior.
 
 Release assembly can be checked from the development branch without signing secrets:
 

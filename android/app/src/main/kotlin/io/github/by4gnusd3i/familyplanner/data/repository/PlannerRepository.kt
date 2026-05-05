@@ -10,13 +10,14 @@ import io.github.by4gnusd3i.familyplanner.domain.planner.MealPlanInput
 import io.github.by4gnusd3i.familyplanner.domain.planner.NoteInput
 import io.github.by4gnusd3i.familyplanner.domain.planner.ShoppingItemInput
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalDate
 
 interface PlannerRepository {
-    fun observeDashboard(): Flow<PlannerDashboard>
+    fun observeDashboard(selectedWeekStart: Flow<LocalDate>): Flow<PlannerDashboard>
     fun observeSettings(): Flow<AppSettings>
     suspend fun setLanguageOverride(languageId: String?)
     suspend fun setCurrencyCode(currencyCode: String)
-    suspend fun initializeHousehold(familyName: String, firstMemberName: String)
+    suspend fun initializeHousehold(familyName: String, firstMember: FamilyMemberInput)
     suspend fun upsertFamilyMember(input: FamilyMemberInput): Long
     suspend fun deleteFamilyMember(id: Long)
     suspend fun upsertEvent(input: EventInput): Long

@@ -5,7 +5,9 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import io.github.by4gnusd3i.familyplanner.ui.FamilyPlannerInteractiveParityTestContent
 import io.github.by4gnusd3i.familyplanner.ui.FamilyPlannerTabletDashboardTestContent
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -52,6 +54,41 @@ class TabletDashboardUiTest {
             .forEach { day ->
                 composeRule.onAllNodesWithText(day)[0].assertIsDisplayed()
             }
+    }
+
+    @Test
+    fun tabletDashboardShowsWeekNavigationControls() {
+        composeRule.setContent {
+            FamilyPlannerTabletDashboardTestContent()
+        }
+
+        listOf("Previous", "This week", "Next").forEach { label ->
+            composeRule.onNodeWithText(label).assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun quickActionDialogsExposeReleaseParityFields() {
+        composeRule.setContent {
+            FamilyPlannerInteractiveParityTestContent()
+        }
+
+        composeRule.onNodeWithText("+ Appointment").performClick()
+        listOf("Date (YYYY-MM-DD)", "Start (HH:MM)", "End (HH:MM)", "Recurrence", "Responsible").forEach { label ->
+            composeRule.onAllNodesWithText(label)[0].assertIsDisplayed()
+        }
+        composeRule.onNodeWithText("Cancel").performClick()
+
+        composeRule.onNodeWithText("+ Meal").performClick()
+        listOf("Meal", "Day", "Meal type", "Responsible").forEach { label ->
+            composeRule.onAllNodesWithText(label)[0].assertIsDisplayed()
+        }
+        composeRule.onNodeWithText("Cancel").performClick()
+
+        composeRule.onNodeWithText("+ Expense").performClick()
+        listOf("Amount", "Category", "Expense date (YYYY-MM-DD)", "Responsible", "Description").forEach { label ->
+            composeRule.onAllNodesWithText(label)[0].assertIsDisplayed()
+        }
     }
 
     @Test

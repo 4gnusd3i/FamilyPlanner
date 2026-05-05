@@ -22,6 +22,9 @@ class SetupScreenTest {
 
         ActivityScenario.launch(MainActivity::class.java).use {
             composeRule.onNodeWithText("Set up FamilyPlanner").assertIsDisplayed()
+            composeRule.onNodeWithText("Birthday (YYYY-MM-DD)").assertIsDisplayed()
+            composeRule.onNodeWithText("Bio").assertIsDisplayed()
+            composeRule.onNodeWithText("Choose avatar").assertIsDisplayed()
         }
     }
 

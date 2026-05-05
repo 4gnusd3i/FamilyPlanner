@@ -5,6 +5,7 @@ import io.github.by4gnusd3i.familyplanner.data.repository.PlannerRepository
 import io.github.by4gnusd3i.familyplanner.data.settings.AppSettings
 import io.github.by4gnusd3i.familyplanner.domain.model.BudgetSnapshot
 import io.github.by4gnusd3i.familyplanner.domain.model.PlannerDashboard
+import io.github.by4gnusd3i.familyplanner.domain.model.RecurrenceType
 import io.github.by4gnusd3i.familyplanner.domain.planner.BudgetMonthInput
 import io.github.by4gnusd3i.familyplanner.domain.planner.EventInput
 import io.github.by4gnusd3i.familyplanner.domain.planner.ExpenseInput
@@ -13,7 +14,13 @@ import io.github.by4gnusd3i.familyplanner.domain.planner.MealPlanInput
 import io.github.by4gnusd3i.familyplanner.domain.planner.NoteInput
 import io.github.by4gnusd3i.familyplanner.domain.planner.ShoppingItemInput
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -24,6 +31,7 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.YearMonth
 
 class FamilyPlannerViewModelTest {
@@ -44,11 +52,39 @@ class FamilyPlannerViewModelTest {
     }
 
     @Test
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun weekNavigationUpdatesDashboardWeekStart() = runTest {
+        val repository = FakePlannerRepository()
+        val viewModel = FamilyPlannerViewModel(repository, dateTimeProvider)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.dashboard.collect()
+        }
+        advanceUntilIdle()
+        assertEquals(LocalDate.of(2026, 4, 20), viewModel.dashboard.value.weekStart)
+
+        viewModel.nextWeek()
+        advanceUntilIdle()
+        assertEquals(LocalDate.of(2026, 4, 27), viewModel.dashboard.value.weekStart)
+
+        viewModel.previousWeek()
+        advanceUntilIdle()
+        assertEquals(LocalDate.of(2026, 4, 20), viewModel.dashboard.value.weekStart)
+
+        viewModel.previousWeek()
+        advanceUntilIdle()
+        assertEquals(LocalDate.of(2026, 4, 13), viewModel.dashboard.value.weekStart)
+
+        viewModel.currentWeek()
+        advanceUntilIdle()
+        assertEquals(LocalDate.of(2026, 4, 20), viewModel.dashboard.value.weekStart)
+    }
+
+    @Test
     fun quickActionsSendExpectedInputsToRepository() = runTest {
         val repository = FakePlannerRepository()
         val viewModel = FamilyPlannerViewModel(repository, dateTimeProvider)
 
-        viewModel.addEvent("Tannlege", "Husk kort", "2026-04-24", 12)
+        viewModel.addEvent("Tannlege", "Husk kort", "2026-04-24", "11:30", "12:15", "weekly", "2026-05-08", 12)
         viewModel.addMeal("Taco", "Mais")
         viewModel.addExpense("149,90", "Mat")
         viewModel.addNote("Pakkliste", "Sko")
@@ -59,6 +95,10 @@ class FamilyPlannerViewModelTest {
             EventInput(
                 title = "Tannlege",
                 eventDate = LocalDate.of(2026, 4, 24),
+                startTime = LocalTime.of(11, 30),
+                endTime = LocalTime.of(12, 15),
+                recurrenceType = RecurrenceType.Weekly,
+                recurrenceUntil = LocalDate.of(2026, 5, 8),
                 ownerId = 12,
                 note = "Husk kort",
             ),
@@ -89,9 +129,9 @@ class FamilyPlannerViewModelTest {
         val viewModel = FamilyPlannerViewModel(repository, dateTimeProvider)
         val editedDate = fixedDate.plusDays(1)
 
-        viewModel.saveEvent(7, "Oppdatert", "Detalj", editedDate.toString(), 3)
-        viewModel.saveMeal(8, 4, "Pizza", "Salat")
-        viewModel.saveExpense(9, "250", "Transport", editedDate)
+        viewModel.saveEvent(7, "Oppdatert", "Detalj", editedDate.toString(), "13:00", "14:30", "daily", "2026-04-30", 3)
+        viewModel.saveMeal(8, 4, "lunch", "Pizza", 5, "Salat")
+        viewModel.saveExpense(9, "250", "Transport", editedDate.toString(), 6, "Buss")
         viewModel.saveNote(10, "Notat", "Tekst")
         viewModel.saveShoppingItem(11, "Brød", "2")
         viewModel.deleteEvent(7)
@@ -102,12 +142,22 @@ class FamilyPlannerViewModelTest {
         viewModel.toggleShoppingItem(11)
 
         assertEquals(
-            EventInput(id = 7, title = "Oppdatert", eventDate = editedDate, ownerId = 3, note = "Detalj"),
+            EventInput(
+                id = 7,
+                title = "Oppdatert",
+                eventDate = editedDate,
+                startTime = LocalTime.of(13, 0),
+                endTime = LocalTime.of(14, 30),
+                recurrenceType = RecurrenceType.Daily,
+                recurrenceUntil = LocalDate.of(2026, 4, 30),
+                ownerId = 3,
+                note = "Detalj",
+            ),
             repository.events.single(),
         )
-        assertEquals(MealPlanInput(id = 8, dayOfWeek = 4, meal = "Pizza", note = "Salat"), repository.meals.single())
+        assertEquals(MealPlanInput(id = 8, dayOfWeek = 4, mealType = "lunch", meal = "Pizza", ownerId = 5, note = "Salat"), repository.meals.single())
         assertEquals(
-            ExpenseInput(id = 9, amount = BigDecimal("250"), category = "Transport", expenseDate = editedDate),
+            ExpenseInput(id = 9, amount = BigDecimal("250"), category = "Transport", expenseDate = editedDate, ownerId = 6, description = "Buss"),
             repository.expenses.single(),
         )
         assertEquals(NoteInput(id = 10, title = "Notat", content = "Tekst"), repository.notes.single())
@@ -155,7 +205,7 @@ class FamilyPlannerViewModelTest {
         repository.failNextAction = IllegalArgumentException("invalid event")
         val viewModel = FamilyPlannerViewModel(repository, dateTimeProvider)
 
-        viewModel.addEvent("Tannlege", null, fixedDate.toString(), null)
+        viewModel.addEvent("Tannlege", null, fixedDate.toString(), null, null, null, null, null)
 
         assertEquals("invalid event", viewModel.actionError.value)
 
@@ -191,10 +241,32 @@ class FamilyPlannerViewModelTest {
         val repository = FakePlannerRepository()
         val viewModel = FamilyPlannerViewModel(repository, dateTimeProvider)
 
-        viewModel.addEvent("Tannlege", null, "24.04.2026", null)
+        viewModel.addEvent("Tannlege", null, "24.04.2026", null, null, null, null, null)
 
         assertTrue(viewModel.actionError.value?.contains("could not be parsed") == true)
         assertTrue(repository.events.isEmpty())
+    }
+
+    @Test
+    fun invalidEventRecurrenceSurfacesActionError() = runTest {
+        val repository = FakePlannerRepository()
+        val viewModel = FamilyPlannerViewModel(repository, dateTimeProvider)
+
+        viewModel.addEvent("Tannlege", null, fixedDate.toString(), null, null, "monthly", null, null)
+
+        assertTrue(viewModel.actionError.value?.contains("invalid recurrence type") == true)
+        assertTrue(repository.events.isEmpty())
+    }
+
+    @Test
+    fun invalidExpenseDateSurfacesActionError() = runTest {
+        val repository = FakePlannerRepository()
+        val viewModel = FamilyPlannerViewModel(repository, dateTimeProvider)
+
+        viewModel.saveExpense(9, "250", "Transport", "24.04.2026", null, null)
+
+        assertTrue(viewModel.actionError.value?.contains("could not be parsed") == true)
+        assertTrue(repository.expenses.isEmpty())
     }
 
     @Test
@@ -203,7 +275,7 @@ class FamilyPlannerViewModelTest {
         repository.failSetup = IllegalArgumentException("missing setup")
         val viewModel = FamilyPlannerViewModel(repository, dateTimeProvider)
 
-        viewModel.initializeHousehold("", "")
+        viewModel.initializeHousehold("", "", null, null, null, null)
 
         assertEquals("missing setup", viewModel.setupError.value)
     }
@@ -214,14 +286,24 @@ class FamilyPlannerViewModelTest {
         repository.failSetup = IllegalArgumentException("missing setup")
         val viewModel = FamilyPlannerViewModel(repository, dateTimeProvider)
 
-        viewModel.initializeHousehold("", "")
+        viewModel.initializeHousehold("", "", null, null, null, null)
         assertEquals("missing setup", viewModel.setupError.value)
 
         repository.failSetup = null
-        viewModel.initializeHousehold("Hansen", "Anna")
+        viewModel.initializeHousehold("Hansen", "Anna", "2014-04-22", "Bio", "#10b981", "content://avatar")
 
         assertNull(viewModel.setupError.value)
-        assertEquals("Hansen" to "Anna", repository.setupRequests.single())
+        assertEquals("Hansen", repository.setupRequests.single().first)
+        assertEquals(
+            FamilyMemberInput(
+                name = "Anna",
+                color = "#10b981",
+                avatarUri = "content://avatar",
+                birthday = LocalDate.of(2014, 4, 22),
+                bio = "Bio",
+            ),
+            repository.setupRequests.single().second,
+        )
     }
 
     private class FakeDateTimeProvider(
@@ -236,7 +318,7 @@ class FamilyPlannerViewModelTest {
     private class FakePlannerRepository : PlannerRepository {
         private val dashboard = MutableStateFlow(emptyDashboard())
         private val settings = MutableStateFlow(AppSettings(languageOverride = null, currencyCode = "USD"))
-        val setupRequests = mutableListOf<Pair<String, String>>()
+        val setupRequests = mutableListOf<Pair<String, FamilyMemberInput>>()
         val familyMembers = mutableListOf<FamilyMemberInput>()
         val events = mutableListOf<EventInput>()
         val meals = mutableListOf<MealPlanInput>()
@@ -258,7 +340,10 @@ class FamilyPlannerViewModelTest {
         var failSetup: RuntimeException? = null
         var failNextAction: RuntimeException? = null
 
-        override fun observeDashboard(): Flow<PlannerDashboard> = dashboard
+        override fun observeDashboard(selectedWeekStart: Flow<LocalDate>): Flow<PlannerDashboard> =
+            combine(dashboard, selectedWeekStart) { current, weekStart ->
+                current.copy(weekStart = weekStart)
+            }
 
         override fun observeSettings(): Flow<AppSettings> = settings
 
@@ -270,9 +355,9 @@ class FamilyPlannerViewModelTest {
             currencyCodes += currencyCode
         }
 
-        override suspend fun initializeHousehold(familyName: String, firstMemberName: String) {
+        override suspend fun initializeHousehold(familyName: String, firstMember: FamilyMemberInput) {
             failSetup?.let { throw it }
-            setupRequests += familyName to firstMemberName
+            setupRequests += familyName to firstMember
         }
 
         override suspend fun upsertFamilyMember(input: FamilyMemberInput): Long {

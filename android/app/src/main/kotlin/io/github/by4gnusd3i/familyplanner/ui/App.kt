@@ -108,6 +108,7 @@ import io.github.by4gnusd3i.familyplanner.domain.model.MealPlan
 import io.github.by4gnusd3i.familyplanner.domain.model.NoteItem
 import io.github.by4gnusd3i.familyplanner.domain.model.PlannerDashboard
 import io.github.by4gnusd3i.familyplanner.domain.model.PlannerEvent
+import io.github.by4gnusd3i.familyplanner.domain.model.RecurrenceType
 import io.github.by4gnusd3i.familyplanner.domain.model.ShoppingItem
 import io.github.by4gnusd3i.familyplanner.domain.planner.RecurrenceRules
 import io.github.by4gnusd3i.familyplanner.ui.theme.FamilyPlannerTheme
@@ -139,15 +140,41 @@ private enum class PlannerQuickAction(@param:StringRes val titleRes: Int) {
 }
 
 private data class PlannerActionCallbacks(
-    val addEvent: (title: String, note: String?, eventDate: String, ownerId: Long?) -> Unit,
+    val addEvent: (
+        title: String,
+        note: String?,
+        eventDate: String,
+        startTime: String?,
+        endTime: String?,
+        recurrenceType: String?,
+        recurrenceUntil: String?,
+        ownerId: Long?,
+    ) -> Unit,
     val addMeal: (meal: String, note: String?) -> Unit,
     val addExpense: (amount: String, category: String?) -> Unit,
     val addNote: (title: String, content: String?) -> Unit,
     val addShoppingItem: (item: String, quantity: String) -> Unit,
     val saveBudget: (limit: String, income: String, currencyCode: String, month: String) -> Unit,
-    val saveEvent: (id: Long?, title: String, note: String?, eventDate: String, ownerId: Long?) -> Unit,
-    val saveMeal: (id: Long?, dayOfWeek: Int, meal: String, note: String?) -> Unit,
-    val saveExpense: (id: Long?, amount: String, category: String?, expenseDate: LocalDate) -> Unit,
+    val saveEvent: (
+        id: Long?,
+        title: String,
+        note: String?,
+        eventDate: String,
+        startTime: String?,
+        endTime: String?,
+        recurrenceType: String?,
+        recurrenceUntil: String?,
+        ownerId: Long?,
+    ) -> Unit,
+    val saveMeal: (id: Long?, dayOfWeek: Int, mealType: String, meal: String, ownerId: Long?, note: String?) -> Unit,
+    val saveExpense: (
+        id: Long?,
+        amount: String,
+        category: String?,
+        expenseDate: String,
+        ownerId: Long?,
+        description: String?,
+    ) -> Unit,
     val saveNote: (id: Long?, title: String, content: String?) -> Unit,
     val saveShoppingItem: (id: Long?, item: String, quantity: String) -> Unit,
     val deleteEvent: (id: Long) -> Unit,
@@ -167,6 +194,9 @@ private data class PlannerActionCallbacks(
     val setLanguageOverride: (languageId: String?) -> Unit,
     val setCurrencyCode: (currencyCode: String) -> Unit,
     val resetAllData: () -> Unit,
+    val previousWeek: () -> Unit,
+    val currentWeek: () -> Unit,
+    val nextWeek: () -> Unit,
 )
 
 private data class EventDraft(
@@ -238,6 +268,28 @@ private val PlannerTodayGradient = Brush.linearGradient(
         PlannerSkyBlue.copy(alpha = 0.72f),
     ),
 )
+private val FamilyMemberColors = listOf(
+    "#3b82f6",
+    "#10b981",
+    "#f59e0b",
+    "#ef4444",
+    "#8b5cf6",
+    "#ec4899",
+    "#06b6d4",
+    "#84cc16",
+    "#f97316",
+    "#14b8a6",
+    "#6366f1",
+    "#d946ef",
+    "#22c55e",
+    "#eab308",
+    "#0ea5e9",
+    "#f43f5e",
+    "#a855f7",
+    "#65a30d",
+    "#dc2626",
+    "#0891b2",
+)
 private val PlannerPageGradient = Brush.verticalGradient(
     colors = listOf(
         Color(0xFFFFF8FB),
@@ -282,6 +334,9 @@ fun FamilyPlannerApp(viewModel: FamilyPlannerViewModel) {
             setLanguageOverride = viewModel::setLanguageOverride,
             setCurrencyCode = viewModel::setCurrencyCode,
             resetAllData = viewModel::resetAllData,
+            previousWeek = viewModel::previousWeek,
+            currentWeek = viewModel::currentWeek,
+            nextWeek = viewModel::nextWeek,
         ),
     )
 }
@@ -292,7 +347,14 @@ private fun FamilyPlannerContent(
     settings: AppSettings,
     setupError: String?,
     actionError: String?,
-    onSetupSubmit: (familyName: String, firstMemberName: String) -> Unit,
+    onSetupSubmit: (
+        familyName: String,
+        firstMemberName: String,
+        birthday: String?,
+        bio: String?,
+        color: String?,
+        avatarUri: String?,
+    ) -> Unit,
     onDismissActionError: () -> Unit,
     actions: PlannerActionCallbacks,
 ) {
@@ -332,6 +394,7 @@ private fun FamilyPlannerContent(
 
     eventDraft?.let { draft ->
         EventActionDialog(
+            event = null,
             familyMembers = dashboard.familyMembers,
             defaultDate = draft.eventDate,
             defaultOwnerId = draft.ownerId,
@@ -343,6 +406,8 @@ private fun FamilyPlannerContent(
     activeAction?.let { action ->
         QuickActionDialog(
             action = action,
+            familyMembers = dashboard.familyMembers,
+            weekStart = dashboard.weekStart,
             onDismiss = { activeAction = null },
             actions = actions,
         )
@@ -364,6 +429,8 @@ private fun FamilyPlannerContent(
     editTarget?.let { target ->
         EditEntryDialog(
             target = target,
+            familyMembers = dashboard.familyMembers,
+            weekStart = dashboard.weekStart,
             onDismiss = { editTarget = null },
             actions = actions,
         )
@@ -403,10 +470,26 @@ private fun FamilyPlannerContent(
 @Composable
 private fun SetupScreen(
     setupError: String?,
-    onSetupSubmit: (familyName: String, firstMemberName: String) -> Unit,
+    onSetupSubmit: (
+        familyName: String,
+        firstMemberName: String,
+        birthday: String?,
+        bio: String?,
+        color: String?,
+        avatarUri: String?,
+    ) -> Unit,
 ) {
     var familyName by rememberSaveable { mutableStateOf("") }
     var firstMemberName by rememberSaveable { mutableStateOf("") }
+    var birthday by rememberSaveable { mutableStateOf("") }
+    var bio by rememberSaveable { mutableStateOf("") }
+    var color by rememberSaveable { mutableStateOf(FamilyMemberColors.first()) }
+    var avatarUri by rememberSaveable { mutableStateOf("") }
+    val avatarPicker = rememberLauncherForActivityResult(PickVisualMedia()) { uri ->
+        if (uri != null) {
+            avatarUri = uri.toString()
+        }
+    }
 
     PlannerBackground(
         modifier = Modifier
@@ -427,7 +510,9 @@ private fun SetupScreen(
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
             ) {
                 Column(
-                    modifier = Modifier.padding(24.dp),
+                    modifier = Modifier
+                        .padding(24.dp)
+                        .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     Text(
@@ -454,6 +539,47 @@ private fun SetupScreen(
                         label = { Text(stringResource(R.string.setup_first_member)) },
                         singleLine = true,
                     )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        AvatarSurface(
+                            member = FamilyMember(
+                                id = 0,
+                                name = firstMemberName,
+                                color = color,
+                                avatarUri = avatarUri.takeIf { it.isNotBlank() },
+                                birthday = null,
+                                bio = null,
+                            ),
+                        )
+                        Button(
+                            onClick = {
+                                avatarPicker.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly))
+                            },
+                        ) {
+                            Text(stringResource(R.string.action_choose_avatar))
+                        }
+                    }
+                    ColorSwatchSelector(
+                        selectedColor = color,
+                        onColorSelected = { color = it },
+                    )
+                    OutlinedTextField(
+                        modifier = Modifier.fillMaxWidth(),
+                        value = birthday,
+                        onValueChange = { birthday = it.take(10) },
+                        label = { Text(stringResource(R.string.field_birthday)) },
+                        singleLine = true,
+                    )
+                    OutlinedTextField(
+                        modifier = Modifier.fillMaxWidth(),
+                        value = bio,
+                        onValueChange = { bio = it },
+                        label = { Text(stringResource(R.string.field_bio)) },
+                        minLines = 2,
+                        maxLines = 4,
+                    )
                     if (!setupError.isNullOrBlank()) {
                         Text(
                             text = setupError,
@@ -463,7 +589,7 @@ private fun SetupScreen(
                     }
                     Button(
                         modifier = Modifier.fillMaxWidth(),
-                        onClick = { onSetupSubmit(familyName, firstMemberName) },
+                        onClick = { onSetupSubmit(familyName, firstMemberName, birthday, bio, color, avatarUri) },
                     ) {
                         Text(stringResource(R.string.setup_submit))
                     }
@@ -640,6 +766,9 @@ private fun TabletDashboard(
                             familyMembers = dashboard.familyMembers,
                             onEntrySelected = onEntrySelected,
                             onDateSelected = onEventDateSelected,
+                            onPreviousWeek = actions.previousWeek,
+                            onCurrentWeek = actions.currentWeek,
+                            onNextWeek = actions.nextWeek,
                             onDayBoundsChanged = { day, bounds -> dayDropBounds[day] = bounds },
                             highlightedDate = highlightedDropDate,
                         )
@@ -727,6 +856,9 @@ private fun DestinationContent(
                             familyMembers = dashboard.familyMembers,
                             onEntrySelected = onEntrySelected,
                             onDateSelected = onEventDateSelected,
+                            onPreviousWeek = actions.previousWeek,
+                            onCurrentWeek = actions.currentWeek,
+                            onNextWeek = actions.nextWeek,
                         )
                     }
                 }
@@ -906,6 +1038,9 @@ private fun WeekCalendar(
     familyMembers: List<FamilyMember>,
     onEntrySelected: (PlannerSummaryTarget) -> Unit,
     onDateSelected: (LocalDate) -> Unit,
+    onPreviousWeek: () -> Unit,
+    onCurrentWeek: () -> Unit,
+    onNextWeek: () -> Unit,
     onDayBoundsChanged: (LocalDate, Rect) -> Unit = { _, _ -> },
     highlightedDate: LocalDate? = null,
 ) {
@@ -948,6 +1083,9 @@ private fun WeekCalendar(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+            WeekNavButton(R.string.week_previous, onPreviousWeek)
+            WeekNavButton(R.string.week_current, onCurrentWeek)
+            WeekNavButton(R.string.week_next, onNextWeek)
         }
         BoxWithConstraints(Modifier.fillMaxSize()) {
             if (maxWidth >= 520.dp) {
@@ -995,6 +1133,22 @@ private fun WeekCalendar(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun WeekNavButton(
+    @StringRes label: Int,
+    onClick: () -> Unit,
+) {
+    TextButton(onClick = onClick) {
+        Text(
+            text = stringResource(label),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Bold,
+        )
     }
 }
 
@@ -1861,22 +2015,42 @@ private fun QuickActionChooserDialog(
 
 @Composable
 private fun EventActionDialog(
+    event: PlannerEvent?,
     familyMembers: List<FamilyMember>,
     defaultDate: LocalDate,
     defaultOwnerId: Long?,
     onDismiss: () -> Unit,
     actions: PlannerActionCallbacks,
 ) {
-    var title by rememberSaveable(defaultDate, defaultOwnerId) { mutableStateOf("") }
-    var note by rememberSaveable(defaultDate, defaultOwnerId) { mutableStateOf("") }
-    var eventDate by rememberSaveable(defaultDate, defaultOwnerId) { mutableStateOf(defaultDate.toString()) }
-    var ownerId by rememberSaveable(defaultDate, defaultOwnerId) { mutableStateOf(defaultOwnerId) }
+    var title by rememberSaveable(event?.id, defaultDate, defaultOwnerId) { mutableStateOf(event?.title.orEmpty()) }
+    var note by rememberSaveable(event?.id, defaultDate, defaultOwnerId) { mutableStateOf(event?.note.orEmpty()) }
+    var eventDate by rememberSaveable(event?.id, defaultDate, defaultOwnerId) {
+        mutableStateOf((event?.eventDate ?: defaultDate).toString())
+    }
+    var startTime by rememberSaveable(event?.id) {
+        mutableStateOf(event?.startTime?.format(ShortTimeFormatter).orEmpty())
+    }
+    var endTime by rememberSaveable(event?.id) {
+        mutableStateOf(event?.endTime?.format(ShortTimeFormatter).orEmpty())
+    }
+    var recurrenceType by rememberSaveable(event?.id) {
+        mutableStateOf(event?.recurrenceType?.storageValue.orEmpty())
+    }
+    var recurrenceUntil by rememberSaveable(event?.id) {
+        mutableStateOf(event?.recurrenceUntil?.toString().orEmpty())
+    }
+    var ownerId by rememberSaveable(event?.id, defaultDate, defaultOwnerId) {
+        mutableStateOf(event?.ownerId ?: defaultOwnerId)
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.quick_event)) },
+        title = { Text(stringResource(if (event == null) R.string.quick_event else R.string.action_edit)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 OutlinedTextField(
                     modifier = Modifier.fillMaxWidth(),
                     value = title,
@@ -1891,6 +2065,38 @@ private fun EventActionDialog(
                     label = { Text(stringResource(R.string.field_event_date)) },
                     singleLine = true,
                 )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        modifier = Modifier.weight(1f),
+                        value = startTime,
+                        onValueChange = { startTime = it.take(5) },
+                        label = { Text(stringResource(R.string.field_start_time)) },
+                        singleLine = true,
+                    )
+                    OutlinedTextField(
+                        modifier = Modifier.weight(1f),
+                        value = endTime,
+                        onValueChange = { endTime = it.take(5) },
+                        label = { Text(stringResource(R.string.field_end_time)) },
+                        singleLine = true,
+                    )
+                }
+                RecurrenceSelector(
+                    selected = recurrenceType,
+                    onSelected = {
+                        recurrenceType = it
+                        if (it.isBlank()) recurrenceUntil = ""
+                    },
+                )
+                if (recurrenceType.isNotBlank()) {
+                    OutlinedTextField(
+                        modifier = Modifier.fillMaxWidth(),
+                        value = recurrenceUntil,
+                        onValueChange = { recurrenceUntil = it.take(10) },
+                        label = { Text(stringResource(R.string.field_recurrence_until)) },
+                        singleLine = true,
+                    )
+                }
                 OwnerSelector(
                     familyMembers = familyMembers,
                     selectedOwnerId = ownerId,
@@ -1913,7 +2119,30 @@ private fun EventActionDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    actions.addEvent(title, note, eventDate, ownerId)
+                    if (event == null) {
+                        actions.addEvent(
+                            title,
+                            note,
+                            eventDate,
+                            startTime,
+                            endTime,
+                            recurrenceType,
+                            recurrenceUntil,
+                            ownerId,
+                        )
+                    } else {
+                        actions.saveEvent(
+                            event.id,
+                            title,
+                            note,
+                            eventDate,
+                            startTime,
+                            endTime,
+                            recurrenceType,
+                            recurrenceUntil,
+                            ownerId,
+                        )
+                    }
                     onDismiss()
                 },
             ) {
@@ -1921,6 +2150,41 @@ private fun EventActionDialog(
             }
         },
     )
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun RecurrenceSelector(
+    selected: String,
+    onSelected: (String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = stringResource(R.string.field_recurrence),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OwnerButton(
+                label = stringResource(R.string.recurrence_none),
+                selected = selected.isBlank(),
+                onClick = { onSelected("") },
+            )
+            OwnerButton(
+                label = stringResource(R.string.recurrence_daily),
+                selected = selected == RecurrenceType.Daily.storageValue,
+                onClick = { onSelected(RecurrenceType.Daily.storageValue) },
+            )
+            OwnerButton(
+                label = stringResource(R.string.recurrence_weekly),
+                selected = selected == RecurrenceType.Weekly.storageValue,
+                onClick = { onSelected(RecurrenceType.Weekly.storageValue) },
+            )
+        }
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -1971,12 +2235,306 @@ private fun OwnerButton(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun QuickActionDialog(
-    action: PlannerQuickAction,
+private fun DaySelector(
+    weekStart: LocalDate,
+    selectedDayOfWeek: Int,
+    onDaySelected: (Int) -> Unit,
+) {
+    val locale = LocalLocale.current.platformLocale
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = stringResource(R.string.field_day),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            (0..6).forEach { index ->
+                val date = weekStart.plusDays(index.toLong())
+                OwnerButton(
+                    label = "${date.dayOfWeek.getDisplayName(JavaTextStyle.SHORT, locale)} ${date.format(ShortDateFormatter)}",
+                    selected = selectedDayOfWeek == index,
+                    onClick = { onDaySelected(index) },
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun MealTypeSelector(
+    selectedMealType: String,
+    onMealTypeSelected: (String) -> Unit,
+) {
+    val options = listOf(
+        "breakfast" to R.string.meal_type_breakfast,
+        "lunch" to R.string.meal_type_lunch,
+        "dinner" to R.string.meal_type_dinner,
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = stringResource(R.string.field_meal_type),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            options.forEach { (value, label) ->
+                OwnerButton(
+                    label = stringResource(label),
+                    selected = selectedMealType == value,
+                    onClick = { onMealTypeSelected(value) },
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ColorSwatchSelector(
+    selectedColor: String,
+    onColorSelected: (String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = stringResource(R.string.field_color),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            FamilyMemberColors.forEach { color ->
+                Surface(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .clickable { onColorSelected(color) },
+                    shape = CircleShape,
+                    color = color.toComposeColor(),
+                    border = BorderStroke(
+                        width = if (selectedColor.equals(color, ignoreCase = true)) 3.dp else 1.dp,
+                        color = if (selectedColor.equals(color, ignoreCase = true)) PlannerInk else PlannerSoftBorder,
+                    ),
+                    content = {},
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MealActionDialog(
+    meal: MealPlan?,
+    familyMembers: List<FamilyMember>,
+    weekStart: LocalDate,
+    defaultDayOfWeek: Int,
     onDismiss: () -> Unit,
     actions: PlannerActionCallbacks,
 ) {
+    var mealText by rememberSaveable(meal?.id) { mutableStateOf(meal?.meal.orEmpty()) }
+    var note by rememberSaveable(meal?.id) { mutableStateOf(meal?.note.orEmpty()) }
+    var dayOfWeek by rememberSaveable(meal?.id, defaultDayOfWeek) {
+        mutableStateOf(meal?.dayOfWeek ?: defaultDayOfWeek.coerceIn(0, 6))
+    }
+    var mealType by rememberSaveable(meal?.id) { mutableStateOf(meal?.mealType ?: "dinner") }
+    var ownerId by rememberSaveable(meal?.id) { mutableStateOf(meal?.ownerId) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(if (meal == null) R.string.quick_meal else R.string.action_edit)) },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = mealText,
+                    onValueChange = { mealText = it },
+                    label = { Text(stringResource(R.string.field_meal)) },
+                    singleLine = true,
+                )
+                DaySelector(
+                    weekStart = weekStart,
+                    selectedDayOfWeek = dayOfWeek,
+                    onDaySelected = { dayOfWeek = it },
+                )
+                MealTypeSelector(
+                    selectedMealType = mealType,
+                    onMealTypeSelected = { mealType = it },
+                )
+                OwnerSelector(
+                    familyMembers = familyMembers,
+                    selectedOwnerId = ownerId,
+                    onOwnerSelected = { ownerId = it },
+                )
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = note,
+                    onValueChange = { note = it },
+                    label = { Text(stringResource(R.string.field_note)) },
+                    maxLines = 3,
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.action_cancel))
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    actions.saveMeal(meal?.id, dayOfWeek, mealType, mealText, ownerId, note)
+                    onDismiss()
+                },
+            ) {
+                Text(stringResource(R.string.action_save))
+            }
+        },
+    )
+}
+
+@Composable
+private fun ExpenseActionDialog(
+    expense: ExpenseItem?,
+    familyMembers: List<FamilyMember>,
+    defaultDate: LocalDate,
+    onDismiss: () -> Unit,
+    actions: PlannerActionCallbacks,
+) {
+    var amount by rememberSaveable(expense?.id) { mutableStateOf(expense?.amount?.formatMoney().orEmpty()) }
+    var category by rememberSaveable(expense?.id) { mutableStateOf(expense?.category.orEmpty()) }
+    var expenseDate by rememberSaveable(expense?.id, defaultDate) {
+        mutableStateOf((expense?.expenseDate ?: defaultDate).toString())
+    }
+    var ownerId by rememberSaveable(expense?.id) { mutableStateOf(expense?.ownerId) }
+    var description by rememberSaveable(expense?.id) { mutableStateOf(expense?.description.orEmpty()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(if (expense == null) R.string.quick_expense else R.string.action_edit)) },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = amount,
+                    onValueChange = { amount = it },
+                    label = { Text(stringResource(R.string.field_amount)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                )
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = category,
+                    onValueChange = { category = it },
+                    label = { Text(stringResource(R.string.field_category)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = expenseDate,
+                    onValueChange = { expenseDate = it.take(10) },
+                    label = { Text(stringResource(R.string.field_expense_date)) },
+                    singleLine = true,
+                )
+                OwnerSelector(
+                    familyMembers = familyMembers,
+                    selectedOwnerId = ownerId,
+                    onOwnerSelected = { ownerId = it },
+                )
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text(stringResource(R.string.field_description)) },
+                    maxLines = 3,
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.action_cancel))
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    actions.saveExpense(
+                        expense?.id,
+                        amount,
+                        category,
+                        expenseDate,
+                        ownerId,
+                        description,
+                    )
+                    onDismiss()
+                },
+            ) {
+                Text(stringResource(R.string.action_save))
+            }
+        },
+    )
+}
+
+@Composable
+private fun QuickActionDialog(
+    action: PlannerQuickAction,
+    familyMembers: List<FamilyMember>,
+    weekStart: LocalDate,
+    onDismiss: () -> Unit,
+    actions: PlannerActionCallbacks,
+) {
+    when (action) {
+        PlannerQuickAction.Event -> {
+            EventActionDialog(
+                event = null,
+                familyMembers = familyMembers,
+                defaultDate = LocalDate.now(),
+                defaultOwnerId = null,
+                onDismiss = onDismiss,
+                actions = actions,
+            )
+            return
+        }
+        PlannerQuickAction.Meal -> {
+            MealActionDialog(
+                meal = null,
+                familyMembers = familyMembers,
+                weekStart = weekStart,
+                defaultDayOfWeek = LocalDate.now().dayOfWeek.value - 1,
+                onDismiss = onDismiss,
+                actions = actions,
+            )
+            return
+        }
+        PlannerQuickAction.Expense -> {
+            ExpenseActionDialog(
+                expense = null,
+                familyMembers = familyMembers,
+                defaultDate = LocalDate.now(),
+                onDismiss = onDismiss,
+                actions = actions,
+            )
+            return
+        }
+        PlannerQuickAction.Note,
+        PlannerQuickAction.ShoppingItem -> Unit
+    }
+
     var primary by rememberSaveable(action) { mutableStateOf("") }
     var secondary by rememberSaveable(action) { mutableStateOf("") }
     val titleLabel = when (action) {
@@ -2031,7 +2589,16 @@ private fun QuickActionDialog(
             TextButton(
                 onClick = {
                     when (action) {
-                        PlannerQuickAction.Event -> actions.addEvent(primary, secondary, LocalDate.now().toString(), null)
+                        PlannerQuickAction.Event -> actions.addEvent(
+                            primary,
+                            secondary,
+                            LocalDate.now().toString(),
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                        )
                         PlannerQuickAction.Meal -> actions.addMeal(primary, secondary)
                         PlannerQuickAction.Expense -> actions.addExpense(primary, secondary)
                         PlannerQuickAction.Note -> actions.addNote(primary, secondary)
@@ -2115,9 +2682,48 @@ private fun SummaryDialog(
 @Composable
 private fun EditEntryDialog(
     target: PlannerSummaryTarget,
+    familyMembers: List<FamilyMember>,
+    weekStart: LocalDate,
     onDismiss: () -> Unit,
     actions: PlannerActionCallbacks,
 ) {
+    when (target) {
+        is PlannerSummaryTarget.Event -> {
+            EventActionDialog(
+                event = target.event,
+                familyMembers = familyMembers,
+                defaultDate = target.event.eventDate,
+                defaultOwnerId = target.event.ownerId,
+                onDismiss = onDismiss,
+                actions = actions,
+            )
+            return
+        }
+        is PlannerSummaryTarget.Meal -> {
+            MealActionDialog(
+                meal = target.meal,
+                familyMembers = familyMembers,
+                weekStart = weekStart,
+                defaultDayOfWeek = target.meal.dayOfWeek,
+                onDismiss = onDismiss,
+                actions = actions,
+            )
+            return
+        }
+        is PlannerSummaryTarget.Expense -> {
+            ExpenseActionDialog(
+                expense = target.expense,
+                familyMembers = familyMembers,
+                defaultDate = target.expense.expenseDate,
+                onDismiss = onDismiss,
+                actions = actions,
+            )
+            return
+        }
+        is PlannerSummaryTarget.Note,
+        is PlannerSummaryTarget.Shopping -> Unit
+    }
+
     var primary by rememberSaveable(target.title) { mutableStateOf(editPrimaryValue(target)) }
     var secondary by rememberSaveable(target.detail) { mutableStateOf(editSecondaryValue(target)) }
     val primaryLabel = when (target) {
@@ -2391,12 +2997,9 @@ private fun FamilyMemberDialog(
                     label = { Text(stringResource(R.string.field_name)) },
                     singleLine = true,
                 )
-                OutlinedTextField(
-                    modifier = Modifier.fillMaxWidth(),
-                    value = color,
-                    onValueChange = { color = it },
-                    label = { Text(stringResource(R.string.field_color)) },
-                    singleLine = true,
+                ColorSwatchSelector(
+                    selectedColor = color,
+                    onColorSelected = { color = it },
                 )
                 OutlinedTextField(
                     modifier = Modifier.fillMaxWidth(),
@@ -2550,19 +3153,27 @@ private fun saveTarget(
             primary,
             secondary,
             target.event.eventDate.toString(),
+            target.event.startTime?.format(ShortTimeFormatter),
+            target.event.endTime?.format(ShortTimeFormatter),
+            target.event.recurrenceType?.storageValue,
+            target.event.recurrenceUntil?.toString(),
             target.event.ownerId,
         )
         is PlannerSummaryTarget.Meal -> actions.saveMeal(
             target.meal.id,
             target.meal.dayOfWeek,
+            target.meal.mealType,
             primary,
+            target.meal.ownerId,
             secondary,
         )
         is PlannerSummaryTarget.Expense -> actions.saveExpense(
             target.expense.id,
             primary,
             secondary,
-            target.expense.expenseDate,
+            target.expense.expenseDate.toString(),
+            target.expense.ownerId,
+            target.expense.description,
         )
         is PlannerSummaryTarget.Note -> actions.saveNote(
             target.note.id,
@@ -2840,15 +3451,15 @@ private fun previewDashboard(): PlannerDashboard =
 
 private fun previewActions(): PlannerActionCallbacks =
     PlannerActionCallbacks(
-        addEvent = { _, _, _, _ -> },
+        addEvent = { _, _, _, _, _, _, _, _ -> },
         addMeal = { _, _ -> },
         addExpense = { _, _ -> },
         addNote = { _, _ -> },
         addShoppingItem = { _, _ -> },
         saveBudget = { _, _, _, _ -> },
-        saveEvent = { _, _, _, _, _ -> },
-        saveMeal = { _, _, _, _ -> },
-        saveExpense = { _, _, _, _ -> },
+        saveEvent = { _, _, _, _, _, _, _, _, _ -> },
+        saveMeal = { _, _, _, _, _, _ -> },
+        saveExpense = { _, _, _, _, _, _ -> },
         saveNote = { _, _, _ -> },
         saveShoppingItem = { _, _, _ -> },
         deleteEvent = { _ -> },
@@ -2861,6 +3472,9 @@ private fun previewActions(): PlannerActionCallbacks =
         setLanguageOverride = { _ -> },
         setCurrencyCode = { _ -> },
         resetAllData = {},
+        previousWeek = {},
+        currentWeek = {},
+        nextWeek = {},
     )
 
 @Preview(widthDp = 390, heightDp = 844)
@@ -2879,6 +3493,21 @@ internal fun FamilyPlannerPhoneShellTestContent() {
             onEntrySelected = {},
             onEventDateSelected = {},
             onSettingsClick = {},
+        )
+    }
+}
+
+@Composable
+internal fun FamilyPlannerInteractiveParityTestContent() {
+    FamilyPlannerTheme {
+        FamilyPlannerContent(
+            dashboard = previewDashboard(),
+            settings = AppSettings(languageOverride = null, currencyCode = "NOK"),
+            setupError = null,
+            actionError = null,
+            onSetupSubmit = { _, _, _, _, _, _ -> },
+            onDismissActionError = {},
+            actions = previewActions(),
         )
     }
 }

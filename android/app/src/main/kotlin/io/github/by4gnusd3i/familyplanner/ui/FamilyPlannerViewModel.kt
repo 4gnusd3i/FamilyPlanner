@@ -15,6 +15,7 @@ import io.github.by4gnusd3i.familyplanner.domain.planner.FamilyMemberInput
 import io.github.by4gnusd3i.familyplanner.domain.planner.MealPlanInput
 import io.github.by4gnusd3i.familyplanner.domain.planner.NoteInput
 import io.github.by4gnusd3i.familyplanner.domain.planner.ShoppingItemInput
+import io.github.by4gnusd3i.familyplanner.domain.model.RecurrenceType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -25,6 +26,7 @@ import java.math.BigDecimal
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.LocalTime
 import javax.inject.Inject
 
 @HiltViewModel
@@ -32,8 +34,10 @@ class FamilyPlannerViewModel @Inject constructor(
     private val repository: PlannerRepository,
     private val dateTimeProvider: DateTimeProvider,
 ) : ViewModel() {
+    private val _selectedWeekStart = MutableStateFlow(dateTimeProvider.today().startOfWeek())
+
     val dashboard: StateFlow<PlannerDashboard> =
-        repository.observeDashboard()
+        repository.observeDashboard(_selectedWeekStart)
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5_000),
@@ -79,10 +83,38 @@ class FamilyPlannerViewModel @Inject constructor(
         }
     }
 
-    fun initializeHousehold(familyName: String, firstMemberName: String) {
+    fun previousWeek() {
+        _selectedWeekStart.value = _selectedWeekStart.value.minusWeeks(1)
+    }
+
+    fun nextWeek() {
+        _selectedWeekStart.value = _selectedWeekStart.value.plusWeeks(1)
+    }
+
+    fun currentWeek() {
+        _selectedWeekStart.value = dateTimeProvider.today().startOfWeek()
+    }
+
+    fun initializeHousehold(
+        familyName: String,
+        firstMemberName: String,
+        birthday: String?,
+        bio: String?,
+        color: String?,
+        avatarUri: String?,
+    ) {
         viewModelScope.launch {
             runCatching {
-                repository.initializeHousehold(familyName, firstMemberName)
+                repository.initializeHousehold(
+                    familyName = familyName,
+                    firstMember = FamilyMemberInput(
+                        name = firstMemberName,
+                        birthday = birthday.trimOrNull()?.let(LocalDate::parse),
+                        bio = bio,
+                        color = color,
+                        avatarUri = avatarUri,
+                    ),
+                )
             }.onSuccess {
                 _setupError.value = null
             }.onFailure { error ->
@@ -91,17 +123,40 @@ class FamilyPlannerViewModel @Inject constructor(
         }
     }
 
-    fun addEvent(title: String, note: String?, eventDate: String, ownerId: Long?) {
+    fun addEvent(
+        title: String,
+        note: String?,
+        eventDate: String,
+        startTime: String?,
+        endTime: String?,
+        recurrenceType: String?,
+        recurrenceUntil: String?,
+        ownerId: Long?,
+    ) {
         saveEvent(
             id = null,
             title = title,
             note = note,
             eventDate = eventDate,
+            startTime = startTime,
+            endTime = endTime,
+            recurrenceType = recurrenceType,
+            recurrenceUntil = recurrenceUntil,
             ownerId = ownerId,
         )
     }
 
-    fun saveEvent(id: Long?, title: String, note: String?, eventDate: String, ownerId: Long?) {
+    fun saveEvent(
+        id: Long?,
+        title: String,
+        note: String?,
+        eventDate: String,
+        startTime: String?,
+        endTime: String?,
+        recurrenceType: String?,
+        recurrenceUntil: String?,
+        ownerId: Long?,
+    ) {
         runPlannerAction {
             repository.upsertEvent(
                 EventInput(
@@ -109,6 +164,10 @@ class FamilyPlannerViewModel @Inject constructor(
                     title = title,
                     eventDate = eventDate.trim().takeIf { it.isNotEmpty() }?.let(LocalDate::parse)
                         ?: dateTimeProvider.today(),
+                    startTime = parseOptionalTime(startTime),
+                    endTime = parseOptionalTime(endTime),
+                    recurrenceType = parseRecurrenceType(recurrenceType),
+                    recurrenceUntil = recurrenceUntil.trimOrNull()?.let(LocalDate::parse),
                     ownerId = ownerId,
                     note = note,
                 ),
@@ -120,18 +179,22 @@ class FamilyPlannerViewModel @Inject constructor(
         saveMeal(
             id = null,
             dayOfWeek = dateTimeProvider.today().dayOfWeek.toPlannerDayIndex(),
+            mealType = "dinner",
             meal = meal,
+            ownerId = null,
             note = note,
         )
     }
 
-    fun saveMeal(id: Long?, dayOfWeek: Int, meal: String, note: String?) {
+    fun saveMeal(id: Long?, dayOfWeek: Int, mealType: String, meal: String, ownerId: Long?, note: String?) {
         runPlannerAction {
             repository.upsertMeal(
                 MealPlanInput(
                     id = id,
                     dayOfWeek = dayOfWeek,
+                    mealType = mealType,
                     meal = meal,
+                    ownerId = ownerId,
                     note = note,
                 ),
             )
@@ -143,18 +206,30 @@ class FamilyPlannerViewModel @Inject constructor(
             id = null,
             amount = amount,
             category = category,
-            expenseDate = dateTimeProvider.today(),
+            expenseDate = dateTimeProvider.today().toString(),
+            ownerId = null,
+            description = null,
         )
     }
 
-    fun saveExpense(id: Long?, amount: String, category: String?, expenseDate: LocalDate) {
+    fun saveExpense(
+        id: Long?,
+        amount: String,
+        category: String?,
+        expenseDate: String,
+        ownerId: Long?,
+        description: String?,
+    ) {
         runPlannerAction {
             repository.upsertExpense(
                 ExpenseInput(
                     id = id,
                     amount = amount.trim().replace(',', '.').toBigDecimal(),
                     category = category,
-                    expenseDate = expenseDate,
+                    expenseDate = expenseDate.trimOrNull()?.let(LocalDate::parse)
+                        ?: dateTimeProvider.today(),
+                    ownerId = ownerId,
+                    description = description,
                 ),
             )
         }
@@ -308,4 +383,18 @@ class FamilyPlannerViewModel @Inject constructor(
 
     private fun LocalDate.startOfWeek(): LocalDate =
         minusDays((dayOfWeek.value - 1).toLong())
+
+    private fun parseOptionalTime(value: String?): LocalTime? =
+        value.trimOrNull()?.let(LocalTime::parse)
+
+    private fun parseRecurrenceType(value: String?): RecurrenceType? =
+        when (val normalized = value.trimOrNull()?.lowercase()) {
+            "daily" -> RecurrenceType.Daily
+            "weekly" -> RecurrenceType.Weekly
+            null -> null
+            else -> throw IllegalArgumentException("invalid recurrence type: $normalized")
+        }
+
+    private fun String?.trimOrNull(): String? =
+        this?.trim()?.takeIf { it.isNotEmpty() }
 }
